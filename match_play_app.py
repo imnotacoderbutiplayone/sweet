@@ -311,7 +311,7 @@ with tabs[3]:
             key=col
 )
 
-            qf_left.append(p1 if winner == label(p1) else p2)
+        qf_left.append(p1 if winner == label(p1) else p2)
 
             st.markdown("#### \U0001F948 Quarterfinals")
             sf_left = []
