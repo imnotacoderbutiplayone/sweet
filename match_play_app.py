@@ -63,19 +63,21 @@ if not st.session_state.app_authenticated:
 # Sidebar Admin Login - Add Refresh Data Button
 if st.session_state.authenticated:
     st.sidebar.subheader("Admin Actions")
+    
     # Add the Refresh Data button
-    if st.sidebar.button("Clear all Match Data "):
+    if st.sidebar.button("Clear all Match Data"):
         # Reset session state for specific data (optional)
         st.session_state.bracket_data = pd.DataFrame()
         st.session_state.match_results = {}
-        
+
         # Only clear the data if explicitly requested by the admin
         save_json(BRACKET_FILE, {})  # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
-        st.success("Data has been refreshed. All saved data cleared.  Please refresh your browser.")
+        st.success("Data has been refreshed. All saved data cleared. Please refresh your browser.")
         
-        # Stop execution to allow the admin to refresh manually
-        st.stop()
+        # No need for st.stop() - just keep the app running and let the admin refresh manually
+        # This allows the admin to continue using the app without halting the script
+
 
 
 # Sidebar Admin Login - Add Refresh Data Button
