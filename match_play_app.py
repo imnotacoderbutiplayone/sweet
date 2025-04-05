@@ -237,6 +237,9 @@ def simulate_matches(players, pod_name):
     # Store the results by pod in session state
     st.session_state.match_results[pod_name] = results
 
+    # Debugging: Ensure the match results are being saved
+    st.write(f"Saving results for pod {pod_name}: {results}")
+
     # Save the match results to the RESULTS_FILE for persistence across sessions
     save_json(RESULTS_FILE, st.session_state.match_results)
 
