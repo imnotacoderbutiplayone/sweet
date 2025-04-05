@@ -328,23 +328,28 @@ def pod_has_results(pod_name):
 
 # --- Tiebreak Selection + Bracket Finalization ---
 if st.session_state.authenticated:
-    st.header("🧮 Step 1: Review & Resolve Tiebreakers")
+    st.header("\U0001F9EE Step 1: Review & Resolve Tiebreakers")
 
     if "tiebreak_selections" not in st.session_state:
         st.session_state.tiebreak_selections = {}
     if "tiebreaks_resolved" not in st.session_state:
         st.session_state.tiebreaks_resolved = False
 
-    unresolved = False
     pod_winners_temp, pod_second_temp = [], []
+    unresolved = False
 
     for pod_name, df in pod_results.items():
-        if not pod_has_results(pod_name):
+        # Skip pods with no match results
+        if "points" not in df.columns:
             st.info(f"📭 No match results entered yet for {pod_name}.")
             continue
 
         df["points"] = df.get("points", 0)
         df["margin"] = df.get("margin", 0)
+
+        if not df["points"].any() and not df["margin"].any():
+            st.info(f"📭 No match results entered yet for {pod_name}.")
+            continue
 
         sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
