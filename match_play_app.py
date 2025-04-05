@@ -195,7 +195,7 @@ def simulate_matches(players):
                 st.info("🔒 Only admin can enter match results.")
 
      if winner == "No result":
-         st.warning("⏳ Awaiting result input")
+        st.warning("⏳ Awaiting result input")
         continue  # Skip to the next match
     elif winner == p1['name']:
         results[p1['name']]['points'] += 1
