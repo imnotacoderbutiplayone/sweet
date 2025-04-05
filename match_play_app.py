@@ -292,11 +292,14 @@ with tabs[1]:
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
 
-# ---------- Step 1: Admin Tiebreaker Selection ----------
+# --- Tiebreak Selection + Bracket Finalization ---
 if st.session_state.authenticated:
     st.header("🧮 Step 1: Review & Resolve Tiebreakers")
+
     if "tiebreak_selections" not in st.session_state:
         st.session_state.tiebreak_selections = {}
+    if "tiebreaks_resolved" not in st.session_state:
+        st.session_state.tiebreaks_resolved = False
 
     pod_winners_temp, pod_second_temp = [], []
     unresolved = False
@@ -304,7 +307,7 @@ if st.session_state.authenticated:
     for pod_name, df in pod_results.items():
         sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
-        # First Place Tiebreak
+        # --- First Place ---
         top_score = sorted_players.iloc[0]["points"]
         top_margin = sorted_players.iloc[0]["margin"]
         tied_first = sorted_players[
@@ -327,7 +330,7 @@ if st.session_state.authenticated:
         else:
             st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
 
-        # Second Place Tiebreak
+        # --- Second Place ---
         winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
         remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
 
@@ -353,10 +356,13 @@ if st.session_state.authenticated:
         else:
             st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
 
+    # --- Finalize Button ---
     if unresolved:
-        st.error("⛔ Please resolve all tiebreakers before proceeding.")
+        st.error("⛔ Please resolve all tiebreakers before finalizing.")
+        st.session_state.tiebreaks_resolved = False
     else:
-        st.success("✅ All tiebreakers selected. You may now build the bracket.")
+        st.session_state.tiebreaks_resolved = True
+        st.success("✅ All tiebreakers selected.")
 
         if st.button("🏁 Finalize Bracket and Seed Field"):
             winners, second_place = [], []
@@ -371,7 +377,6 @@ if st.session_state.authenticated:
                 winners.append({"pod": pod_name, **first_row})
                 second_place.append(second_row)
 
-            # Top 3 runner-ups
             top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
             final_players = winners + top_3
 
@@ -382,7 +387,7 @@ if st.session_state.authenticated:
             save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
 
             st.success("✅ Bracket finalized and seeded.")
-            st.write("📊 Final Bracket", bracket_df)
+            st.write("📊 Final Bracket", st.session_state.bracket_data)
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
