@@ -193,6 +193,8 @@ def load_json(file_path):
 def simulate_matches(players):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
+    
+    # Loop through players and simulate match results
     for i in range(num_players):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
@@ -236,6 +238,7 @@ def simulate_matches(players):
     save_json(RESULTS_FILE, results)
 
     return players
+
 
 # --- Label Helper ---
 def label(player):
@@ -397,18 +400,19 @@ with tabs[3]:
 
 
 # Tab 3: Standings
-# Tab 3: Standings
 with tabs[2]:
     st.subheader("\U0001F4CB Standings")
+    
+    # Check if any match results exist
     if st.session_state.match_results:  # Only display if match results are available
         standings = pd.DataFrame(st.session_state.match_results).T.sort_values(by=["points", "margin"], ascending=False)
+        
         if standings.empty:
             st.info("No matches have been played yet. Standings will update after the first match.")
         else:
             st.dataframe(standings)
     else:
         st.info("No matches have been played yet. Standings will update after the first match.")
-
 
 
 # Tab 4: Export
