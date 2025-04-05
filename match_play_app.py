@@ -60,22 +60,24 @@ if not st.session_state.app_authenticated:
             st.error("Incorrect tournament password.")
     st.stop()
 
-# Sidebar Admin Login - Add Refresh Data Button
-if st.session_state.authenticated:
-    st.sidebar.subheader("Admin Actions")
+# ---- Admin Login ----
+if not st.session_state.authenticated:
+    st.sidebar.header("🔐 Admin Login")
     
-    # Add the Refresh Data button
-    if st.sidebar.button("Clear all Match Data"):
-        # Reset session state for specific data (optional)
-        st.session_state.bracket_data = pd.DataFrame()
-        st.session_state.match_results = {}
+    # Show the input box for admin login
+    admin_pwd = st.sidebar.text_input("Enter Admin Password", type="password")
 
-        # Only clear the data if explicitly requested by the admin
-        save_json(BRACKET_FILE, {})  # Clear the saved bracket data
-        save_json(RESULTS_FILE, {})  # Clear the saved match results
-        st.success("Data has been refreshed. All saved data cleared. Please refresh your browser.")
-
-        # Don't call st.stop(), just let the admin refresh manually
+    if st.sidebar.button("Login"):
+        if admin_pwd == admin_password:
+            st.session_state.authenticated = True
+            st.sidebar.success("✅ Logged in as admin.")
+        else:
+            st.sidebar.error("❌ Incorrect admin password.")
+else:
+    st.sidebar.success("✅ Admin logged in.")
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
+        st.sidebar.success("Logged out.")
 
 
 # Sidebar Admin Login - Add Refresh Data Button
