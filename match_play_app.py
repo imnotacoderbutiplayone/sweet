@@ -2,8 +2,36 @@ import streamlit as st
 import pandas as pd
 from collections import defaultdict
 import io
+import json
+import os
 
+# --- Utility functions for persistence ---
+def save_json(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return None
+
+# --- Streamlit App Config and File Paths ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+BRACKET_FILE = "bracket_data.json"
+RESULTS_FILE = "match_results.json"
+
+# Load shared bracket data
+if "bracket_data" not in st.session_state:
+    bracket_raw = load_json(BRACKET_FILE)
+    if bracket_raw:
+        st.session_state.bracket_data = pd.read_json(bracket_raw, orient="split")
+    else:
+        st.session_state.bracket_data = pd.DataFrame()
+
+# Load match results (optional extension later)
+if "match_results" not in st.session_state:
+    st.session_state.match_results = load_json(RESULTS_FILE) or {}
 
 # ---- Global Password Protection ----
 admin_password = st.secrets["admin_password"]
@@ -27,9 +55,7 @@ if not st.session_state.app_authenticated:
         else:
             st.error("Incorrect tournament password.")
     st.stop()
-# Stops app here if not authenticated
 
-# ---- Sidebar Admin Login ----
 # ---- Sidebar Admin Login ----
 st.sidebar.header("🔐 Admin Login")
 if not st.session_state.authenticated:
@@ -44,6 +70,7 @@ else:
     st.sidebar.success("✅ Admin logged in.")
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
+
 
 # Correct Pod assignments from PDF
 pods = {
@@ -132,6 +159,17 @@ margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
 }
+
+def save_json(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return None
+
 
 def simulate_matches(players):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
@@ -238,7 +276,9 @@ if st.session_state.authenticated:
         bracket_df = pd.DataFrame(final_players)
         bracket_df.index = [f"Seed {i+1}" for i in range(16)]
         st.session_state.bracket_data = bracket_df
-        st.success("Pod winners and bracket seeded.")
+save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
+st.success("✅ Pod winners and bracket seeded.")
+
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
