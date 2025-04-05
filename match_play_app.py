@@ -232,13 +232,13 @@ tabs = st.tabs(["Pods Overview", "Group Stage", "Standings", "Bracket", "Export"
 # --- Group Stage Results Tab ---
 with tabs[1]:
     if "pod_results" not in st.session_state:
-    st.session_state.pod_results = {}
+        st.session_state.pod_results = {}
 
-    st.subheader("📊 Group Stage - Match Results")
+        st.subheader("📊 Group Stage - Match Results")
     for pod_name, players in pods.items():
-                with st.container():
+        with st.container():
             st.markdown(f"### {pod_name}")
-                        updated_players = simulate_matches(players, key_prefix=pod_name + "_")
+            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
             st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
 
 # --- Pod Winners Calculation ---
