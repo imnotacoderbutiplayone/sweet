@@ -591,27 +591,24 @@ with tabs[4]:
 with tabs[5]:
     st.subheader("🔮 Predict Bracket")
 
-    if st.session_state.authenticated:
-        st.info("🛠️ Admins can preview prediction mode anytime.")
-    elif not (st.session_state.get("tiebreaks_resolved", False) and not st.session_state.bracket_data.empty):
-        st.warning("📭 Prediction will open after the bracket is finalized.")
-        st.stop()
+    bracket_df = st.session_state.get("bracket_data", pd.DataFrame())
 
-    if st.session_state.bracket_data.empty:
-        st.warning("No bracket data available.")
+    if bracket_df.empty or len(bracket_df) < 16:
+        st.warning("Bracket prediction will be available once all 16 players are finalized.")
         st.stop()
 
     username = st.text_input("Enter your name or initials:")
+
     if username:
         st.markdown("Make your picks before the tournament begins. We'll compare them against actual results!")
-        bracket_df = st.session_state.bracket_data
+
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
         st.markdown("### 🟦 Left Side Predictions")
         pred_qf_left = []
         for i in range(0, 8, 2):
-            p1, p2 = left.iloc[i], left.iloc[i + 1]
+            p1, p2 = left.iloc[i], left.iloc[i+1]
             pick = st.radio(
                 f"Round of 16: {label(p1)} vs {label(p2)}",
                 [label(p1), label(p2)],
@@ -621,7 +618,7 @@ with tabs[5]:
 
         pred_sf_left = []
         for i in range(0, len(pred_qf_left), 2):
-            p1, p2 = pred_qf_left[i], pred_qf_left[i + 1]
+            p1, p2 = pred_qf_left[i], pred_qf_left[i+1]
             pick = st.radio(
                 f"Quarterfinal: {label(p1)} vs {label(p2)}",
                 [label(p1), label(p2)],
@@ -630,7 +627,7 @@ with tabs[5]:
             pred_sf_left.append(p1 if pick == label(p1) else p2)
 
         finalist_left = st.radio(
-            "Left Finalist:",
+            f"Left Finalist:",
             [label(pred_sf_left[0]), label(pred_sf_left[1])],
             key=f"PLSF_{username}"
         )
@@ -639,7 +636,7 @@ with tabs[5]:
         st.markdown("### 🟥 Right Side Predictions")
         pred_qf_right = []
         for i in range(0, 8, 2):
-            p1, p2 = right.iloc[i], right.iloc[i + 1]
+            p1, p2 = right.iloc[i], right.iloc[i+1]
             pick = st.radio(
                 f"Round of 16: {label(p1)} vs {label(p2)}",
                 [label(p1), label(p2)],
@@ -649,7 +646,7 @@ with tabs[5]:
 
         pred_sf_right = []
         for i in range(0, len(pred_qf_right), 2):
-            p1, p2 = pred_qf_right[i], pred_qf_right[i + 1]
+            p1, p2 = pred_qf_right[i], pred_qf_right[i+1]
             pick = st.radio(
                 f"Quarterfinal: {label(p1)} vs {label(p2)}",
                 [label(p1), label(p2)],
@@ -658,7 +655,7 @@ with tabs[5]:
             pred_sf_right.append(p1 if pick == label(p1) else p2)
 
         finalist_right = st.radio(
-            "Right Finalist:",
+            f"Right Finalist:",
             [label(pred_sf_right[0]), label(pred_sf_right[1])],
             key=f"PRSF_{username}"
         )
@@ -673,16 +670,17 @@ with tabs[5]:
 
         if st.button("Submit My Bracket"):
             st.session_state.user_predictions[username] = {
-                "finalist_left": finalist_left["name"],
-                "finalist_right": finalist_right["name"],
-                "champion": champion_final["name"]
+                "finalist_left": finalist_left['name'],
+                "finalist_right": finalist_right['name'],
+                "champion": champion_final['name']
             }
-            st.success("Your bracket has been submitted!")
+            st.success("✅ Your bracket has been submitted!")
 
     if st.session_state.user_predictions:
         st.subheader("📈 Current Predictions")
         for user, picks in st.session_state.user_predictions.items():
-            st.markdown(f"**{user}** picked 🏆 _{picks['champion']}_ to win")
+            st.markdown(f"**{user}** picked _{picks['champion']}_ to win")
+
 
 # Tab 6: Results Log
 with tabs[6]:
