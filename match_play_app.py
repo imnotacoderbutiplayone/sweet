@@ -46,87 +46,21 @@ else:
 
 
 # Correct Pod assignments from PDF
-pods = {
-    "Pod 1": [
-        {"name": "Wade Bowlin", "handicap": 5.4},
-        {"name": "Chip Nemesi", "handicap": 8.2},
-        {"name": "Anand Saranathan", "handicap": None},
-        {"name": "Tim Coyne", "handicap": 14.0},
-    ],
-    "Pod 2": [
-        {"name": "Tim Stubenrouch", "handicap": 6.8},
-        {"name": "David Gornet", "handicap": 12.4},
-        {"name": "Ken Wood", "handicap": 21.3},
-        {"name": "William Dicks", "handicap": 20.3},
-    ],
-    "Pod 3": [
-        {"name": "Austen Flatt", "handicap": 5.5},
-        {"name": "Robert Polk", "handicap": 11.8},
-        {"name": "Pravin Patel", "handicap": 16.5},
-        {"name": "Benjamin Dickinson", "handicap": 16.3},
-    ],
-    "Pod 4": [
-        {"name": "Anup Aggrawal", "handicap": 11.4},
-        {"name": "Pratish Lad", "handicap": 11.5},
-        {"name": "Kevin Sutton", "handicap": 12.5},
-        {"name": "Raj Patel", "handicap": 11.8},
-    ],
-    "Pod 5": [
-        {"name": "Russell Clingman", "handicap": 12.7},
-        {"name": "Tom Duffy", "handicap": 15.7},
-        {"name": "Charles Ferdin", "handicap": 25.2},
-        {"name": "Danny Delgado", "handicap": 16.6},
-    ],
-    "Pod 6": [
-        {"name": "Paul Till", "handicap": 1.3},
-        {"name": "Daniel Nowak", "handicap": 9.0},
-        {"name": "Avo Mavilian", "handicap": 19.4},
-        {"name": "Jason Case", "handicap": 12.6},
-    ],
-    "Pod 7": [
-        {"name": "Keith Borgfeldt", "handicap": 9.8},
-        {"name": "Danny Rice", "handicap": 11.1},
-        {"name": "Keith Patel", "handicap": 17.7},
-        {"name": "Sanjay Lad", "handicap": 15.2},
-    ],
-    "Pod 8": [
-        {"name": "Michael Trevino", "handicap": 9.9},
-        {"name": "Brad Sinclair", "handicap": 13.0},
-        {"name": "Bill Ostrowski", "handicap": 16.0},
-        {"name": "Aldo Rodriguez", "handicap": 13.6},
-    ],
-    "Pod 9": [
-        {"name": "Rob Calvo", "handicap": 2.7},
-        {"name": "Randy Tate", "handicap": 7.1},
-        {"name": "Michael Kuznar", "handicap": 17.1},
-        {"name": "Mel Davis", "handicap": 8.5},
-    ],
-    "Pod 10": [
-        {"name": "Craig McGaughy", "handicap": 7.2},
-        {"name": "Brian Burr", "handicap": 7.3},
-        {"name": "Andy Grote", "handicap": 13.3},
-        {"name": "Larry Hawkins", "handicap": 12.5},
-    ],
-    "Pod 11": [
-        {"name": "Andrew Escamilla", "handicap": -0.8},
-        {"name": "Jay Jones", "handicap": 5.4},
-        {"name": "Kevin Sareen", "handicap": 16.6},
-        {"name": "Alexander Roman", "handicap": 5.4},
-    ],
-    "Pod 12": [
-        {"name": "Will Main", "handicap": 2.2},
-        {"name": "Todd Riddle", "handicap": 7.5},
-        {"name": "Kolbe Curtice", "handicap": 12.9},
-        {"name": "Sunil Patel", "handicap": 11.6},
-    ],
-    "Pod 13": [
-        {"name": "Tony Delgado", "handicap": 3.1},
-        {"name": "Pawan Nerusu", "handicap": 9.9},
-        {"name": "Marcus Peet", "handicap": 22.5},
-        {"name": "Ed Gifford", "handicap": 10.3},
-    ],
-}
+def load_pods_from_secrets():
+    raw_pods = st.secrets["pods"]
+    parsed_pods = {}
+    for pod_key, players in raw_pods.items():
+        pod_name = pod_key.replace("_", " ")
+        parsed_pods[pod_name] = [
+            {
+                "name": name.replace("_", " "),
+                "handicap": float(hcp) if str(hcp).replace('.', '', 1).lstrip('-').isdigit() else None
+            }
+            for name, hcp in players.items()
+        ]
+    return parsed_pods
 
+pods = load_pods_from_secrets()
 
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
