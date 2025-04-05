@@ -398,9 +398,13 @@ with tabs[2]:
     st.subheader("\U0001F4CB Standings")
     if st.session_state.match_results:  # Only display if match results are available
         standings = pd.DataFrame(st.session_state.match_results).T.sort_values(by=["points", "margin"], ascending=False)
-        st.dataframe(standings)
+        if standings.empty:
+            st.info("No matches have been played yet. Standings will update after the first match.")
+        else:
+            st.dataframe(standings)
     else:
         st.info("No matches have been played yet. Standings will update after the first match.")
+
 
 
 # Tab 4: Export
