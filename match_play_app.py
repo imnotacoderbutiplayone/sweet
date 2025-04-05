@@ -28,7 +28,7 @@ if "match_results" not in st.session_state:
 
 
 
-    
+
 # --- Load shared bracket data ---
 if "bracket_data" not in st.session_state:
     bracket_raw = load_json(BRACKET_FILE)
@@ -74,10 +74,8 @@ if st.session_state.authenticated:
         save_json(BRACKET_FILE, {})  # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
         st.success("Data has been refreshed. All saved data cleared. Please refresh your browser.")
-        
-        # No need for st.stop() - just keep the app running and let the admin refresh manually
-        # This allows the admin to continue using the app without halting the script
 
+        # Don't call st.stop(), just let the admin refresh manually
 
 
 # Sidebar Admin Login - Add Refresh Data Button
