@@ -267,8 +267,9 @@ with tabs[1]:
     st.subheader("\U0001F4CA Group Stage - Match Results")
     pod_results = {}
     for pod_name, players in pods.items():
-        with st.expander(pod_name):
-            updated_players = simulate_matches(players)
+    with st.expander(pod_name):
+        updated_players = simulate_matches(players, pod_name)
+
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
     # Only allow Admin to calculate pod winners
