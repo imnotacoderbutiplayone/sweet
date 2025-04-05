@@ -242,7 +242,8 @@ def label(player):
 
 
 st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
-tabs = st.tabs(["\U0001F4C1 Pods Overview", "\U0001F4CA Group Stage", "\U0001F4CB Standings", "\U0001F3C6 Bracket", "\U0001F4E4 Export", "\U0001F52E Predict Bracket"])
+tabs = st.tabs(["📁 Pods Overview", "📊 Group Stage", "📋 Standings", "🏆 Bracket", "📤 Export", "🔮 Predict Bracket", "🗃️ Results Log"])
+
 
 if "bracket_data" not in st.session_state:
     st.session_state.bracket_data = pd.DataFrame()
@@ -469,3 +470,35 @@ with tabs[5]:
             st.subheader("\U0001F4C8 Current Predictions")
             for user, picks in st.session_state.user_predictions.items():
                 st.markdown(f"**{user}** picked _{picks['champion']}_ to win")
+with tabs[6]:
+    st.subheader("🗃️ Match Results Log")
+
+    match_results = st.session_state.get("match_results", {})
+
+    if not match_results:
+        st.info("No match results have been entered yet.")
+    else:
+        # Convert dict into a DataFrame
+        data = []
+        for key, result in match_results.items():
+            pod_name, match_str = key.split("|", 1)
+            player1, player2 = match_str.split(" vs ")
+            winner = result["winner"]
+            margin = result["margin"]
+            margin_text = next((k for k, v in margin_lookup.items() if v == margin), "Tie" if winner == "Tie" else "1 up")
+            data.append({
+                "Pod": pod_name,
+                "Player 1": player1.strip(),
+                "Player 2": player2.strip(),
+                "Winner": winner,
+                "Margin": margin_text
+            })
+
+        df = pd.DataFrame(data)
+        df = df.sort_values(by=["Pod", "Player 1"])
+
+        st.dataframe(df, use_container_width=True)
+
+        # Optional: Download CSV
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
