@@ -59,7 +59,6 @@ if not st.session_state.app_authenticated:
 # ---- Sidebar Admin Login ----
 st.sidebar.header("🔐 Admin Login")
 
-# Check if the user is logged in
 if not st.session_state.get('authenticated', False):
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
