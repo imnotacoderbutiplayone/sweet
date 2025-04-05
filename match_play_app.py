@@ -316,6 +316,10 @@ if st.session_state.authenticated:
                     options, 
                     key=f"{pod_name}_1st_tiebreak"
                 )
+
+                if not selected:
+                    st.stop()
+
                 winner = tied_first[tied_first["name"] == selected].iloc[0]
             else:
                 winner = sorted_players.iloc[0]
@@ -339,6 +343,10 @@ if st.session_state.authenticated:
                     options, 
                     key=f"{pod_name}_2nd_tiebreak"
                 )
+
+                if not selected:
+                    st.stop()
+
                 runner_up = tied_second[tied_second["name"] == selected].iloc[0]
             else:
                 runner_up = remaining.iloc[0]
