@@ -276,10 +276,11 @@ if st.session_state.authenticated:
         bracket_df = pd.DataFrame(final_players)
         bracket_df.index = [f"Seed {i+1}" for i in range(16)]
         st.session_state.bracket_data = bracket_df
-save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
-st.success("✅ Pod winners and bracket seeded.")
+        save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
+        st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
+
 
 
 # Tab 2: Bracket
