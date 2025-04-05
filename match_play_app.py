@@ -272,7 +272,11 @@ with tabs[1]:
     # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
-        pod_results = {}  # 🔧 <-- ADD THIS LINE
+        pod_results = {}
+        for pod_name, players in pods.items():
+            updated_players = simulate_matches(players)
+            pod_results[pod_name] = pd.DataFrame(updated_players)
+
         winners, second_place = [], []
         for pod_name, df in pod_results.items():
             if "points" not in df.columns or df["points"].sum() == 0:
@@ -284,10 +288,11 @@ if st.session_state.authenticated:
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
         final_players = winners + top_3
         bracket_df = pd.DataFrame(final_players)
-        bracket_df.index = [f"Seed {i+1}" for i in range(16)]
+        bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
         st.session_state.bracket_data = bracket_df
         save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
         st.success("✅ Pod winners and bracket seeded.")
+
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
