@@ -480,12 +480,25 @@ with tabs[6]:
     else:
         # Convert dict into a DataFrame
         data = []
+                data = []
         for key, result in match_results.items():
+            # ✅ Skip bad keys that don't match expected format
+            if "|" not in key:
+                continue  # Skip legacy or malformed keys
+
             pod_name, match_str = key.split("|", 1)
-            player1, player2 = match_str.split(" vs ")
-            winner = result["winner"]
-            margin = result["margin"]
-            margin_text = next((k for k, v in margin_lookup.items() if v == margin), "Tie" if winner == "Tie" else "1 up")
+            try:
+                player1, player2 = match_str.split(" vs ")
+            except ValueError:
+                continue  # In case someone tampered with JSON or entered bad data
+
+            winner = result.get("winner", "Tie")
+            margin = result.get("margin", 0)
+            margin_text = next(
+                (k for k, v in margin_lookup.items() if v == margin),
+                "Tie" if winner == "Tie" else "1 up"
+            )
+
             data.append({
                 "Pod": pod_name,
                 "Player 1": player1.strip(),
@@ -493,12 +506,3 @@ with tabs[6]:
                 "Winner": winner,
                 "Margin": margin_text
             })
-
-        df = pd.DataFrame(data)
-        df = df.sort_values(by=["Pod", "Player 1"])
-
-        st.dataframe(df, use_container_width=True)
-
-        # Optional: Download CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
