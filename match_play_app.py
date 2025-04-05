@@ -182,19 +182,21 @@ def simulate_matches(players, pod_name):
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    # Load existing result if available
+                    # Pre-fill previous result
                     prev_result = st.session_state.match_results.get(match_key, {})
                     prev_winner = prev_result.get("winner", "Tie")
                     margin_val = prev_result.get("margin", 0)
                     prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
 
+                    # Winner radio button
                     winner = st.radio(
-                        "Who won?",
+                        f"Who won?",
                         [p1['name'], p2['name'], "Tie"],
                         index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
                         key=match_key
                     )
 
+                    # Margin selectbox
                     margin = 0
                     if winner != "Tie":
                         result_str = st.selectbox(
@@ -205,14 +207,14 @@ def simulate_matches(players, pod_name):
                         )
                         margin = margin_lookup[result_str]
 
-                    # Save to session state and disk
+                    # Save result
                     st.session_state.match_results[match_key] = {
                         "winner": winner,
                         "margin": margin
                     }
                     save_json(RESULTS_FILE, st.session_state.match_results)
 
-                    # Scoring logic
+                    # Score updating
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
                         results[p1['name']]['margin'] += margin
@@ -230,6 +232,7 @@ def simulate_matches(players, pod_name):
     for player in players:
         player.update(results[player['name']])
     return players
+
 
 
 
