@@ -21,10 +21,11 @@ def load_json(file_path):
 BRACKET_FILE = "bracket_data.json"
 RESULTS_FILE = "match_results.json"
 
-# --- Load match results into session state (at the start of the app) ---
+# --- Load match results into session state (on app startup) ---
 if "match_results" not in st.session_state:
     # Load results from file to session state
     st.session_state.match_results = load_json(RESULTS_FILE)  # This loads the saved results if they exist
+
 
 
     
@@ -59,20 +60,23 @@ if not st.session_state.app_authenticated:
             st.error("Incorrect tournament password.")
     st.stop()
 
-# ---- Sidebar Admin Login ----
-st.sidebar.header("🔐 Admin Login")
-if not st.session_state.authenticated:
-    pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
-    if st.sidebar.button("Login"):
-        if pwd_input == admin_password:
-            st.session_state.authenticated = True
-            st.sidebar.success("Logged in as admin.")
-        else:
-            st.sidebar.error("Incorrect Admin Password.")
-else:
-    st.sidebar.success("✅ Admin logged in.")
-    if st.sidebar.button("Logout"):
-        st.session_state.authenticated = False
+# Sidebar Admin Login - Add Refresh Data Button
+if st.session_state.authenticated:
+    st.sidebar.subheader("Admin Actions")
+    # Add the Refresh Data button
+    if st.sidebar.button("Clear all Match Data "):
+        # Reset session state for specific data (optional)
+        st.session_state.bracket_data = pd.DataFrame()
+        st.session_state.match_results = {}
+        
+        # Only clear the data if explicitly requested by the admin
+        save_json(BRACKET_FILE, {})  # Clear the saved bracket data
+        save_json(RESULTS_FILE, {})  # Clear the saved match results
+        st.success("Data has been refreshed. All saved data cleared.  Please refresh your browser.")
+        
+        # Stop execution to allow the admin to refresh manually
+        st.stop()
+
 
 # Sidebar Admin Login - Add Refresh Data Button
 if st.session_state.authenticated:
@@ -214,6 +218,7 @@ if "match_results" not in st.session_state:
 
 
 # --- Admin logic (simulate matches and save results) ---
+# Function to simulate matches and save results
 def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -266,8 +271,6 @@ def simulate_matches(players, pod_name):
     save_json(RESULTS_FILE, st.session_state.match_results)
 
     return updated_players
-
-
 
 
 
@@ -465,6 +468,7 @@ with tabs[2]:
             st.dataframe(standings)
     else:
         st.info("No matches have been played yet. Standings will update after the first match.")
+
 
 
 # Tab 4: Export
