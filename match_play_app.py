@@ -171,6 +171,7 @@ def load_json(file_path):
     return None
 
 
+# --- Simulation Function ---
 def simulate_matches(players):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -183,41 +184,38 @@ def simulate_matches(players):
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
-                winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
-                if winner != "Tie":
-                    result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
-                    margin = margin_lookup[result_str]
-                else:
+                entry_key = col + "_entered"
+                entered = st.checkbox("Enter result for this match", key=entry_key)
+
+                if entered:
+                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
                     margin = 0
+                    if winner != "Tie":
+                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
+                        margin = margin_lookup[result_str]
+
+                    if winner == p1['name']:
+                        results[p1['name']]['points'] += 1
+                        results[p1['name']]['margin'] += margin
+                        results[p2['name']]['margin'] -= margin
+                    elif winner == p2['name']:
+                        results[p2['name']]['points'] += 1
+                        results[p2['name']]['margin'] += margin
+                        results[p1['name']]['margin'] -= margin
+                    else:  # Tie
+                        results[p1['name']]['points'] += 0.5
+                        results[p2['name']]['points'] += 0.5
             else:
-                winner = "Tie"  # No input allowed
-                margin = 0
                 st.info("🔒 Only admin can enter match results.")
-
-            if winner == "No result":
-                st.warning("⏳ Awaiting result input")
-                continue  # Skip to the next match
-            elif winner == p1['name']:
-                results[p1['name']]['points'] += 1
-                results[p1['name']]['margin'] += margin
-                results[p2['name']]['margin'] -= margin
-            elif winner == p2['name']:
-                results[p2['name']]['points'] += 1
-                results[p2['name']]['margin'] += margin
-                results[p1['name']]['margin'] -= margin
-            else:  # Tie
-                results[p1['name']]['points'] += 0.5
-                results[p2['name']]['points'] += 0.5
-
-
 
     for player in players:
         player.update(results[player['name']])
     return players
 
-
+# --- Label Helper ---
 def label(player):
     return f"{player['name']} ({player['handicap']})"
+
 
 st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
 tabs = st.tabs(["\U0001F4C1 Pods Overview", "\U0001F4CA Group Stage", "\U0001F4CB Standings", "\U0001F3C6 Bracket", "\U0001F4E4 Export", "\U0001F52E Predict Bracket"])
