@@ -183,7 +183,7 @@ def simulate_matches(players):
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
-                winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], key=col)
+                winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
                 if winner != "Tie":
                     result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
                     margin = margin_lookup[result_str]
