@@ -205,11 +205,18 @@ def simulate_matches(players):
                     else:  # Tie
                         results[p1['name']]['points'] += 0.5
                         results[p2['name']]['points'] += 0.5
+
             else:
                 st.info("🔒 Only admin can enter match results.")
 
+    # Update players with the results
     for player in players:
         player.update(results[player['name']])
+
+    # Save match results to JSON
+    st.session_state.match_results = results
+    save_json(RESULTS_FILE, results)
+
     return players
 
 # --- Label Helper ---
@@ -372,10 +379,15 @@ with tabs[3]:
 
 
 # Tab 3: Standings
+# Tab 3: Standings
 with tabs[2]:
     st.subheader("\U0001F4CB Standings")
-    if not st.session_state.bracket_data.empty:
-        st.dataframe(st.session_state.bracket_data)
+    if st.session_state.match_results:  # Only display if match results are available
+        standings = pd.DataFrame(st.session_state.match_results).T.sort_values(by=["points", "margin"], ascending=False)
+        st.dataframe(standings)
+    else:
+        st.info("No matches have been played yet. Standings will update after the first match.")
+
 
 # Tab 4: Export
 with tabs[4]:
