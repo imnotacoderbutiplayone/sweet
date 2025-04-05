@@ -70,8 +70,7 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
 
-
-# Correct Pod assignments from PDF
+# Pods
 pods = {
     "Pod 1": [
         {"name": "Wade Bowlin", "handicap": 5.4},
@@ -79,36 +78,13 @@ pods = {
         {"name": "Anand Saranathan", "handicap": None},
         {"name": "Tim Coyne", "handicap": 14.0},
     ],
-    "Pod 2": [
-        {"name": "Tim Stubenrouch", "handicap": 6.8},
-        {"name": "David Gornet", "handicap": 12.4},
-        {"name": "Ken Wood", "handicap": 21.3},
-        {"name": "William Dicks", "handicap": 20.3},
-    ],
-    "Pod 3": [
-        {"name": "Austen Flatt", "handicap": 5.5},
-        {"name": "Robert Polk", "handicap": 11.8},
-        {"name": "Pravin Patel", "handicap": 16.5},
-        {"name": "Benjamin Dickinson", "handicap": 16.3},
-    ],
-    # Add other pods...
+    # Add other pods here...
 }
 
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
 }
-
-def save_json(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
-
-def load_json(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            return json.load(f)
-    return None
-
 
 # --- Simulation Function ---
 def simulate_matches(players, key_prefix=""):
@@ -174,24 +150,22 @@ with tabs[0]:
     if "pod_results" not in st.session_state:
         st.session_state.pod_results = {}
 
+    # Display each pod with player data
     for pod_name, players in pods.items():
-        with st.expander(pod_name):
+        with st.expander(f"### {pod_name}"):
             updated_players = simulate_matches(players, key_prefix=pod_name + "_")
             st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
-            st.write(st.session_state.pod_results[pod_name])
+            st.write(st.session_state.pod_results[pod_name])  # Display the DataFrame of pod results
 
 # --- Group Stage Results Tab ---
 with tabs[1]:
-    if "pod_results" not in st.session_state:
-        st.session_state.pod_results = {}
-
     st.subheader("📊 Group Stage - Match Results")
     for pod_name, players in pods.items():
         with st.container():
             st.markdown(f"### {pod_name}")
             updated_players = simulate_matches(players, key_prefix=pod_name + "_")
             st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
-
+            st.write(st.session_state.pod_results[pod_name])
 
 # --- Pod Winners Calculation ---
 if st.session_state.authenticated:
@@ -214,107 +188,31 @@ if st.session_state.authenticated:
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
-
-# Tab 2: Bracket
+# --- Bracket Tab ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
     if st.session_state.bracket_data.empty:
         st.warning("Please calculate bracket seeding from the Group Stage tab first.")
     else:
         bracket_df = st.session_state.bracket_data
-        left = bracket_df.iloc[0:8].reset_index(drop=True)
-        right = bracket_df.iloc[8:16].reset_index(drop=True)
+        st.write(bracket_df)
 
-        col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### 🟦 Left Side")
-            st.markdown("#### 🏁 Round of 16")
-            qf_left = []
-            for i in range(0, 8, 2):
-                p1, p2 = left.iloc[i], left.iloc[i + 1]
-                winner = st.radio(
-                    f"{label(p1)} vs {label(p2)}",
-                    [label(p1), label(p2)],
-                    key=f"R16L_{i}"
-                )
-                qf_left.append(p1 if winner == label(p1) else p2)
-
-            st.markdown("#### 🥈 Quarterfinals")
-            sf_left = []
-            for i in range(0, len(qf_left), 2):
-                p1, p2 = qf_left[i], qf_left[i + 1]
-                winner = st.radio(
-                    f"QF: {label(p1)} vs {label(p2)}",
-                    [label(p1), label(p2)],
-                    key=f"QFL_{i}"
-                )
-                sf_left.append(p1 if winner == label(p1) else p2)
-
-            st.markdown("#### 🥇 Semifinal Winner")
-            finalist_left = st.radio(
-                "🏅 Left Finalist:",
-                [label(sf_left[0]), label(sf_left[1])],
-                key="LFinal"
-            )
-            finalist_left = sf_left[0] if finalist_left == label(sf_left[0]) else sf_left[1]
-
-        with col2:
-            st.markdown("### 🟥 Right Side")
-            st.markdown("#### 🏁 Round of 16")
-            qf_right = []
-            for i in range(0, 8, 2):
-                p1, p2 = right.iloc[i], right.iloc[i + 1]
-                winner = st.radio(
-                    f"{label(p1)} vs {label(p2)}",
-                    [label(p1), label(p2)],
-                    key=f"R16R_{i}"
-                )
-                qf_right.append(p1 if winner == label(p1) else p2)
-
-            st.markdown("#### 🥈 Quarterfinals")
-            sf_right = []
-            for i in range(0, len(qf_right), 2):
-                p1, p2 = qf_right[i], qf_right[i + 1]
-                winner = st.radio(
-                    f"QF: {label(p1)} vs {label(p2)}",
-                    [label(p1), label(p2)],
-                    key=f"QFR_{i}"
-                )
-                sf_right.append(p1 if winner == label(p1) else p2)
-
-            st.markdown("#### 🥇 Semifinal Winner")
-            finalist_right = st.radio(
-                "🏅 Right Finalist:",
-                [label(sf_right[0]), label(sf_right[1])],
-                key="RFinal"
-            )
-            finalist_right = sf_right[0] if finalist_right == label(sf_right[0]) else sf_right[1]
-
-        st.markdown("### 🏁 Final Match")
-        champion = st.radio(
-            "🏆 Champion:",
-            [label(finalist_left), label(finalist_right)],
-            key="Champ"
-        )
-        winner = finalist_left if champion == label(finalist_left) else finalist_right
-        st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
-
-# Tab 3: Standings
+# --- Standings Tab ---
 with tabs[2]:
-    st.subheader("\U0001F4CB Standings")
+    st.subheader("📊 Standings")
     if not st.session_state.bracket_data.empty:
         st.dataframe(st.session_state.bracket_data)
 
-# Tab 4: Export
+# --- Export Tab ---
 with tabs[4]:
-    st.subheader("\U0001F4E4 Export")
+    st.subheader("📥 Export")
     if not st.session_state.bracket_data.empty:
         csv = st.session_state.bracket_data.to_csv().encode("utf-8")
         st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv")
 
-# Tab 5: Predict Bracket
+# --- Predict Bracket Tab ---
 with tabs[5]:
-    st.subheader("\U0001F52E Predict Bracket")
+    st.subheader("🔮 Predict Bracket")
     if st.session_state.bracket_data.empty:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
@@ -325,7 +223,7 @@ with tabs[5]:
             left = bracket_df.iloc[0:8].reset_index(drop=True)
             right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-            st.markdown("### \U0001F7E6 Left Side Predictions")
+            st.markdown("### Left Side Predictions")
             pred_qf_left = []
             for i in range(0, 8, 2):
                 p1, p2 = left.iloc[i], left.iloc[i+1]
@@ -341,7 +239,7 @@ with tabs[5]:
             finalist_left = st.radio(f"Left Finalist:", [label(pred_sf_left[0]), label(pred_sf_left[1])], key=f"PLSF_{username}")
             finalist_left = pred_sf_left[0] if finalist_left == label(pred_sf_left[0]) else pred_sf_left[1]
 
-            st.markdown("### \U0001F7E5 Right Side Predictions")
+            st.markdown("### Right Side Predictions")
             pred_qf_right = []
             for i in range(0, 8, 2):
                 p1, p2 = right.iloc[i], right.iloc[i+1]
@@ -357,7 +255,7 @@ with tabs[5]:
             finalist_right = st.radio(f"Right Finalist:", [label(pred_sf_right[0]), label(pred_sf_right[1])], key=f"PRSF_{username}")
             finalist_right = pred_sf_right[0] if finalist_right == label(pred_sf_right[0]) else pred_sf_right[1]
 
-            champion = st.radio(f"\U0001F3AF Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{username}")
+            champion = st.radio(f"Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{username}")
             champion_final = finalist_left if champion == label(finalist_left) else finalist_right
 
             if st.button("Submit My Bracket"):
@@ -369,6 +267,6 @@ with tabs[5]:
                 st.success("Your bracket has been submitted!")
 
         if st.session_state.user_predictions:
-            st.subheader("\U0001F4C8 Current Predictions")
+            st.subheader("Current Predictions")
             for user, picks in st.session_state.user_predictions.items():
                 st.markdown(f"**{user}** picked _{picks['champion']}_ to win")
