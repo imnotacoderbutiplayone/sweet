@@ -189,7 +189,6 @@ def load_json(file_path):
     return None
 
 
-# --- Simulation Function ---
 def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -228,11 +227,28 @@ def simulate_matches(players, pod_name):
             else:
                 st.info("🔒 Only admin can enter match results.")
 
+    # Debugging: Inspect the results before updating players
+    st.write(f"Match results for pod {pod_name}: {results}")
+
+    # Update the player data with the match results and return the updated list
+    updated_players = []
+    for player in players:
+        player_results = results[player['name']]
+        
+        # Debugging: Check each player's updated data
+        st.write(f"Updating player: {player['name']} with points: {player_results['points']} and margin: {player_results['margin']}")
+        
+        updated_player = {**player, **player_results}
+        updated_players.append(updated_player)
+
+    # Debugging: Check the updated players list before returning
+    st.write(f"Updated players for pod {pod_name}: {updated_players}")
+
     # Store the results by pod in session state
     st.session_state.match_results[pod_name] = results
     save_json(RESULTS_FILE, st.session_state.match_results)
 
-    return players
+    return updated_players
 
 
 
