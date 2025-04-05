@@ -201,17 +201,20 @@ def simulate_matches(players, pod_name):
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
+            # Check if admin is authenticated and checkbox is selected
             if st.session_state.authenticated:
                 entry_key = col + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
+                    # Get the winner and match margin
                     winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
                     margin = 0
                     if winner != "Tie":
                         result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
                         margin = margin_lookup[result_str]
 
+                    # Update the results based on who won
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
                         results[p1['name']]['margin'] += margin
