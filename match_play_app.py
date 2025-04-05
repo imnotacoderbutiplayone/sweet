@@ -230,12 +230,12 @@ def simulate_matches(players, key_prefix=""):
 if "pod_results" not in st.session_state:
     st.session_state.pod_results = {}
 
-with st.expander("📊 Group Stage Results", expanded=True):
-    st.subheader("Group Stage - Match Results")
-    for pod_name, players in pods.items():
-        with st.expander(pod_name):
-            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
-            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
+st.subheader("📊 Group Stage - Match Results")
+for pod_name, players in pods.items():
+    with st.expander(pod_name):
+        updated_players = simulate_matches(players, key_prefix=pod_name + "_")
+        st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
+
 
 # --- Pod Winners Calculation ---
 if st.session_state.authenticated:
