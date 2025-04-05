@@ -75,13 +75,13 @@ else:
 if st.session_state.authenticated:
     st.sidebar.subheader("Admin Actions")
     # Add the Refresh Data button
-    if st.sidebar.button("Refresh Data"):
+    if st.sidebar.button("Clear all Match Data "):
         # Reset session state
         st.session_state.bracket_data = pd.DataFrame()
         st.session_state.match_results = {}
         save_json(BRACKET_FILE, {})  # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
-        st.success("Data has been refreshed. All saved data cleared.")
+        st.success("Data has been refreshed. All saved data cleared.  Please refresh your browswer.")
         
         # Clear the query params (instead of deprecated method)
         st.query_params = {}  # Reset any query parameters (useful if your app depends on them)
