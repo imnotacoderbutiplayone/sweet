@@ -292,14 +292,60 @@ with tabs[1]:
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
 
-    # Only allow Admin to calculate pod winners
+# Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
         winners, second_place = [], []
+
         for pod_name, df in pod_results.items():
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
-            winners.append({"pod": pod_name, **sorted_players.iloc[0].to_dict()})
-            second_place.append(sorted_players.iloc[1].to_dict())
+
+            # ---- Tiebreaker for First Place ----
+            top_score = sorted_players.iloc[0]["points"]
+            top_margin = sorted_players.iloc[0]["margin"]
+            tied_first = sorted_players[
+                (sorted_players["points"] == top_score) &
+                (sorted_players["margin"] == top_margin)
+            ]
+
+            if len(tied_first) > 1:
+                st.warning(f"Tie detected for FIRST place in {pod_name}")
+                options = tied_first["name"].tolist()
+                selected = st.radio(
+                    f"Select 1st place in {pod_name}:", 
+                    options, 
+                    key=f"{pod_name}_1st_tiebreak"
+                )
+                winner = tied_first[tied_first["name"] == selected].iloc[0]
+            else:
+                winner = sorted_players.iloc[0]
+
+            winners.append({"pod": pod_name, **winner.to_dict()})
+
+            # ---- Tiebreaker for Second Place ----
+            remaining = sorted_players[sorted_players["name"] != winner["name"]].reset_index(drop=True)
+            second_score = remaining.iloc[0]["points"]
+            second_margin = remaining.iloc[0]["margin"]
+            tied_second = remaining[
+                (remaining["points"] == second_score) &
+                (remaining["margin"] == second_margin)
+            ]
+
+            if len(tied_second) > 1:
+                st.warning(f"Tie detected for SECOND place in {pod_name}")
+                options = tied_second["name"].tolist()
+                selected = st.radio(
+                    f"Select 2nd place in {pod_name}:", 
+                    options, 
+                    key=f"{pod_name}_2nd_tiebreak"
+                )
+                runner_up = tied_second[tied_second["name"] == selected].iloc[0]
+            else:
+                runner_up = remaining.iloc[0]
+
+            second_place.append(runner_up.to_dict())
+
+        # Take 13 winners + top 3 second-place finishers
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
         final_players = winners + top_3
         bracket_df = pd.DataFrame(final_players)
@@ -309,7 +355,6 @@ if st.session_state.authenticated:
         st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
-
 
 
 # Tab 2: Bracket
