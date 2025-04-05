@@ -172,7 +172,7 @@ def load_json(file_path):
 
 
 # --- Simulation Function ---
-def simulate_matches(players):
+def simulate_matches(players, key_prefix=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
     for i in range(num_players):
@@ -184,15 +184,27 @@ def simulate_matches(players):
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
-                entry_key = col + "_entered"
+                entry_key = key_prefix + col + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
+                    match_key = key_prefix + col
+                    stored_result = st.session_state.match_results.get(match_key, {})
+                    winner_default = stored_result.get("winner", "Tie")
+                    margin_default = stored_result.get("margin", 0)
+
+                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=[p1['name'], p2['name'], "Tie"].index(winner_default), key=match_key)
                     margin = 0
                     if winner != "Tie":
-                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
+                        margin_options = list(margin_lookup.keys())
+                        margin_str_default = [k for k, v in margin_lookup.items() if v == margin_default]
+                        default_index = margin_options.index(margin_str_default[0]) if margin_str_default else 0
+                        result_str = st.selectbox("Select Match Result (Win Margin)", options=margin_options, index=default_index, key=match_key + "_result")
                         margin = margin_lookup[result_str]
+
+                    # Save match result to session and file
+                    st.session_state.match_results[match_key] = {"winner": winner, "margin": margin}
+                    save_json(RESULTS_FILE, st.session_state.match_results)
 
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
@@ -214,71 +226,22 @@ def simulate_matches(players):
         player.update(results[player["name"]])
     return players
 
+# --- Group Stage Results Tab ---
+if "pod_results" not in st.session_state:
+    st.session_state.pod_results = {}
 
-# --- Label Helper ---
-def label(player):
-    return f"{player['name']} ({player['handicap']})"
-
-
-st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
-tabs = st.tabs(["\U0001F4C1 Pods Overview", "\U0001F4CA Group Stage", "\U0001F4CB Standings", "\U0001F3C6 Bracket", "\U0001F4E4 Export", "\U0001F52E Predict Bracket"])
-
-if "bracket_data" not in st.session_state:
-    st.session_state.bracket_data = pd.DataFrame()
-if "user_predictions" not in st.session_state:
-    st.session_state.user_predictions = {}
-
-# Tab 0: Pods Overview (Styled & No Index - Fixed)
-with tabs[0]:
-    st.subheader("📁 All Pods and Player Handicaps")
-    pod_names = list(pods.keys())
-    num_cols = 3
-    cols = st.columns(num_cols)
-
-    # CSS style for headers and alternating rows
-    def style_table(df):
-        styled = df.style.set_table_styles([
-            {'selector': 'th',
-             'props': [('background-color', '#4CAF50'),
-                       ('color', 'white'),
-                       ('font-size', '16px')]},
-            {'selector': 'td',
-             'props': [('font-size', '14px')]}
-        ]).set_properties(**{
-            'text-align': 'left',
-            'padding': '6px'
-        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-        return styled.hide(axis='index')  # Hide the index explicitly here
-
-    for i, pod_name in enumerate(pod_names):
-        col = cols[i % num_cols]
-        with col:
-            st.markdown(f"##### {pod_name}")
-            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
-            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
-            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-            styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
-
-# Tab 1: Group Stage
-with tabs[1]:
-    st.subheader("\U0001F4CA Group Stage - Match Results")
-    pod_results = {}
+with st.expander("📊 Group Stage Results", expanded=True):
+    st.subheader("Group Stage - Match Results")
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players)
-            pod_results[pod_name] = pd.DataFrame(updated_players)
+            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
+            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
 
-    # Only allow Admin to calculate pod winners
+# --- Pod Winners Calculation ---
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
-        pod_results = {}
-        for pod_name, players in pods.items():
-            updated_players = simulate_matches(players)
-            pod_results[pod_name] = pd.DataFrame(updated_players)
-
         winners, second_place = [], []
-        for pod_name, df in pod_results.items():
+        for pod_name, df in st.session_state.pod_results.items():
             if "points" not in df.columns or df["points"].sum() == 0:
                 continue  # skip pods with no entered matches
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
@@ -292,10 +255,8 @@ if st.session_state.authenticated:
         st.session_state.bracket_data = bracket_df
         save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
         st.success("✅ Pod winners and bracket seeded.")
-
 else:
     st.info("🔒 Only admin can calculate pod winners.")
-
 
 
 # Tab 2: Bracket
