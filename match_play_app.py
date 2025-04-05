@@ -637,64 +637,102 @@ with tabs[4]:
 
 # Tab 5: Predict Bracket
 with tabs[5]:
-    st.subheader("\U0001F52E Predict Bracket")
+    st.subheader("🔮 Predict Bracket")
+
+    if st.session_state.authenticated:
+        st.info("🛠️ Admins can preview prediction mode anytime.")
+    elif not (st.session_state.get("tiebreaks_resolved", False) and not st.session_state.bracket_data.empty):
+        st.warning("📭 Prediction will open after the bracket is finalized.")
+        st.stop()
+
     if st.session_state.bracket_data.empty:
-        st.warning("Bracket prediction will be available once the field of 16 is set.")
-    else:
-        username = st.text_input("Enter your name or initials:")
-        if username:
-            st.markdown("Make your picks before the tournament begins. We'll compare them against actual results!")
-            bracket_df = st.session_state.bracket_data
-            left = bracket_df.iloc[0:8].reset_index(drop=True)
-            right = bracket_df.iloc[8:16].reset_index(drop=True)
+        st.warning("No bracket data available.")
+        st.stop()
 
-            st.markdown("### \U0001F7E6 Left Side Predictions")
-            pred_qf_left = []
-            for i in range(0, 8, 2):
-                p1, p2 = left.iloc[i], left.iloc[i+1]
-                pick = st.radio(f"Round of 16: {label(p1)} vs {label(p2)}", [label(p1), label(p2)], key=f"PL16_{i}_{username}")
-                pred_qf_left.append(p1 if pick == label(p1) else p2)
+    username = st.text_input("Enter your name or initials:")
+    if username:
+        st.markdown("Make your picks before the tournament begins. We'll compare them against actual results!")
+        bracket_df = st.session_state.bracket_data
+        left = bracket_df.iloc[0:8].reset_index(drop=True)
+        right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-            pred_sf_left = []
-            for i in range(0, len(pred_qf_left), 2):
-                p1, p2 = pred_qf_left[i], pred_qf_left[i+1]
-                pick = st.radio(f"Quarterfinal: {label(p1)} vs {label(p2)}", [label(p1), label(p2)], key=f"PLQF_{i}_{username}")
-                pred_sf_left.append(p1 if pick == label(p1) else p2)
+        st.markdown("### 🟦 Left Side Predictions")
+        pred_qf_left = []
+        for i in range(0, 8, 2):
+            p1, p2 = left.iloc[i], left.iloc[i + 1]
+            pick = st.radio(
+                f"Round of 16: {label(p1)} vs {label(p2)}",
+                [label(p1), label(p2)],
+                key=f"PL16_{i}_{username}"
+            )
+            pred_qf_left.append(p1 if pick == label(p1) else p2)
 
-            finalist_left = st.radio(f"Left Finalist:", [label(pred_sf_left[0]), label(pred_sf_left[1])], key=f"PLSF_{username}")
-            finalist_left = pred_sf_left[0] if finalist_left == label(pred_sf_left[0]) else pred_sf_left[1]
+        pred_sf_left = []
+        for i in range(0, len(pred_qf_left), 2):
+            p1, p2 = pred_qf_left[i], pred_qf_left[i + 1]
+            pick = st.radio(
+                f"Quarterfinal: {label(p1)} vs {label(p2)}",
+                [label(p1), label(p2)],
+                key=f"PLQF_{i}_{username}"
+            )
+            pred_sf_left.append(p1 if pick == label(p1) else p2)
 
-            st.markdown("### \U0001F7E5 Right Side Predictions")
-            pred_qf_right = []
-            for i in range(0, 8, 2):
-                p1, p2 = right.iloc[i], right.iloc[i+1]
-                pick = st.radio(f"Round of 16: {label(p1)} vs {label(p2)}", [label(p1), label(p2)], key=f"PR16_{i}_{username}")
-                pred_qf_right.append(p1 if pick == label(p1) else p2)
+        finalist_left = st.radio(
+            "Left Finalist:",
+            [label(pred_sf_left[0]), label(pred_sf_left[1])],
+            key=f"PLSF_{username}"
+        )
+        finalist_left = pred_sf_left[0] if finalist_left == label(pred_sf_left[0]) else pred_sf_left[1]
 
-            pred_sf_right = []
-            for i in range(0, len(pred_qf_right), 2):
-                p1, p2 = pred_qf_right[i], pred_qf_right[i+1]
-                pick = st.radio(f"Quarterfinal: {label(p1)} vs {label(p2)}", [label(p1), label(p2)], key=f"PRQF_{i}_{username}")
-                pred_sf_right.append(p1 if pick == label(p1) else p2)
+        st.markdown("### 🟥 Right Side Predictions")
+        pred_qf_right = []
+        for i in range(0, 8, 2):
+            p1, p2 = right.iloc[i], right.iloc[i + 1]
+            pick = st.radio(
+                f"Round of 16: {label(p1)} vs {label(p2)}",
+                [label(p1), label(p2)],
+                key=f"PR16_{i}_{username}"
+            )
+            pred_qf_right.append(p1 if pick == label(p1) else p2)
 
-            finalist_right = st.radio(f"Right Finalist:", [label(pred_sf_right[0]), label(pred_sf_right[1])], key=f"PRSF_{username}")
-            finalist_right = pred_sf_right[0] if finalist_right == label(pred_sf_right[0]) else pred_sf_right[1]
+        pred_sf_right = []
+        for i in range(0, len(pred_qf_right), 2):
+            p1, p2 = pred_qf_right[i], pred_qf_right[i + 1]
+            pick = st.radio(
+                f"Quarterfinal: {label(p1)} vs {label(p2)}",
+                [label(p1), label(p2)],
+                key=f"PRQF_{i}_{username}"
+            )
+            pred_sf_right.append(p1 if pick == label(p1) else p2)
 
-            champion = st.radio(f"\U0001F3AF Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{username}")
-            champion_final = finalist_left if champion == label(finalist_left) else finalist_right
+        finalist_right = st.radio(
+            "Right Finalist:",
+            [label(pred_sf_right[0]), label(pred_sf_right[1])],
+            key=f"PRSF_{username}"
+        )
+        finalist_right = pred_sf_right[0] if finalist_right == label(pred_sf_right[0]) else pred_sf_right[1]
 
-            if st.button("Submit My Bracket"):
-                st.session_state.user_predictions[username] = {
-                    "finalist_left": finalist_left['name'],
-                    "finalist_right": finalist_right['name'],
-                    "champion": champion_final['name']
-                }
-                st.success("Your bracket has been submitted!")
+        champion = st.radio(
+            "🏆 Predict the Champion:",
+            [label(finalist_left), label(finalist_right)],
+            key=f"PickChamp_{username}"
+        )
+        champion_final = finalist_left if champion == label(finalist_left) else finalist_right
 
-        if st.session_state.user_predictions:
-            st.subheader("\U0001F4C8 Current Predictions")
-            for user, picks in st.session_state.user_predictions.items():
-                st.markdown(f"**{user}** picked _{picks['champion']}_ to win")
+        if st.button("Submit My Bracket"):
+            st.session_state.user_predictions[username] = {
+                "finalist_left": finalist_left["name"],
+                "finalist_right": finalist_right["name"],
+                "champion": champion_final["name"]
+            }
+            st.success("Your bracket has been submitted!")
+
+    if st.session_state.user_predictions:
+        st.subheader("📈 Current Predictions")
+        for user, picks in st.session_state.user_predictions.items():
+            st.markdown(f"**{user}** picked 🏆 _{picks['champion']}_ to win")
+            
+# Tab 6: Results Log
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
