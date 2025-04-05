@@ -190,11 +190,10 @@ def load_json(file_path):
 
 
 # --- Simulation Function ---
-def simulate_matches(players):
+def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
-    
-    # Loop through players and simulate match results
+
     for i in range(num_players):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
@@ -229,15 +228,12 @@ def simulate_matches(players):
             else:
                 st.info("🔒 Only admin can enter match results.")
 
-    # Update players with the results
-    for player in players:
-        player.update(results[player['name']])
-
-    # Save match results to JSON
-    st.session_state.match_results = results
-    save_json(RESULTS_FILE, results)
+    # Store the results by pod in session state
+    st.session_state.match_results[pod_name] = results
+    save_json(RESULTS_FILE, st.session_state.match_results)
 
     return players
+
 
 
 # --- Label Helper ---
@@ -402,17 +398,32 @@ with tabs[3]:
 # Tab 3: Standings
 with tabs[2]:
     st.subheader("\U0001F4CB Standings")
-    
-    # Check if any match results exist
+
     if st.session_state.match_results:  # Only display if match results are available
-        standings = pd.DataFrame(st.session_state.match_results).T.sort_values(by=["points", "margin"], ascending=False)
+        all_results = []
         
+        # Go through each pod's results and accumulate them
+        for pod_name, pod_results in st.session_state.match_results.items():
+            for player, stats in pod_results.items():
+                all_results.append({
+                    "Pod": pod_name,
+                    "Player": player,
+                    "Points": stats["points"],
+                    "Margin": stats["margin"]
+                })
+
+        # Convert the results into a DataFrame
+        standings = pd.DataFrame(all_results)
+
         if standings.empty:
             st.info("No matches have been played yet. Standings will update after the first match.")
         else:
+            # Sort standings by points first, then margin
+            standings = standings.sort_values(by=["Points", "Margin"], ascending=[False, False])
             st.dataframe(standings)
     else:
         st.info("No matches have been played yet. Standings will update after the first match.")
+
 
 
 # Tab 4: Export
