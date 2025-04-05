@@ -102,8 +102,10 @@ else:
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
     """
-    [🔮 Golf Score Probability Calculator](https://ndddxgvdvvxzbtif33qmkr.streamlit.app){:target="_blank"}
-    """
+    <a href="https://ndddxgvdvvxzbtif33qmkr.streamlit.app" target="_blank">
+        🔮 Golf Score Probability Calculator
+    </a>
+    """, unsafe_allow_html=True
 )
 
 
