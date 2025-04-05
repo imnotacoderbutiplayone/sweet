@@ -101,7 +101,9 @@ if st.session_state.authenticated:
         # Reset session state
         st.session_state.bracket_data = pd.DataFrame()
         st.session_state.match_results = {}
-        save_json(BRACKET_FILE, {})  # Clear the saved bracket data
+        with open(BRACKET_FILE, "w") as f:
+        f.write("{}")  # Safe empty content for pd.read_json
+  # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
         st.success("Data has been refreshed. All saved data cleared.  Please refresh your browswer.")
         
@@ -335,18 +337,20 @@ if st.session_state.authenticated:
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
             winners.append({"pod": pod_name, **sorted_players.iloc[0].to_dict()})
             second_place.append(sorted_players.iloc[1].to_dict())
-            top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
-            final_players = winners + top_3
-            bracket_df = pd.DataFrame(final_players)
-            bracket_df.index = [f"Seed {i+1}" for i in range(16)]
-    
-            st.session_state.bracket_data = bracket_df
 
-    # Save properly
-    with open(BRACKET_FILE, "w") as f:
-        f.write(bracket_df.to_json(orient="split"))
+        top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
+        final_players = winners + top_3
+        bracket_df = pd.DataFrame(final_players)
+        bracket_df.index = [f"Seed {i+1}" for i in range(16)]
+        st.session_state.bracket_data = bracket_df
 
-    st.success("✅ Pod winners and bracket seeded.")
+        # Save properly
+        with open(BRACKET_FILE, "w") as f:
+            f.write(bracket_df.to_json(orient="split"))
+
+        st.success("✅ Pod winners and bracket seeded.")
+
+
 
 else:
     st.info("🔒 Only admin can calculate pod winners.")
