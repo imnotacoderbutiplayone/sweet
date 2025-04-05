@@ -20,21 +20,22 @@ if not st.session_state.app_authenticated:
     st.title("🔐 Golf Tournament - Restricted Access")
     pwd = st.text_input("Enter Tournament Password:", type="password")
     if st.button("Enter"):
-        if pwd == GENERAL_PASSWORD:
+        if pwd == general_password:
             st.session_state.app_authenticated = True
             st.success("Welcome! Refreshing...")
-            st.rerun()  # <-- fixed line
+            st.rerun()
         else:
             st.error("Incorrect tournament password.")
     st.stop()
 # Stops app here if not authenticated
 
 # ---- Sidebar Admin Login ----
+# ---- Sidebar Admin Login ----
 st.sidebar.header("🔐 Admin Login")
 if not st.session_state.authenticated:
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
-        if pwd_input == ADMIN_PASSWORD:
+        if pwd_input == admin_password:
             st.session_state.authenticated = True
             st.sidebar.success("Logged in as admin.")
         else:
@@ -43,7 +44,6 @@ else:
     st.sidebar.success("✅ Admin logged in.")
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
-
 
 # Correct Pod assignments from PDF
 pods = {
