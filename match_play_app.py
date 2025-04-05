@@ -587,10 +587,9 @@ with tabs[4]:
         csv = st.session_state.bracket_data.to_csv().encode("utf-8")
         st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv")
 
-# Tab 5: Predict Bracket
 # Predict Bracket (Updated for Full Name and Public Ledger)
 with tabs[5]:
-    st.subheader("\U0001F52E Predict Bracket")
+    st.subheader("🔮 Predict Bracket")
 
     if st.session_state.bracket_data.empty or len(st.session_state.bracket_data) < 16:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
@@ -642,7 +641,7 @@ with tabs[5]:
                 finalist_right = st.radio(f"Right Finalist:", [label(pred_sf_right[0]), label(pred_sf_right[1])], key=f"PRSF_{full_name}")
                 finalist_right = pred_sf_right[0] if finalist_right == label(pred_sf_right[0]) else pred_sf_right[1]
 
-                champion = st.radio(f"\U0001F3AF Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{full_name}")
+                champion = st.radio(f"�෼F Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{full_name}")
                 champion_final = finalist_left if champion == label(finalist_left) else finalist_right
 
                 if st.button("Submit My Bracket"):
