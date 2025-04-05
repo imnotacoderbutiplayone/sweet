@@ -453,9 +453,7 @@ if st.session_state.get("tiebreaks_resolved", False):
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    if st.session_state.bracket_data.empty:
-        st.warning("Please calculate bracket seeding from the Group Stage tab first.")
-    else:
+    if not st.session_state.bracket_data.empty and st.session_state.get("tiebreaks_resolved", False):
         bracket_df = st.session_state.bracket_data
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
@@ -612,6 +610,10 @@ with tabs[3]:
                 st.warning("❗ Select the final match winner.")
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
+    elif st.session_state.authenticated:
+        st.info("🔧 Bracket is not finalized yet. Complete tiebreakers and finalize to unlock match play.")
+    else:
+        st.info("📭 Bracket will be available once the tournament advances to match play.")
 
 
 
