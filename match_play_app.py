@@ -14,17 +14,19 @@ def load_json(file_path):
     if os.path.exists(file_path):
         with open(file_path, "r") as f:
             return json.load(f)
-    return None
+    return {}
+
 
 # --- Streamlit App Config and File Paths ---
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 BRACKET_FILE = "bracket_data.json"
 RESULTS_FILE = "match_results.json"
 
-# --- Load match results into session state ---
-# Ensure match results are loaded from the RESULTS_FILE for persistence
+# --- Load match results into session state (at the start of the app) ---
 if "match_results" not in st.session_state:
-    st.session_state.match_results = load_json(RESULTS_FILE) or {}
+    # Load results from file to session state
+    st.session_state.match_results = load_json(RESULTS_FILE)
+
+    
 # --- Load shared bracket data ---
 if "bracket_data" not in st.session_state:
     bracket_raw = load_json(BRACKET_FILE)
@@ -267,6 +269,7 @@ def simulate_matches(players, pod_name):
 
 
 
+
 # --- Label Helper ---
 def label(player):
     return f"{player['name']} ({player['handicap']})"
@@ -318,7 +321,16 @@ with tabs[1]:
     pod_results = {}
     for pod_name, players in pods.items():
         with st.expander(pod_name):
+            # Debug: Check if players is correctly populated
+            st.write(f"Players in {pod_name}: {players}")
             
+            if isinstance(players, list) and len(players) > 0:
+                # If players is a non-empty list, proceed
+                updated_players = simulate_matches(players, pod_name)
+                pod_results[pod_name] = pd.DataFrame(updated_players)
+            else:
+                st.error(f"Error: Players list for {pod_name} is empty or not a list.")
+
     # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
