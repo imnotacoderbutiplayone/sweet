@@ -21,17 +21,17 @@ st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 BRACKET_FILE = "bracket_data.json"
 RESULTS_FILE = "match_results.json"
 
-# Load shared bracket data
+# --- Load match results into session state ---
+# Ensure match results are loaded from the RESULTS_FILE for persistence
+if "match_results" not in st.session_state:
+    st.session_state.match_results = load_json(RESULTS_FILE) or {}
+# --- Load shared bracket data ---
 if "bracket_data" not in st.session_state:
     bracket_raw = load_json(BRACKET_FILE)
     if bracket_raw:
         st.session_state.bracket_data = pd.read_json(bracket_raw, orient="split")
     else:
         st.session_state.bracket_data = pd.DataFrame()
-
-# Load match results (optional extension later)
-if "match_results" not in st.session_state:
-    st.session_state.match_results = load_json(RESULTS_FILE) or {}
 
 # ---- Global Password Protection ----
 admin_password = st.secrets["admin_password"]
@@ -201,20 +201,17 @@ def simulate_matches(players, pod_name):
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
-            # Check if admin is authenticated and checkbox is selected
             if st.session_state.authenticated:
                 entry_key = col + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    # Get the winner and match margin
                     winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
                     margin = 0
                     if winner != "Tie":
                         result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
                         margin = margin_lookup[result_str]
 
-                    # Update the results based on who won
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
                         results[p1['name']]['margin'] += margin
@@ -230,28 +227,21 @@ def simulate_matches(players, pod_name):
             else:
                 st.info("🔒 Only admin can enter match results.")
 
-    # Debugging: Inspect the results before updating players
-    st.write(f"Match results for pod {pod_name}: {results}")
-
     # Update the player data with the match results and return the updated list
     updated_players = []
     for player in players:
         player_results = results[player['name']]
-        
-        # Debugging: Check each player's updated data
-        st.write(f"Updating player: {player['name']} with points: {player_results['points']} and margin: {player_results['margin']}")
-        
         updated_player = {**player, **player_results}
         updated_players.append(updated_player)
 
-    # Debugging: Check the updated players list before returning
-    st.write(f"Updated players for pod {pod_name}: {updated_players}")
-
     # Store the results by pod in session state
     st.session_state.match_results[pod_name] = results
+
+    # Save the match results to the RESULTS_FILE for persistence across sessions
     save_json(RESULTS_FILE, st.session_state.match_results)
 
     return updated_players
+
 
 
 
