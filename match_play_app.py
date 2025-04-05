@@ -272,11 +272,15 @@ with tabs[1]:
     # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
+        pod_results = {}  # 🔧 <-- ADD THIS LINE
         winners, second_place = [], []
         for pod_name, df in pod_results.items():
+            if "points" not in df.columns or df["points"].sum() == 0:
+                continue  # skip pods with no entered matches
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
             winners.append({"pod": pod_name, **sorted_players.iloc[0].to_dict()})
             second_place.append(sorted_players.iloc[1].to_dict())
+
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
         final_players = winners + top_3
         bracket_df = pd.DataFrame(final_players)
