@@ -285,32 +285,12 @@ def label(player):
 st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
 tabs = st.tabs(["\U0001F4C1 Pods Overview", "\U0001F4CA Group Stage", "\U0001F4CB Standings", "\U0001F3C6 Bracket", "\U0001F4E4 Export", "\U0001F52E Predict Bracket"])
 
-if "bracket_data" not in st.session_state:
-    st.session_state.bracket_data = pd.DataFrame()
-if "user_predictions" not in st.session_state:
-    st.session_state.user_predictions = {}
-
-# Tab 0: Pods Overview (Styled & No Index - Fixed)
+# Tab 0: Pods Overview
 with tabs[0]:
     st.subheader("📁 All Pods and Player Handicaps")
     pod_names = list(pods.keys())
     num_cols = 3
     cols = st.columns(num_cols)
-
-    # CSS style for headers and alternating rows
-    def style_table(df):
-        styled = df.style.set_table_styles([
-            {'selector': 'th',
-             'props': [('background-color', '#4CAF50'),
-                       ('color', 'white'),
-                       ('font-size', '16px')]},
-            {'selector': 'td',
-             'props': [('font-size', '14px')]}
-        ]).set_properties(**{
-            'text-align': 'left',
-            'padding': '6px'
-        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-        return styled.hide(axis='index')  # Hide the index explicitly here
 
     for i, pod_name in enumerate(pod_names):
         col = cols[i % num_cols]
@@ -319,8 +299,7 @@ with tabs[0]:
             df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
             df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
             df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-            styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+            st.write(df)
 
 # Tab 1: Group Stage
 with tabs[1]:
@@ -330,34 +309,36 @@ with tabs[1]:
         with st.expander(pod_name):
             # Proceed without debug output
             if isinstance(players, list) and len(players) > 0:
-                # If players is a non-empty list, proceed
                 updated_players = simulate_matches(players, pod_name)
                 pod_results[pod_name] = pd.DataFrame(updated_players)
             else:
                 st.error(f"Error: Players list for {pod_name} is empty or not a list.")
 
+# Tab 2: Standings
+with tabs[2]:
+    st.subheader("\U0001F4CB Standings")
+    if st.session_state.match_results:  # Only display if match results are available
+        all_results = []
+        for pod_name, pod_results in st.session_state.match_results.items():
+            for player, stats in pod_results.items():
+                all_results.append({
+                    "Pod": pod_name,
+                    "Player": player,
+                    "Points": stats["points"],
+                    "Margin": stats["margin"]
+                })
 
-    # Only allow Admin to calculate pod winners
-if st.session_state.authenticated:
-    if st.button("Calculate Pod Winners"):
-        winners, second_place = [], []
-        for pod_name, df in pod_results.items():
-            sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
-            winners.append({"pod": pod_name, **sorted_players.iloc[0].to_dict()})
-            second_place.append(sorted_players.iloc[1].to_dict())
-        top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
-        final_players = winners + top_3
-        bracket_df = pd.DataFrame(final_players)
-        bracket_df.index = [f"Seed {i+1}" for i in range(16)]
-        st.session_state.bracket_data = bracket_df
-        save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
-        st.success("✅ Pod winners and bracket seeded.")
-else:
-    st.info("🔒 Only admin can calculate pod winners.")
+        standings = pd.DataFrame(all_results)
 
+        if standings.empty:
+            st.info("No matches have been played yet. Standings will update after the first match.")
+        else:
+            standings = standings.sort_values(by=["Points", "Margin"], ascending=[False, False])
+            st.dataframe(standings)
+    else:
+        st.info("No matches have been played yet. Standings will update after the first match.")
 
-
-# Tab 2: Bracket
+# Tab 3: Bracket
 with tabs[3]:
     st.subheader("🏆 Bracket")
     if st.session_state.bracket_data.empty:
@@ -440,38 +421,6 @@ with tabs[3]:
         )
         winner = finalist_left if champion == label(finalist_left) else finalist_right
         st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
-
-
-# Tab 3: Standings
-with tabs[2]:
-    st.subheader("\U0001F4CB Standings")
-
-    if st.session_state.match_results:  # Only display if match results are available
-        all_results = []
-
-        # Go through each pod's results and accumulate them
-        for pod_name, pod_results in st.session_state.match_results.items():
-            for player, stats in pod_results.items():
-                all_results.append({
-                    "Pod": pod_name,
-                    "Player": player,
-                    "Points": stats["points"],
-                    "Margin": stats["margin"]
-                })
-
-        # Convert the results into a DataFrame
-        standings = pd.DataFrame(all_results)
-
-        if standings.empty:
-            st.info("No matches have been played yet. Standings will update after the first match.")
-        else:
-            # Sort standings by points first, then margin
-            standings = standings.sort_values(by=["Points", "Margin"], ascending=[False, False])
-            st.dataframe(standings)
-    else:
-        st.info("No matches have been played yet. Standings will update after the first match.")
-
-
 
 # Tab 4: Export
 with tabs[4]:
