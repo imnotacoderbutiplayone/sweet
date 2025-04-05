@@ -194,17 +194,22 @@ def simulate_matches(players):
                 margin = 0
                 st.info("🔒 Only admin can enter match results.")
 
-            if winner == p1['name']:
-                results[p1['name']]['points'] += 1
-                results[p1['name']]['margin'] += margin
-                results[p2['name']]['margin'] -= margin
-            elif winner == p2['name']:
-                results[p2['name']]['points'] += 1
-                results[p2['name']]['margin'] += margin
-                results[p1['name']]['margin'] -= margin
-            else:
-                results[p1['name']]['points'] += 0.5
-                results[p2['name']]['points'] += 0.5
+     if winner == "No result":
+         st.warning("⏳ Awaiting result input")
+        continue  # Skip to the next match
+    elif winner == p1['name']:
+        results[p1['name']]['points'] += 1
+        results[p1['name']]['margin'] += margin
+        results[p2['name']]['margin'] -= margin
+    elif winner == p2['name']:
+        results[p2['name']]['points'] += 1
+        results[p2['name']]['margin'] += margin
+        results[p1['name']]['margin'] -= margin
+    else:  # Tie
+        results[p1['name']]['points'] += 0.5
+        results[p2['name']]['points'] += 0.5
+
+
 
     for player in players:
         player.update(results[player['name']])
@@ -300,7 +305,12 @@ with tabs[3]:
             qf_left = []
             for i in range(0, 8, 2):
                 p1, p2 = left.iloc[i], left.iloc[i+1]
-                winner = st.radio(f"{label(p1)} vs {label(p2)}", [label(p1), label(p2)], key=f"R16L_{i}")
+        winner = st.radio(
+            f"Who won?",
+            ["No result", p1['name'], p2['name'], "Tie"],
+            key=col
+)
+
                 qf_left.append(p1 if winner == label(p1) else p2)
 
             st.markdown("#### \U0001F948 Quarterfinals")
