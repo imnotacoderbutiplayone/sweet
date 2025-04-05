@@ -226,16 +226,20 @@ def simulate_matches(players, key_prefix=""):
         player.update(results[player["name"]])
     return players
 
+# --- Tabs Setup ---
+tabs = st.tabs(["Pods Overview", "Group Stage", "Standings", "Bracket", "Export", "Predict Bracket"])
+
 # --- Group Stage Results Tab ---
+with tabs[1]:
 if "pod_results" not in st.session_state:
     st.session_state.pod_results = {}
 
 st.subheader("📊 Group Stage - Match Results")
-for pod_name, players in pods.items():
-    with st.expander(pod_name):
-        updated_players = simulate_matches(players, key_prefix=pod_name + "_")
-        st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
-
+    for pod_name, players in pods.items():
+        with st.container():
+        st.markdown(f"### {pod_name}")
+            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
+            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
 
 # --- Pod Winners Calculation ---
 if st.session_state.authenticated:
@@ -257,6 +261,7 @@ if st.session_state.authenticated:
         st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
+
 
 
 # Tab 2: Bracket
