@@ -102,7 +102,7 @@ if st.session_state.authenticated:
         st.session_state.bracket_data = pd.DataFrame()
         st.session_state.match_results = {}
         with open(BRACKET_FILE, "w") as f:
-        f.write("{}")  # Safe empty content for pd.read_json
+            f.write("{}")  # Safe empty content for pd.read_json
   # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
         st.success("Data has been refreshed. All saved data cleared.  Please refresh your browswer.")
