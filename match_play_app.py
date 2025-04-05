@@ -58,44 +58,47 @@ if not st.session_state.app_authenticated:
 
 # ---- Sidebar Admin Login ----
 st.sidebar.header("🔐 Admin Login")
+
+# 🧪 Debug status
+st.sidebar.markdown(f"🧪 Debug: `authenticated = {st.session_state.get('authenticated', False)}`")
+
 if not st.session_state.authenticated:
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
         if pwd_input == admin_password:
             st.session_state.authenticated = True
-            st.sidebar.success("Logged in as admin.")
+            st.sidebar.success("✅ Logged in as admin.")
         else:
-            st.sidebar.error("Incorrect Admin Password.")
+            st.sidebar.error("❌ Incorrect Admin Password.")
 else:
     st.sidebar.success("✅ Admin logged in.")
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
 
-    # --- Admin Reset Button with Confirmation ---
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("⚙️ Admin Tools")
-    st.sidebar.warning("This will permanently delete ALL tournament results and bracket data.")
+# --- ⚙️ Admin Tools (DEV MODE: always visible) ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("⚙️ Admin Tools (Dev Mode)")
 
-    confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
+st.sidebar.warning("This will permanently delete ALL match results and bracket data. Use with caution!")
 
-    if st.sidebar.button("🧨 Reset Tournament Data"):
-        if confirm_reset.strip().upper() == "RESET":
-            # Delete JSON files if they exist
-            for file in [RESULTS_FILE, BRACKET_FILE]:
-                if os.path.exists(file):
-                    os.remove(file)
+confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
 
-            # Clear session state variables
-            st.session_state.match_results = {}
-            st.session_state.bracket_data = pd.DataFrame()
-            st.session_state.tiebreak_selections = {}
-            st.session_state.tiebreaks_resolved = False
-            st.session_state.user_predictions = {}
+if st.sidebar.button("🧨 Reset Tournament Data"):
+    if confirm_reset.strip().upper() == "RESET":
+        for file in [RESULTS_FILE, BRACKET_FILE]:
+            if os.path.exists(file):
+                os.remove(file)
 
-            st.success("✅ Tournament data has been reset.")
-            st.rerun()
-        else:
-            st.sidebar.error("You must type RESET to confirm.")
+        st.session_state.match_results = {}
+        st.session_state.bracket_data = pd.DataFrame()
+        st.session_state.tiebreak_selections = {}
+        st.session_state.tiebreaks_resolved = False
+        st.session_state.user_predictions = {}
+
+        st.success("✅ Tournament data has been reset. Refreshing...")
+        st.rerun()
+    else:
+        st.sidebar.error("You must type RESET to confirm.")
 
 
 # Correct Pod assignments from PDF
