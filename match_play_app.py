@@ -99,6 +99,12 @@ else:
         else:
             st.sidebar.error("❌ You must type RESET to confirm.")
 
+# ---- Link to Golf Score Probability Calculator ----
+st.sidebar.markdown(
+    """
+    [Golf Score Probability Calculator](https://ndddxgvdvvxzbtif33qmkr.streamlit.app){:target="_blank"}
+    """
+)
 
 
 # Correct Pod assignments from PDF
