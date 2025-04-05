@@ -194,20 +194,20 @@ def simulate_matches(players):
                 margin = 0
                 st.info("🔒 Only admin can enter match results.")
 
-     if winner == "No result":
-        st.warning("⏳ Awaiting result input")
-        continue  # Skip to the next match
-    elif winner == p1['name']:
-        results[p1['name']]['points'] += 1
-        results[p1['name']]['margin'] += margin
-        results[p2['name']]['margin'] -= margin
-    elif winner == p2['name']:
-        results[p2['name']]['points'] += 1
-        results[p2['name']]['margin'] += margin
-        results[p1['name']]['margin'] -= margin
-    else:  # Tie
-        results[p1['name']]['points'] += 0.5
-        results[p2['name']]['points'] += 0.5
+            if winner == "No result":
+                st.warning("⏳ Awaiting result input")
+                continue  # Skip to the next match
+            elif winner == p1['name']:
+                results[p1['name']]['points'] += 1
+                results[p1['name']]['margin'] += margin
+                results[p2['name']]['margin'] -= margin
+            elif winner == p2['name']:
+                results[p2['name']]['points'] += 1
+                results[p2['name']]['margin'] += margin
+                results[p1['name']]['margin'] -= margin
+            else:  # Tie
+                results[p1['name']]['points'] += 0.5
+                results[p2['name']]['points'] += 0.5
 
 
 
