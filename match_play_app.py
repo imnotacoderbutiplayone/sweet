@@ -74,6 +74,13 @@ else:
         st.session_state.authenticated = False
         st.rerun()
 
+# ---- Link to Golf Score Probability Calculator ----
+st.sidebar.markdown(
+    """
+    [Golf Score Probability Calculator](https://ndddxgvdvvxzbtif33qmkr.streamlit.app){:target="_blank"}
+    """
+)
+
     # --- ⚙️ Admin Tools ---
     st.sidebar.markdown("---")
     st.sidebar.subheader("⚙️ Admin Tools")
