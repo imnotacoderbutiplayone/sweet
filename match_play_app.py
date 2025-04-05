@@ -320,14 +320,16 @@ if st.session_state.authenticated:
                 if not selected:
                     st.stop()
 
-                winner = tied_first[tied_first["name"] == selected].iloc[0]
+                winner_row = tied_first[tied_first["name"] == selected].iloc[0]
+                winner_dict = winner_row.to_dict()
+                winners.append({"pod": pod_name, **winner_dict})
             else:
-                winner = sorted_players.iloc[0]
-
-            winners.append({"pod": pod_name, **winner.to_dict()})
+                winner_row = sorted_players.iloc[0]
+                winner_dict = winner_row.to_dict()
+                winners.append({"pod": pod_name, **winner_dict})
 
             # ---- Tiebreaker for Second Place ----
-            remaining = sorted_players[sorted_players["name"] != winner["name"]].reset_index(drop=True)
+            remaining = sorted_players[sorted_players["name"] != winner_dict["name"]].reset_index(drop=True)
             second_score = remaining.iloc[0]["points"]
             second_margin = remaining.iloc[0]["margin"]
             tied_second = remaining[
@@ -347,11 +349,13 @@ if st.session_state.authenticated:
                 if not selected:
                     st.stop()
 
-                runner_up = tied_second[tied_second["name"] == selected].iloc[0]
+                runner_up_row = tied_second[tied_second["name"] == selected].iloc[0]
+                runner_up_dict = runner_up_row.to_dict()
+                second_place.append(runner_up_dict)
             else:
-                runner_up = remaining.iloc[0]
-
-            second_place.append(runner_up.to_dict())
+                runner_up_row = remaining.iloc[0]
+                runner_up_dict = runner_up_row.to_dict()
+                second_place.append(runner_up_dict)
 
         # Take 13 winners + top 3 second-place finishers
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
@@ -363,6 +367,7 @@ if st.session_state.authenticated:
         st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
+
 
 
 # Tab 2: Bracket
