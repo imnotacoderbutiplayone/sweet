@@ -399,18 +399,25 @@ with tabs[3]:
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
         col1, col2 = st.columns(2)
+
         with col1:
             st.markdown("### 🟦 Left Side")
             st.markdown("#### 🏁 Round of 16")
+
             qf_left = []
             for i in range(0, 8, 2):
                 p1, p2 = left.iloc[i], left.iloc[i + 1]
                 winner = st.radio(
                     f"{label(p1)} vs {label(p2)}",
                     [label(p1), label(p2)],
-                    key=f"R16L_{i}"
+                    key=f"R16L_{i}",
+                    index=None
                 )
-                qf_left.append(p1 if winner == label(p1) else p2)
+                if winner:
+                    qf_left.append(p1 if winner == label(p1) else p2)
+                else:
+                    st.warning("❗ Please select all Round of 16 matchups (Left).")
+                    st.stop()
 
             st.markdown("#### 🥈 Quarterfinals")
             sf_left = []
@@ -419,30 +426,46 @@ with tabs[3]:
                 winner = st.radio(
                     f"QF: {label(p1)} vs {label(p2)}",
                     [label(p1), label(p2)],
-                    key=f"QFL_{i}"
+                    key=f"QFL_{i}",
+                    index=None
                 )
-                sf_left.append(p1 if winner == label(p1) else p2)
+                if winner:
+                    sf_left.append(p1 if winner == label(p1) else p2)
+                else:
+                    st.warning("❗ Please select all Quarterfinals (Left).")
+                    st.stop()
 
             st.markdown("#### 🥇 Semifinal Winner")
             finalist_left = st.radio(
                 "🏅 Left Finalist:",
                 [label(sf_left[0]), label(sf_left[1])],
-                key="LFinal"
+                key="LFinal",
+                index=None
             )
-            finalist_left = sf_left[0] if finalist_left == label(sf_left[0]) else sf_left[1]
+            if finalist_left:
+                finalist_left = sf_left[0] if finalist_left == label(sf_left[0]) else sf_left[1]
+            else:
+                st.warning("❗ Select a Left-side Finalist.")
+                st.stop()
 
         with col2:
             st.markdown("### 🟥 Right Side")
             st.markdown("#### 🏁 Round of 16")
+
             qf_right = []
             for i in range(0, 8, 2):
                 p1, p2 = right.iloc[i], right.iloc[i + 1]
                 winner = st.radio(
                     f"{label(p1)} vs {label(p2)}",
                     [label(p1), label(p2)],
-                    key=f"R16R_{i}"
+                    key=f"R16R_{i}",
+                    index=None
                 )
-                qf_right.append(p1 if winner == label(p1) else p2)
+                if winner:
+                    qf_right.append(p1 if winner == label(p1) else p2)
+                else:
+                    st.warning("❗ Please select all Round of 16 matchups (Right).")
+                    st.stop()
 
             st.markdown("#### 🥈 Quarterfinals")
             sf_right = []
@@ -451,26 +474,41 @@ with tabs[3]:
                 winner = st.radio(
                     f"QF: {label(p1)} vs {label(p2)}",
                     [label(p1), label(p2)],
-                    key=f"QFR_{i}"
+                    key=f"QFR_{i}",
+                    index=None
                 )
-                sf_right.append(p1 if winner == label(p1) else p2)
+                if winner:
+                    sf_right.append(p1 if winner == label(p1) else p2)
+                else:
+                    st.warning("❗ Please select all Quarterfinals (Right).")
+                    st.stop()
 
             st.markdown("#### 🥇 Semifinal Winner")
             finalist_right = st.radio(
                 "🏅 Right Finalist:",
                 [label(sf_right[0]), label(sf_right[1])],
-                key="RFinal"
+                key="RFinal",
+                index=None
             )
-            finalist_right = sf_right[0] if finalist_right == label(sf_right[0]) else sf_right[1]
+            if finalist_right:
+                finalist_right = sf_right[0] if finalist_right == label(sf_right[0]) else sf_right[1]
+            else:
+                st.warning("❗ Select a Right-side Finalist.")
+                st.stop()
 
         st.markdown("### 🏁 Final Match")
         champion = st.radio(
             "🏆 Champion:",
             [label(finalist_left), label(finalist_right)],
-            key="Champ"
+            key="Champ",
+            index=None
         )
-        winner = finalist_left if champion == label(finalist_left) else finalist_right
-        st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
+        if champion:
+            winner = finalist_left if champion == label(finalist_left) else finalist_right
+            st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
+        else:
+            st.warning("❗ Select the final match winner.")
+
 
 
 # Tab 3: Standings
