@@ -225,6 +225,8 @@ with tabs[1]:
             updated_players = simulate_matches(players)
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
+    # Only allow Admin to calculate pod winners
+if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
         winners, second_place = [], []
         for pod_name, df in pod_results.items():
@@ -237,6 +239,9 @@ with tabs[1]:
         bracket_df.index = [f"Seed {i+1}" for i in range(16)]
         st.session_state.bracket_data = bracket_df
         st.success("Pod winners and bracket seeded.")
+else:
+    st.info("🔒 Only admin can calculate pod winners.")
+
 
 # Tab 2: Bracket
 with tabs[3]:
