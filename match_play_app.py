@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 from collections import defaultdict
-import io
 import json
 import os
 
@@ -80,7 +79,19 @@ pods = {
         {"name": "Anand Saranathan", "handicap": None},
         {"name": "Tim Coyne", "handicap": 14.0},
     ],
-    # ... include all your pods here ...
+    "Pod 2": [
+        {"name": "Tim Stubenrouch", "handicap": 6.8},
+        {"name": "David Gornet", "handicap": 12.4},
+        {"name": "Ken Wood", "handicap": 21.3},
+        {"name": "William Dicks", "handicap": 20.3},
+    ],
+    "Pod 3": [
+        {"name": "Austen Flatt", "handicap": 5.5},
+        {"name": "Robert Polk", "handicap": 11.8},
+        {"name": "Pravin Patel", "handicap": 16.5},
+        {"name": "Benjamin Dickinson", "handicap": 16.3},
+    ],
+    # Add other pods...
 }
 
 margin_lookup = {
@@ -156,6 +167,18 @@ def simulate_matches(players, key_prefix=""):
 
 # --- Tabs Setup ---
 tabs = st.tabs(["Pods Overview", "Group Stage", "Standings", "Bracket", "Export", "Predict Bracket"])
+
+# --- Pod Overview Tab ---
+with tabs[0]:
+    st.subheader("📂 Pod Overview")
+    if "pod_results" not in st.session_state:
+        st.session_state.pod_results = {}
+
+    for pod_name, players in pods.items():
+        with st.expander(pod_name):
+            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
+            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
+            st.write(st.session_state.pod_results[pod_name])
 
 # --- Group Stage Results Tab ---
 with tabs[1]:
@@ -275,7 +298,6 @@ with tabs[3]:
         )
         winner = finalist_left if champion == label(finalist_left) else finalist_right
         st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
-
 
 # Tab 3: Standings
 with tabs[2]:
