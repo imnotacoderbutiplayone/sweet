@@ -425,7 +425,6 @@ with tabs[2]:
         st.info("No matches have been played yet. Standings will update after the first match.")
 
 
-
 # Tab 4: Export
 with tabs[4]:
     st.subheader("\U0001F4E4 Export")
