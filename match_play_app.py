@@ -253,7 +253,8 @@ with tabs[0]:
         styled = df.style.set_table_styles([
             {'selector': 'th', 'props': [('background-color', '#4CAF50'), ('color', 'white'), ('font-size', '16px')]},
             {'selector': 'td', 'props': [('font-size', '14px')]}
-        ]).set_properties({'text-align': 'left', 'padding': '6px'}).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))})
+        ]).set_properties({'text-align': 'left', 'padding': '6px'}).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))], axis=1)
+
         return styled.hide(axis='index')
 
     for i, pod_name in enumerate(pod_names):
