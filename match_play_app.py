@@ -24,7 +24,8 @@ RESULTS_FILE = "match_results.json"
 # --- Load match results into session state (at the start of the app) ---
 if "match_results" not in st.session_state:
     # Load results from file to session state
-    st.session_state.match_results = load_json(RESULTS_FILE)
+    st.session_state.match_results = load_json(RESULTS_FILE)  # This loads the saved results if they exist
+
 
     
 # --- Load shared bracket data ---
@@ -265,6 +266,7 @@ def simulate_matches(players, pod_name):
     save_json(RESULTS_FILE, st.session_state.match_results)
 
     return updated_players
+
 
 
 
