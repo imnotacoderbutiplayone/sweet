@@ -189,6 +189,28 @@ def load_json(file_path):
     return None
 
 
+# Function to save data to a file
+def save_json(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+# Function to load data from a file
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return {}
+
+# --- Streamlit App Configuration ---
+BRACKET_FILE = "bracket_data.json"
+RESULTS_FILE = "match_results.json"
+
+# --- Load match results into session state (on app startup) ---
+if "match_results" not in st.session_state:
+    st.session_state.match_results = load_json(RESULTS_FILE)  # Load saved match results from file
+
+
+# --- Admin logic (simulate matches and save results) ---
 def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -236,9 +258,6 @@ def simulate_matches(players, pod_name):
 
     # Store the results by pod in session state
     st.session_state.match_results[pod_name] = results
-
-    # Debugging: Ensure the match results are being saved
-    st.write(f"Saving results for pod {pod_name}: {results}")
 
     # Save the match results to the RESULTS_FILE for persistence across sessions
     save_json(RESULTS_FILE, st.session_state.match_results)
@@ -420,7 +439,7 @@ with tabs[2]:
 
     if st.session_state.match_results:  # Only display if match results are available
         all_results = []
-        
+
         # Go through each pod's results and accumulate them
         for pod_name, pod_results in st.session_state.match_results.items():
             for player, stats in pod_results.items():
