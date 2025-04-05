@@ -172,7 +172,7 @@ def load_json(file_path):
 
 
 # --- Simulation Function ---
-def simulate_matches(players, key_prefix=""):
+def simulate_matches(players):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
     for i in range(num_players):
@@ -184,27 +184,15 @@ def simulate_matches(players, key_prefix=""):
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
-                entry_key = key_prefix + col + "_entered"
+                entry_key = col + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    match_key = key_prefix + col
-                    stored_result = st.session_state.match_results.get(match_key, {})
-                    winner_default = stored_result.get("winner", "Tie")
-                    margin_default = stored_result.get("margin", 0)
-
-                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=[p1['name'], p2['name'], "Tie"].index(winner_default), key=match_key)
+                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
                     margin = 0
                     if winner != "Tie":
-                        margin_options = list(margin_lookup.keys())
-                        margin_str_default = [k for k, v in margin_lookup.items() if v == margin_default]
-                        default_index = margin_options.index(margin_str_default[0]) if margin_str_default else 0
-                        result_str = st.selectbox("Select Match Result (Win Margin)", options=margin_options, index=default_index, key=match_key + "_result")
+                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
                         margin = margin_lookup[result_str]
-
-                    # Save match result to session and file
-                    st.session_state.match_results[match_key] = {"winner": winner, "margin": margin}
-                    save_json(RESULTS_FILE, st.session_state.match_results)
 
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
@@ -224,38 +212,75 @@ def simulate_matches(players, key_prefix=""):
         player["points"] = 0
         player["margin"] = 0
         player.update(results[player["name"]])
-    return players
+return players
 
-# --- Tabs Setup ---
-tabs = st.tabs(["Pods Overview", "Group Stage", "Standings", "Bracket", "Export", "Predict Bracket"])
 
-# --- Group Stage Results Tab ---
+# --- Label Helper ---
+def label(player):
+    return f"{player['name']} ({player['handicap']})"
+
+
+st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
+tabs = st.tabs(["\U0001F4C1 Pods Overview", "\U0001F4CA Group Stage", "\U0001F4CB Standings", "\U0001F3C6 Bracket", "\U0001F4E4 Export", "\U0001F52E Predict Bracket"])
+
+if "bracket_data" not in st.session_state:
+    st.session_state.bracket_data = pd.DataFrame()
+if "user_predictions" not in st.session_state:
+    st.session_state.user_predictions = {}
+
+# Tab 0: Pods Overview (Styled & No Index - Fixed)
+with tabs[0]:
+    st.subheader("📁 All Pods and Player Handicaps")
+    pod_names = list(pods.keys())
+    num_cols = 3
+    cols = st.columns(num_cols)
+
+    # CSS style for headers and alternating rows
+    def style_table(df):
+        styled = df.style.set_table_styles([
+            {'selector': 'th',
+             'props': [('background-color', '#4CAF50'),
+                       ('color', 'white'),
+                       ('font-size', '16px')]},
+            {'selector': 'td',
+             'props': [('font-size', '14px')]}
+        ]).set_properties(**{
+            'text-align': 'left',
+            'padding': '6px'
+        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
+        return styled.hide(axis='index')  # Hide the index explicitly here
+
+    for i, pod_name in enumerate(pod_names):
+        col = cols[i % num_cols]
+        with col:
+            st.markdown(f"##### {pod_name}")
+            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
+            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
+            styled_df = style_table(df)
+            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+
+# Tab 1: Group Stage
 with tabs[1]:
-if "pod_results" not in st.session_state:
-    st.session_state.pod_results = {}
-
-st.subheader("📊 Group Stage - Match Results")
+    st.subheader("\U0001F4CA Group Stage - Match Results")
+    pod_results = {}
     for pod_name, players in pods.items():
-        with st.container():
-        st.markdown(f"### {pod_name}")
-            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
-            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
+        with st.expander(pod_name):
+            updated_players = simulate_matches(players)
+            pod_results[pod_name] = pd.DataFrame(updated_players)
 
-# --- Pod Winners Calculation ---
+    # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
     if st.button("Calculate Pod Winners"):
         winners, second_place = [], []
-        for pod_name, df in st.session_state.pod_results.items():
-            if "points" not in df.columns or df["points"].sum() == 0:
-                continue  # skip pods with no entered matches
+        for pod_name, df in pod_results.items():
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
             winners.append({"pod": pod_name, **sorted_players.iloc[0].to_dict()})
             second_place.append(sorted_players.iloc[1].to_dict())
-
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
         final_players = winners + top_3
         bracket_df = pd.DataFrame(final_players)
-        bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
+        bracket_df.index = [f"Seed {i+1}" for i in range(16)]
         st.session_state.bracket_data = bracket_df
         save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
         st.success("✅ Pod winners and bracket seeded.")
