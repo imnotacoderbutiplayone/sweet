@@ -160,40 +160,44 @@ margin_lookup = {
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
 }
 
-def save_json(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
-
-def load_json(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            return json.load(f)
-    return None
-
 
 # --- Simulation Function ---
-def simulate_matches(players):
+def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
+
+    if "match_results" not in st.session_state:
+        st.session_state.match_results = {}
+
     for i in range(num_players):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
-            col = f"{p1['name']} vs {p2['name']}"
+            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
-                entry_key = col + "_entered"
+                entry_key = match_key + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=col)
+                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=match_key)
                     margin = 0
                     if winner != "Tie":
-                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=col + "_result")
+                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=match_key + "_result")
                         margin = margin_lookup[result_str]
 
+                    # Save to session state
+                    st.session_state.match_results[match_key] = {
+                        "winner": winner,
+                        "margin": margin
+                    }
+
+                    # Save to disk
+                    save_json(RESULTS_FILE, st.session_state.match_results)
+
+                    # Update running results
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
                         results[p1['name']]['margin'] += margin
@@ -211,6 +215,7 @@ def simulate_matches(players):
     for player in players:
         player.update(results[player['name']])
     return players
+
 
 # --- Label Helper ---
 def label(player):
