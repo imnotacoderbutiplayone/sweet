@@ -6,8 +6,8 @@ import io
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # ---- Global Password Protection ----
-admin_password = st.secrets["admin_password"]
-general_password = st.secrets["general_password"]
+ADMIN_PASSWORD = st.secrets["admin_password"]
+GENERAL_PASSWORD = st.secrets["general_password"]
 
 # Initialize Session States
 if 'app_authenticated' not in st.session_state:
@@ -20,7 +20,7 @@ if not st.session_state.app_authenticated:
     st.title("🔐 Golf Tournament - Restricted Access")
     pwd = st.text_input("Enter Tournament Password:", type="password")
     if st.button("Enter"):
-        if pwd == GENERAL_PASSWORD:
+        if pwd == st.secrets["general_password"]:
             st.session_state.app_authenticated = True
             st.success("Welcome! Refreshing...")
             st.rerun()  # <-- fixed line
@@ -34,7 +34,7 @@ st.sidebar.header("🔐 Admin Login")
 if not st.session_state.authenticated:
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
-        if pwd_input == ADMIN_PASSWORD:
+        if st.secrets["admin_password"]
             st.session_state.authenticated = True
             st.sidebar.success("Logged in as admin.")
         else:
