@@ -8,7 +8,7 @@ st.title("🏌️ Golf Score Probability Calculator")
 handicap_index = st.number_input("Handicap Index", value=10.0)
 course_rating = st.number_input("Course Rating", value=72.0)
 slope_rating = st.number_input("Slope Rating", value=132.0)
-actual_score = st.number_input("Actual Score", value=85.0)
+actual_score = st.number_input("Actual Score", value=86.0)
 
 if st.button("Calculate"):
     course_handicap = handicap_index * (slope_rating / 113) + (course_rating - 72)
