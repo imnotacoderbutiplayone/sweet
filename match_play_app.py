@@ -16,6 +16,8 @@ if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
 # ---- General Access Password ----
+if "app_authenticated" not in st.session_state:
+    st.session_state.app_authenticated = False
 if not st.session_state.app_authenticated:
     st.title("🔐 Golf Tournament - Restricted Access")
     pwd = st.text_input("Enter Tournament Password:", type="password")
@@ -23,18 +25,20 @@ if not st.session_state.app_authenticated:
         if pwd == st.secrets["general_password"]:
             st.session_state.app_authenticated = True
             st.success("Welcome! Refreshing...")
-            st.rerun()  # <-- fixed line
+            st.rerun()
         else:
             st.error("Incorrect tournament password.")
-    st.stop()
-# Stops app here if not authenticated
+    st.stop()  # Stops app here if not authenticated
 
 # ---- Sidebar Admin Login ----
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
 st.sidebar.header("🔐 Admin Login")
 if not st.session_state.authenticated:
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
-        if st.secrets["admin_password"]
+        if pwd_input == st.secrets["admin_password"]:
             st.session_state.authenticated = True
             st.sidebar.success("Logged in as admin.")
         else:
