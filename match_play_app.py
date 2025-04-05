@@ -313,7 +313,7 @@ with tabs[3]:
 
         qf_left.append(p1 if winner == label(p1) else p2)
 
-            st.markdown("#### \U0001F948 Quarterfinals")
+        st.markdown("#### \U0001F948 Quarterfinals")
             sf_left = []
             for i in range(0, len(qf_left), 2):
                 p1, p2 = qf_left[i], qf_left[i+1]
