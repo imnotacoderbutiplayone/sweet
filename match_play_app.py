@@ -71,6 +71,32 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
 
+    # --- Admin Reset Button with Confirmation ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("⚙️ Admin Tools")
+    st.sidebar.warning("This will permanently delete ALL tournament results and bracket data.")
+
+    confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
+
+    if st.sidebar.button("🧨 Reset Tournament Data"):
+        if confirm_reset.strip().upper() == "RESET":
+            # Delete JSON files if they exist
+            for file in [RESULTS_FILE, BRACKET_FILE]:
+                if os.path.exists(file):
+                    os.remove(file)
+
+            # Clear session state variables
+            st.session_state.match_results = {}
+            st.session_state.bracket_data = pd.DataFrame()
+            st.session_state.tiebreak_selections = {}
+            st.session_state.tiebreaks_resolved = False
+            st.session_state.user_predictions = {}
+
+            st.success("✅ Tournament data has been reset.")
+            st.rerun()
+        else:
+            st.sidebar.error("You must type RESET to confirm.")
+
 
 # Correct Pod assignments from PDF
 pods = {
