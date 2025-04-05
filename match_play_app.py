@@ -287,8 +287,15 @@ with tabs[1]:
     pod_results = {}
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players)
-            pod_results[pod_name] = pd.DataFrame(updated_players)
+            # Debug: Check if players is correctly populated
+            st.write(f"Players in {pod_name}: {players}")
+            
+            if isinstance(players, list) and len(players) > 0:
+                # If players is a non-empty list, proceed
+                updated_players = simulate_matches(players, pod_name)
+                pod_results[pod_name] = pd.DataFrame(updated_players)
+            else:
+                st.error(f"Error: Players list for {pod_name} is empty or not a list.")
 
     # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
