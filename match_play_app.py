@@ -4,6 +4,16 @@ from collections import defaultdict
 import io
 import json
 import os
+import tempfile
+import shutil
+
+def safe_save(file_path, data):
+    """Safely write JSON to a file using atomic write."""
+    temp_file = tempfile.NamedTemporaryFile('w', delete=False, dir=os.path.dirname(file_path))
+    json.dump(data, temp_file)
+    temp_file.close()
+    shutil.move(temp_file.name, file_path)
+
 
 # --- Utility functions for persistence ---
 def save_json(file_path, data):
@@ -16,6 +26,12 @@ def load_json(file_path):
             return json.load(f)
     return {}
 
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return {}
 
 # --- Streamlit App Config and File Paths ---
 BRACKET_FILE = "bracket_data.json"
@@ -30,12 +46,15 @@ if "match_results" not in st.session_state:
 
 
 # --- Load shared bracket data ---
+# Load bracket properly
 if "bracket_data" not in st.session_state:
-    bracket_raw = load_json(BRACKET_FILE)
-    if bracket_raw:
-        st.session_state.bracket_data = pd.read_json(bracket_raw, orient="split")
+    if os.path.exists(BRACKET_FILE):
+        with open(BRACKET_FILE, "r") as f:
+            json_str = f.read()
+            st.session_state.bracket_data = pd.read_json(json_str, orient="split")
     else:
         st.session_state.bracket_data = pd.DataFrame()
+
 
 # ---- Global Password Protection ----
 admin_password = st.secrets["admin_password"]
@@ -187,9 +206,6 @@ margin_lookup = {
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
 }
 
-def save_json(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
 
 def load_json(file_path):
     if os.path.exists(file_path):
@@ -197,11 +213,6 @@ def load_json(file_path):
             return json.load(f)
     return None
 
-
-# Function to save data to a file
-def save_json(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
 
 # Function to load data from a file
 def load_json(file_path):
@@ -222,11 +233,11 @@ if "match_results" not in st.session_state:
 # --- Admin logic (simulate matches and save results) ---
 # Function to simulate matches and save results
 def simulate_matches(players, pod_name):
-    results = defaultdict(lambda: {"points": 0, "margin": 0})
-    num_players = len(players)
+    results = st.session_state.match_results.get(pod_name, defaultdict(lambda: {"points": 0, "margin": 0}))
+    updated_players = []
 
-    for i in range(num_players):
-        for j in range(i + 1, num_players):
+    for i in range(len(players)):
+        for j in range(i + 1, len(players)):
             p1, p2 = players[i], players[j]
             col = f"{p1['name']} vs {p2['name']}"
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
@@ -256,23 +267,21 @@ def simulate_matches(players, pod_name):
                         results[p1['name']]['points'] += 0.5
                         results[p2['name']]['points'] += 0.5
 
+                    # Save immediately after entry
+                    st.session_state.match_results[pod_name] = results
+                    safe_save(RESULTS_FILE, st.session_state.match_results)
+                    st.success("Result saved.")
+
             else:
                 st.info("🔒 Only admin can enter match results.")
 
-    # Update the player data with the match results and return the updated list
-    updated_players = []
     for player in players:
-        player_results = results[player['name']]
+        player_results = results.get(player['name'], {"points": 0, "margin": 0})
         updated_player = {**player, **player_results}
         updated_players.append(updated_player)
 
-    # Store the results by pod in session state
-    st.session_state.match_results[pod_name] = results
-
-    # Save the match results to the RESULTS_FILE for persistence across sessions
-    save_json(RESULTS_FILE, st.session_state.match_results)
-
     return updated_players
+
 
 
 
@@ -350,7 +359,10 @@ if st.session_state.authenticated:
         bracket_df = pd.DataFrame(final_players)
         bracket_df.index = [f"Seed {i+1}" for i in range(16)]
         st.session_state.bracket_data = bracket_df
-        save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
+    # Save bracket properly
+    with open(BRACKET_FILE, "w") as f:
+        f.write(st.session_state.bracket_data.to_json(orient="split"))
+
         st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
