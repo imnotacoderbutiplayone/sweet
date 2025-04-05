@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from collections import defaultdict
+import io
 import json
 import os
 
@@ -70,7 +71,8 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
 
-# Pods
+
+# Correct Pod assignments from PDF
 pods = {
     "Pod 1": [
         {"name": "Wade Bowlin", "handicap": 5.4},
@@ -78,13 +80,96 @@ pods = {
         {"name": "Anand Saranathan", "handicap": None},
         {"name": "Tim Coyne", "handicap": 14.0},
     ],
-    # Add other pods here...
+    "Pod 2": [
+        {"name": "Tim Stubenrouch", "handicap": 6.8},
+        {"name": "David Gornet", "handicap": 12.4},
+        {"name": "Ken Wood", "handicap": 21.3},
+        {"name": "William Dicks", "handicap": 20.3},
+    ],
+    "Pod 3": [
+        {"name": "Austen Flatt", "handicap": 5.5},
+        {"name": "Robert Polk", "handicap": 11.8},
+        {"name": "Pravin Patel", "handicap": 16.5},
+        {"name": "Benjamin Dickinson", "handicap": 16.3},
+    ],
+    "Pod 4": [
+        {"name": "Anup Aggrawal", "handicap": 11.4},
+        {"name": "Pratish Lad", "handicap": 11.5},
+        {"name": "Kevin Sutton", "handicap": 12.5},
+        {"name": "Raj Patel", "handicap": 11.8},
+    ],
+    "Pod 5": [
+        {"name": "Russell Clingman", "handicap": 12.7},
+        {"name": "Tom Duffy", "handicap": 15.7},
+        {"name": "Charles Ferdin", "handicap": 25.2},
+        {"name": "Danny Delgado", "handicap": 16.6},
+    ],
+    "Pod 6": [
+        {"name": "Paul Till", "handicap": 1.3},
+        {"name": "Daniel Nowak", "handicap": 9.0},
+        {"name": "Avo Mavilian", "handicap": 19.4},
+        {"name": "Jason Case", "handicap": 12.6},
+    ],
+    "Pod 7": [
+        {"name": "Keith Borgfeldt", "handicap": 9.8},
+        {"name": "Danny Rice", "handicap": 11.1},
+        {"name": "Keith Patel", "handicap": 17.7},
+        {"name": "Sanjay Lad", "handicap": 15.2},
+    ],
+    "Pod 8": [
+        {"name": "Michael Trevino", "handicap": 9.9},
+        {"name": "Brad Sinclair", "handicap": 13.0},
+        {"name": "Bill Ostrowski", "handicap": 16.0},
+        {"name": "Aldo Rodriguez", "handicap": 13.6},
+    ],
+    "Pod 9": [
+        {"name": "Rob Calvo", "handicap": 2.7},
+        {"name": "Randy Tate", "handicap": 7.1},
+        {"name": "Michael Kuznar", "handicap": 17.1},
+        {"name": "Mel Davis", "handicap": 8.5},
+    ],
+    "Pod 10": [
+        {"name": "Craig McGaughy", "handicap": 7.2},
+        {"name": "Brian Burr", "handicap": 7.3},
+        {"name": "Andy Grote", "handicap": 13.3},
+        {"name": "Larry Hawkins", "handicap": 12.5},
+    ],
+    "Pod 11": [
+        {"name": "Andrew Escamilla", "handicap": -0.8},
+        {"name": "Jay Jones", "handicap": 5.4},
+        {"name": "Kevin Sareen", "handicap": 16.6},
+        {"name": "Alexander Roman", "handicap": 5.4},
+    ],
+    "Pod 12": [
+        {"name": "Will Main", "handicap": 2.2},
+        {"name": "Todd Riddle", "handicap": 7.5},
+        {"name": "Kolbe Curtice", "handicap": 12.9},
+        {"name": "Sunil Patel", "handicap": 11.6},
+    ],
+    "Pod 13": [
+        {"name": "Tony Delgado", "handicap": 3.1},
+        {"name": "Pawan Nerusu", "handicap": 9.9},
+        {"name": "Marcus Peet", "handicap": 22.5},
+        {"name": "Ed Gifford", "handicap": 10.3},
+    ],
 }
+
 
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
 }
+
+def save_json(file_path, data):
+    with open(file_path, "w") as f:
+        json.dump(data, f)
+
+def load_json(file_path):
+    if os.path.exists(file_path):
+        with open(file_path, "r") as f:
+            return json.load(f)
+    return None
+
 
 # --- Simulation Function ---
 def simulate_matches(players, key_prefix=""):
@@ -144,28 +229,17 @@ def simulate_matches(players, key_prefix=""):
 # --- Tabs Setup ---
 tabs = st.tabs(["Pods Overview", "Group Stage", "Standings", "Bracket", "Export", "Predict Bracket"])
 
-# --- Pod Overview Tab ---
-with tabs[0]:
-    st.subheader("📂 Pod Overview")
-    if "pod_results" not in st.session_state:
-        st.session_state.pod_results = {}
-
-    # Display each pod with player data
-    for pod_name, players in pods.items():
-        with st.expander(f"### {pod_name}"):
-            updated_players = simulate_matches(players, key_prefix=pod_name + "_")
-            st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
-            st.write(st.session_state.pod_results[pod_name])  # Display the DataFrame of pod results
-
 # --- Group Stage Results Tab ---
 with tabs[1]:
-    st.subheader("📊 Group Stage - Match Results")
+if "pod_results" not in st.session_state:
+    st.session_state.pod_results = {}
+
+st.subheader("📊 Group Stage - Match Results")
     for pod_name, players in pods.items():
         with st.container():
-            st.markdown(f"### {pod_name}")
+        st.markdown(f"### {pod_name}")
             updated_players = simulate_matches(players, key_prefix=pod_name + "_")
             st.session_state.pod_results[pod_name] = pd.DataFrame(updated_players)
-            st.write(st.session_state.pod_results[pod_name])
 
 # --- Pod Winners Calculation ---
 if st.session_state.authenticated:
@@ -188,31 +262,109 @@ if st.session_state.authenticated:
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
-# --- Bracket Tab ---
+
+
+# Tab 2: Bracket
 with tabs[3]:
     st.subheader("🏆 Bracket")
     if st.session_state.bracket_data.empty:
         st.warning("Please calculate bracket seeding from the Group Stage tab first.")
     else:
         bracket_df = st.session_state.bracket_data
-        st.write(bracket_df)
+        left = bracket_df.iloc[0:8].reset_index(drop=True)
+        right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-# --- Standings Tab ---
+        col1, col2 = st.columns(2)
+        with col1:
+            st.markdown("### 🟦 Left Side")
+            st.markdown("#### 🏁 Round of 16")
+            qf_left = []
+            for i in range(0, 8, 2):
+                p1, p2 = left.iloc[i], left.iloc[i + 1]
+                winner = st.radio(
+                    f"{label(p1)} vs {label(p2)}",
+                    [label(p1), label(p2)],
+                    key=f"R16L_{i}"
+                )
+                qf_left.append(p1 if winner == label(p1) else p2)
+
+            st.markdown("#### 🥈 Quarterfinals")
+            sf_left = []
+            for i in range(0, len(qf_left), 2):
+                p1, p2 = qf_left[i], qf_left[i + 1]
+                winner = st.radio(
+                    f"QF: {label(p1)} vs {label(p2)}",
+                    [label(p1), label(p2)],
+                    key=f"QFL_{i}"
+                )
+                sf_left.append(p1 if winner == label(p1) else p2)
+
+            st.markdown("#### 🥇 Semifinal Winner")
+            finalist_left = st.radio(
+                "🏅 Left Finalist:",
+                [label(sf_left[0]), label(sf_left[1])],
+                key="LFinal"
+            )
+            finalist_left = sf_left[0] if finalist_left == label(sf_left[0]) else sf_left[1]
+
+        with col2:
+            st.markdown("### 🟥 Right Side")
+            st.markdown("#### 🏁 Round of 16")
+            qf_right = []
+            for i in range(0, 8, 2):
+                p1, p2 = right.iloc[i], right.iloc[i + 1]
+                winner = st.radio(
+                    f"{label(p1)} vs {label(p2)}",
+                    [label(p1), label(p2)],
+                    key=f"R16R_{i}"
+                )
+                qf_right.append(p1 if winner == label(p1) else p2)
+
+            st.markdown("#### 🥈 Quarterfinals")
+            sf_right = []
+            for i in range(0, len(qf_right), 2):
+                p1, p2 = qf_right[i], qf_right[i + 1]
+                winner = st.radio(
+                    f"QF: {label(p1)} vs {label(p2)}",
+                    [label(p1), label(p2)],
+                    key=f"QFR_{i}"
+                )
+                sf_right.append(p1 if winner == label(p1) else p2)
+
+            st.markdown("#### 🥇 Semifinal Winner")
+            finalist_right = st.radio(
+                "🏅 Right Finalist:",
+                [label(sf_right[0]), label(sf_right[1])],
+                key="RFinal"
+            )
+            finalist_right = sf_right[0] if finalist_right == label(sf_right[0]) else sf_right[1]
+
+        st.markdown("### 🏁 Final Match")
+        champion = st.radio(
+            "🏆 Champion:",
+            [label(finalist_left), label(finalist_right)],
+            key="Champ"
+        )
+        winner = finalist_left if champion == label(finalist_left) else finalist_right
+        st.success(f"🎉 Champion: {winner['name']} ({winner['handicap']})")
+
+
+# Tab 3: Standings
 with tabs[2]:
-    st.subheader("📊 Standings")
+    st.subheader("\U0001F4CB Standings")
     if not st.session_state.bracket_data.empty:
         st.dataframe(st.session_state.bracket_data)
 
-# --- Export Tab ---
+# Tab 4: Export
 with tabs[4]:
-    st.subheader("📥 Export")
+    st.subheader("\U0001F4E4 Export")
     if not st.session_state.bracket_data.empty:
         csv = st.session_state.bracket_data.to_csv().encode("utf-8")
         st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv")
 
-# --- Predict Bracket Tab ---
+# Tab 5: Predict Bracket
 with tabs[5]:
-    st.subheader("🔮 Predict Bracket")
+    st.subheader("\U0001F52E Predict Bracket")
     if st.session_state.bracket_data.empty:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
@@ -223,7 +375,7 @@ with tabs[5]:
             left = bracket_df.iloc[0:8].reset_index(drop=True)
             right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-            st.markdown("### Left Side Predictions")
+            st.markdown("### \U0001F7E6 Left Side Predictions")
             pred_qf_left = []
             for i in range(0, 8, 2):
                 p1, p2 = left.iloc[i], left.iloc[i+1]
@@ -239,7 +391,7 @@ with tabs[5]:
             finalist_left = st.radio(f"Left Finalist:", [label(pred_sf_left[0]), label(pred_sf_left[1])], key=f"PLSF_{username}")
             finalist_left = pred_sf_left[0] if finalist_left == label(pred_sf_left[0]) else pred_sf_left[1]
 
-            st.markdown("### Right Side Predictions")
+            st.markdown("### \U0001F7E5 Right Side Predictions")
             pred_qf_right = []
             for i in range(0, 8, 2):
                 p1, p2 = right.iloc[i], right.iloc[i+1]
@@ -255,7 +407,7 @@ with tabs[5]:
             finalist_right = st.radio(f"Right Finalist:", [label(pred_sf_right[0]), label(pred_sf_right[1])], key=f"PRSF_{username}")
             finalist_right = pred_sf_right[0] if finalist_right == label(pred_sf_right[0]) else pred_sf_right[1]
 
-            champion = st.radio(f"Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{username}")
+            champion = st.radio(f"\U0001F3AF Predict the Champion:", [label(finalist_left), label(finalist_right)], key=f"PickChamp_{username}")
             champion_final = finalist_left if champion == label(finalist_left) else finalist_right
 
             if st.button("Submit My Bracket"):
@@ -267,6 +419,6 @@ with tabs[5]:
                 st.success("Your bracket has been submitted!")
 
         if st.session_state.user_predictions:
-            st.subheader("Current Predictions")
+            st.subheader("\U0001F4C8 Current Predictions")
             for user, picks in st.session_state.user_predictions.items():
                 st.markdown(f"**{user}** picked _{picks['champion']}_ to win")
