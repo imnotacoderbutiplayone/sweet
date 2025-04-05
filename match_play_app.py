@@ -167,7 +167,7 @@ def simulate_matches(players, pod_name):
     num_players = len(players)
 
     if "match_results" not in st.session_state:
-        st.session_state.match_results = {}
+        st.session_state.match_results = load_json(RESULTS_FILE) or {}
 
     for i in range(num_players):
         for j in range(i + 1, num_players):
@@ -182,22 +182,37 @@ def simulate_matches(players, pod_name):
                 entered = st.checkbox("Enter result for this match", key=entry_key)
 
                 if entered:
-                    winner = st.radio(f"Who won?", [p1['name'], p2['name'], "Tie"], index=2, key=match_key)
+                    # Load existing result if available
+                    prev_result = st.session_state.match_results.get(match_key, {})
+                    prev_winner = prev_result.get("winner", "Tie")
+                    margin_val = prev_result.get("margin", 0)
+                    prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
+
+                    winner = st.radio(
+                        "Who won?",
+                        [p1['name'], p2['name'], "Tie"],
+                        index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
+                        key=match_key
+                    )
+
                     margin = 0
                     if winner != "Tie":
-                        result_str = st.selectbox("Select Match Result (Win Margin)", options=list(margin_lookup.keys()), key=match_key + "_result")
+                        result_str = st.selectbox(
+                            "Select Match Result (Win Margin)",
+                            options=list(margin_lookup.keys()),
+                            index=list(margin_lookup.keys()).index(prev_margin),
+                            key=match_key + "_result"
+                        )
                         margin = margin_lookup[result_str]
 
-                    # Save to session state
+                    # Save to session state and disk
                     st.session_state.match_results[match_key] = {
                         "winner": winner,
                         "margin": margin
                     }
-
-                    # Save to disk
                     save_json(RESULTS_FILE, st.session_state.match_results)
 
-                    # Update running results
+                    # Scoring logic
                     if winner == p1['name']:
                         results[p1['name']]['points'] += 1
                         results[p1['name']]['margin'] += margin
@@ -215,6 +230,7 @@ def simulate_matches(players, pod_name):
     for player in players:
         player.update(results[player['name']])
     return players
+
 
 
 # --- Label Helper ---
@@ -267,10 +283,10 @@ with tabs[1]:
     st.subheader("\U0001F4CA Group Stage - Match Results")
     pod_results = {}
     for pod_name, players in pods.items():
-    with st.expander(pod_name):
-        updated_players = simulate_matches(players, pod_name)
-
+        with st.expander(pod_name):
+            updated_players = simulate_matches(players, pod_name)
             pod_results[pod_name] = pd.DataFrame(updated_players)
+
 
     # Only allow Admin to calculate pod winners
 if st.session_state.authenticated:
