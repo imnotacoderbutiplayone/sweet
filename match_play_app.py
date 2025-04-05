@@ -334,6 +334,15 @@ if st.session_state.authenticated:
     unresolved = False
 
     for pod_name, df in pod_results.items():
+        # Skip pods with no match results
+        if "points" not in df.columns or not df["points"].any():
+            st.info(f"📭 No match results entered yet for {pod_name}.")
+            continue
+
+        # Ensure default columns exist
+        df["points"] = df.get("points", 0)
+        df["margin"] = df.get("margin", 0)
+
         sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
         # --- First Place ---
@@ -345,7 +354,7 @@ if st.session_state.authenticated:
         ]
 
         if len(tied_first) > 1:
-            st.warning(f"Tie for 1st in {pod_name}")
+            st.warning(f"🔁 Tie for 1st in {pod_name}")
             options = tied_first["name"].tolist()
             selected = st.radio(
                 f"Select 1st place in {pod_name}:",
@@ -363,6 +372,10 @@ if st.session_state.authenticated:
         winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
         remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
 
+        if remaining.empty:
+            st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
+            continue
+
         second_score = remaining.iloc[0]["points"]
         second_margin = remaining.iloc[0]["margin"]
         tied_second = remaining[
@@ -371,7 +384,7 @@ if st.session_state.authenticated:
         ]
 
         if len(tied_second) > 1:
-            st.warning(f"Tie for 2nd in {pod_name}")
+            st.warning(f"🔁 Tie for 2nd in {pod_name}")
             options = tied_second["name"].tolist()
             selected = st.radio(
                 f"Select 2nd place in {pod_name}:",
@@ -393,12 +406,16 @@ if st.session_state.authenticated:
         st.success("✅ All tiebreakers selected.")
         st.session_state.tiebreaks_resolved = True
 
-# --- Finalize Button (runs AFTER tiebreaks are selected) ---
+# --- Finalize Bracket Button ---
 if st.session_state.get("tiebreaks_resolved", False):
     if st.button("🏁 Finalize Bracket and Seed Field"):
         winners, second_place = [], []
 
         for pod_name, df in pod_results.items():
+            if f"{pod_name}_1st" not in st.session_state.tiebreak_selections or \
+               f"{pod_name}_2nd" not in st.session_state.tiebreak_selections:
+                continue  # Skip pods without selections
+
             first_name = st.session_state.tiebreak_selections[f"{pod_name}_1st"]
             second_name = st.session_state.tiebreak_selections[f"{pod_name}_2nd"]
 
@@ -412,14 +429,13 @@ if st.session_state.get("tiebreaks_resolved", False):
         final_players = winners + top_3
 
         bracket_df = pd.DataFrame(final_players)
-        bracket_df.index = [f"Seed {i+1}" for i in range(16)]
+        bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
 
         st.session_state.bracket_data = bracket_df
         save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
 
         st.success("✅ Bracket finalized and seeded.")
         st.write("📊 Final Bracket", st.session_state.bracket_data)
-
 
 
 
