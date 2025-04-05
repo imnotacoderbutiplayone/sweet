@@ -209,11 +209,8 @@ def simulate_matches(players):
                 st.info("🔒 Only admin can enter match results.")
 
     for player in players:
-        player["points"] = 0
-        player["margin"] = 0
-        player.update(results[player["name"]])
-return players
-
+        player.update(results[player['name']])
+    return players
 
 # --- Label Helper ---
 def label(player):
