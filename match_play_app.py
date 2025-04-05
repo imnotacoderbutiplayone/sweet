@@ -82,7 +82,11 @@ if st.session_state.authenticated:
         save_json(BRACKET_FILE, {})  # Clear the saved bracket data
         save_json(RESULTS_FILE, {})  # Clear the saved match results
         st.success("Data has been refreshed. All saved data cleared.")
-        st.experimental_rerun()  # Refresh the app
+        # Instead of re-running, we manually clear the session state
+        st.experimental_set_query_params()  # Clear the query params to force app refresh
+        st.experimental_memo.clear()  # Clear cached data (if necessary)
+        st.stop()  # Stop and allow the user to refresh manually
+
 
 
 
