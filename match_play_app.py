@@ -204,10 +204,6 @@ margin_lookup = {
 
 
 
-# --- Streamlit App Configuration ---
-BRACKET_FILE = "bracket_data.json"
-RESULTS_FILE = "match_results.json"
-
 # --- Load match results into session state (on app startup) ---
 if "match_results" not in st.session_state:
     st.session_state.match_results = load_json(RESULTS_FILE)  # Load saved match results from file
