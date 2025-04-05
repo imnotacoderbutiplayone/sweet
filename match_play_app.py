@@ -6,8 +6,8 @@ import io
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # ---- Global Password Protection ----
-GENERAL_PASSWORD = "sweetwater"  # Change this
-ADMIN_PASSWORD = "admin456"      # Change this
+admin_password = st.secrets["admin_password"]
+general_password = st.secrets["general_password"]
 
 # Initialize Session States
 if 'app_authenticated' not in st.session_state:
