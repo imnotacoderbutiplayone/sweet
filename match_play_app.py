@@ -357,16 +357,25 @@ if st.session_state.authenticated:
                 runner_up_dict = runner_up_row.to_dict()
                 second_place.append(runner_up_dict)
 
+        # Debugging: Show who was selected
+        st.write("✅ Final Pod Winners", winners)
+        st.write("✅ Final Runner-Ups", second_place)
+
         # Take 13 winners + top 3 second-place finishers
         top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
         final_players = winners + top_3
         bracket_df = pd.DataFrame(final_players)
         bracket_df.index = [f"Seed {i+1}" for i in range(16)]
+        
         st.session_state.bracket_data = bracket_df
         save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
+        
+        # Debugging: Show final seeded bracket
+        st.write("📊 Final Bracket (Seeded):", st.session_state.bracket_data)
         st.success("✅ Pod winners and bracket seeded.")
 else:
     st.info("🔒 Only admin can calculate pod winners.")
+
 
 
 
