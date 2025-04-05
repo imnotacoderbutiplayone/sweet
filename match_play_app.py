@@ -617,9 +617,14 @@ with tabs[3]:
 
 # Tab 3: Standings
 with tabs[2]:
-    st.subheader("\U0001F4CB Standings")
-    if not st.session_state.bracket_data.empty:
+    st.subheader("📋 Standings")
+
+    if not st.session_state.bracket_data.empty and st.session_state.get("tiebreaks_resolved", False):
         st.dataframe(st.session_state.bracket_data)
+    elif st.session_state.authenticated and not st.session_state.bracket_data.empty:
+        st.info("🔧 Bracket data loaded, but finalization is not complete. Finalize bracket to publish standings.")
+    else:
+        st.info("📭 Standings will appear here once the bracket has been finalized by an admin.")
 
 # Tab 4: Export
 with tabs[4]:
