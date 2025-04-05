@@ -278,7 +278,6 @@ if st.session_state.authenticated:
         st.session_state.bracket_data = bracket_df
 save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
 st.success("✅ Pod winners and bracket seeded.")
-
 else:
     st.info("🔒 Only admin can calculate pod winners.")
 
