@@ -321,6 +321,11 @@ with tabs[1]:
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
 
+# --- Helper: Check if any match results exist for this pod ---
+def pod_has_results(pod_name):
+    return any(key.startswith(f"{pod_name}|") for key in st.session_state.match_results)
+
+
 # --- Tiebreak Selection + Bracket Finalization ---
 if st.session_state.authenticated:
     st.header("🧮 Step 1: Review & Resolve Tiebreakers")
@@ -330,16 +335,14 @@ if st.session_state.authenticated:
     if "tiebreaks_resolved" not in st.session_state:
         st.session_state.tiebreaks_resolved = False
 
-    pod_winners_temp, pod_second_temp = [], []
     unresolved = False
+    pod_winners_temp, pod_second_temp = [], []
 
     for pod_name, df in pod_results.items():
-        # Skip pods with no match results
-        if "points" not in df.columns or not df["points"].any():
+        if not pod_has_results(pod_name):
             st.info(f"📭 No match results entered yet for {pod_name}.")
             continue
 
-        # Ensure default columns exist
         df["points"] = df.get("points", 0)
         df["margin"] = df.get("margin", 0)
 
@@ -412,12 +415,14 @@ if st.session_state.get("tiebreaks_resolved", False):
         winners, second_place = [], []
 
         for pod_name, df in pod_results.items():
-            if f"{pod_name}_1st" not in st.session_state.tiebreak_selections or \
-               f"{pod_name}_2nd" not in st.session_state.tiebreak_selections:
-                continue  # Skip pods without selections
+            if not pod_has_results(pod_name):
+                continue
 
-            first_name = st.session_state.tiebreak_selections[f"{pod_name}_1st"]
-            second_name = st.session_state.tiebreak_selections[f"{pod_name}_2nd"]
+            first_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
+            second_name = st.session_state.tiebreak_selections.get(f"{pod_name}_2nd")
+
+            if not first_name or not second_name:
+                continue
 
             first_row = df[df["name"] == first_name].iloc[0].to_dict()
             second_row = df[df["name"] == second_name].iloc[0].to_dict()
