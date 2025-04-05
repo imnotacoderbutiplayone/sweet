@@ -59,20 +59,21 @@ if not st.session_state.app_authenticated:
 # ---- Sidebar Admin Login ----
 st.sidebar.header("🔐 Admin Login")
 
-if not st.session_state.authenticated:
+# Check if the user is logged in
+if not st.session_state.get('authenticated', False):
     pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
     if st.sidebar.button("Login"):
         if pwd_input == admin_password:
             st.session_state.authenticated = True
             st.sidebar.success("✅ Logged in as admin.")
-            st.rerun()
+            st.rerun()  # Re-run the app after successful login
         else:
             st.sidebar.error("❌ Incorrect Admin Password.")
 else:
     st.sidebar.success("✅ Admin logged in.")
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
-        st.rerun()
+        st.rerun()  # Re-run the app after logout
 
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
