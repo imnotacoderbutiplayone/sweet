@@ -306,7 +306,10 @@ def simulate_matches(players, pod_name):
             match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
 
             # Unique and sanitized keys
-            base_key = f"{pod_name}_{p1['name']}_vs_{p2['name']}".replace(" ", "_")
+            # Always sort names to avoid ordering conflicts
+            names_sorted = sorted([p1['name'], p2['name']])
+            base_key = f"{pod_name}_{names_sorted[0]}_vs_{names_sorted[1]}".replace(' ', '_').replace('-', '_')
+
             entry_key = f"{base_key}_checkbox"
             winner_key = f"{base_key}_winner"
             margin_key = f"{base_key}_margin"
