@@ -707,7 +707,7 @@ with tabs[3]:
 
         # === FINAL MATCH ===
         st.markdown("### 🏁 Final Match")
-        if st.session_state.authenticated and finalist_left is not None and finalist_right is not None:
+        if st.session_state.authenticated and isinstance(finalist_left, dict) and isinstance(finalist_right, dict):
             champ_label = st.radio(
                 "🏆 Champion:", [label(finalist_left), label(finalist_right)], key="Champ", index=None
             )
@@ -722,6 +722,7 @@ with tabs[3]:
 
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
+
 
 
 
