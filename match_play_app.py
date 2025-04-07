@@ -50,6 +50,13 @@ st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 BRACKET_FILE = "bracket_data.json"
 RESULTS_FILE = "match_results.json"
 
+def load_bracket_data():
+    response = supabase.table("bracket_data").select("json_data").order("timestamp", desc=True).limit(1).execute()
+    if response.status_code == 200 and response.data:
+        return pd.read_json(response.data[0]["json_data"], orient="split")
+    else:
+        return pd.DataFrame()
+
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
     bracket_df = load_bracket_data()
@@ -323,14 +330,6 @@ def save_bracket_data(df):
     if response.status_code != 201:
         st.error("❌ Error saving bracket data.")
     return response
-
-# --- Load latest bracket from Supabase ---
-def load_bracket_data():
-    response = supabase.table("bracket_data").select("json_data").order("timestamp", desc=True).limit(1).execute()
-    if response.status_code == 200 and response.data:
-        return pd.read_json(response.data[0]["json_data"], orient="split")
-    else:
-        return pd.DataFrame()
 
 
 # --- Label Helper ---
