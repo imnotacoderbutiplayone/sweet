@@ -869,7 +869,7 @@ with tabs[5]:
 
                 finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
 
-                if isinstance(finalist_left, dict) and isinstance(finalist_right, dict):
+                if finalist_left is not None and finalist_right is not None:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
                         "🏆 Predict the Champion:",
@@ -912,6 +912,7 @@ with tabs[5]:
         except Exception as e:
             st.warning("Could not load prediction ledger.")
             st.code(str(e))
+
 
 
 
