@@ -384,6 +384,8 @@ def save_bracket_data(df):
     response = supabase.table("bracket_data").insert(data).execute()
     if response.status_code != 201:
         st.error("❌ Error saving bracket data.")
+        st.code(str(response.data))  # Show what Supabase sent back
+
     return response
 
 
