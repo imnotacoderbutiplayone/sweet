@@ -380,6 +380,9 @@ def simulate_matches(players, pod_name):
 
 
 # --- Save bracket to Supabase ---
+import json
+from datetime import datetime
+
 def save_bracket_data(df):
     try:
         data = {
@@ -387,18 +390,17 @@ def save_bracket_data(df):
             "created_at": datetime.utcnow().isoformat()
         }
 
+        # Attempt insert
         response = supabase.table("bracket_data").insert(data).execute()
 
-        if response.error:
-            st.error("❌ Error saving bracket data to Supabase.")
-            st.code(str(response.error))
-        else:
-            st.success("✅ Bracket data saved successfully.")
+        # Log response
+        st.success("✅ Bracket data saved successfully.")
+        st.code(f"Returned: {response.data}")
 
         return response
 
     except Exception as e:
-        st.error("❌ Exception during save_bracket_data")
+        st.error("❌ Exception while saving to Supabase")
         st.code(str(e))
         return None
 
