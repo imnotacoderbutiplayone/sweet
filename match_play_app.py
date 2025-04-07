@@ -302,7 +302,6 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Simulation Function ---
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -327,9 +326,6 @@ def simulate_matches(players, pod_name, source=""):
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
-
-            # Debug trace to spot duplicate keys
-            st.text(f"KEY TRACE: {entry_key}")
 
             if st.session_state.authenticated:
                 entered = st.checkbox("Enter result for this match", key=entry_key)
@@ -386,30 +382,6 @@ def simulate_matches(players, pod_name, source=""):
         player.update(results[player['name']])
     return players
 
-# --- Save bracket to Supabase ---
-import json
-from datetime import datetime
-
-def save_bracket_data(df):
-    try:
-        data = {
-            "json_data": json.loads(df.to_json(orient="split")),
-            "created_at": datetime.utcnow().isoformat()
-        }
-
-        # Attempt insert
-        response = supabase.table("bracket_data").insert(data).execute()
-
-        # Log response
-        st.success("✅ Bracket data saved successfully.")
-        st.code(f"Returned: {response.data}")
-
-        return response
-
-    except Exception as e:
-        st.error("❌ Exception while saving to Supabase")
-        st.code(str(e))
-        return None
 
 
 # --- Label Helper ---
