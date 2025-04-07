@@ -68,6 +68,34 @@ def load_match_results():
         st.code(str(e))
         return {}
 
+# --- Load all predictions from Supabase ---
+def load_predictions_from_supabase():
+    try:
+        response = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
+        return response.data
+    except Exception as e:
+        st.error("❌ Failed to load predictions from Supabase")
+        st.code(str(e))
+        return []
+
+
+# --- Send Prediction to Database ---
+def save_prediction_to_supabase(name, finalist_left, finalist_right, champion):
+    try:
+        data = {
+            "name": name,
+            "finalist_left": finalist_left,
+            "finalist_right": finalist_right,
+            "champion": champion,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        response = supabase.table("predictions").insert(data).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Failed to save prediction to Supabase")
+        st.code(str(e))
+        return None
+
 
 # --- Streamlit App Config and File Paths ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
@@ -739,7 +767,8 @@ with tabs[5]:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
         if "prediction_log" not in st.session_state:
-            st.session_state.prediction_log = load_json("predictions.json") or []
+            st.session_state.prediction_log = load_predictions_from_supabase()
+
 
         full_name = st.text_input("Enter your full name to submit a prediction:")
 
@@ -797,7 +826,13 @@ with tabs[5]:
                         "champion": champion_final["name"]
                     }
                     st.session_state.prediction_log.append(prediction_entry)
-                    save_json("predictions.json", st.session_state.prediction_log)
+                    save_prediction_to_supabase(
+                        full_name,
+                        finalist_left["name"],
+                        finalist_right["name"],
+                        champion_final["name"]
+                    )
+
                     st.success("✅ Your bracket prediction has been submitted!")
 
         # --- Public Ledger ---
