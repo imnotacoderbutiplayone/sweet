@@ -301,12 +301,12 @@ def simulate_matches(players, pod_name):
         st.session_state.match_results = load_match_results()
 
     for i in range(num_players):
-        for j in range(i + 1, num_players):
-            p1, p2 = players[i], players[j]
-            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
-            h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
-            h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
-            st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
+    for j in range(i + 1, num_players):
+        p1, p2 = players[i], players[j]
+        match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
+        h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
+        h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
+        st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
         if st.session_state.authenticated:
             entry_key = match_key + "_entered"
@@ -314,20 +314,20 @@ def simulate_matches(players, pod_name):
         else:
             entered = False  # non-admins can't enter match results
 
-                if entered:
-                    # Pre-fill previous result
-                    prev_result = st.session_state.match_results.get(match_key, {})
-                    prev_winner = prev_result.get("winner", "Tie")
-                    margin_val = prev_result.get("margin", 0)
-                    prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
+        if entered:
+            # Pre-fill previous result
+            prev_result = st.session_state.match_results.get(match_key, {})
+            prev_winner = prev_result.get("winner", "Tie")
+            margin_val = prev_result.get("margin", 0)
+            prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
 
-                    # Winner radio button
-                    winner = st.radio(
-                        f"Who won?",
-                        [p1['name'], p2['name'], "Tie"],
-                        index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
-                        key=match_key
-                    )
+            # Winner radio button
+            winner = st.radio(
+                f"Who won?",
+                [p1['name'], p2['name'], "Tie"],
+                index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
+                key=match_key
+            )
 
                     # Margin selectbox
                     margin = 0
