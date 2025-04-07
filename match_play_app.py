@@ -691,6 +691,7 @@ with tabs[3]:
 
 
 # Tab 3: Standings
+# Tab 2: Standings
 with tabs[2]:
     st.subheader("📋 Standings")
 
@@ -700,13 +701,33 @@ with tabs[2]:
     pod_results = {}
 
     for pod_name, players in pods.items():
-        updated_players = simulate_matches(players, pod_name, source="standings")
-        df = pd.DataFrame(updated_players)
+        updated_players = []
+        for player in players:
+            name = player['name']
+            total_points = 0
+            total_margin = 0
 
-        if "points" in df.columns:
-            df["Points"] = df["points"]
-            df["Margin"] = df["margin"]
-            df = df[["name", "handicap", "Points", "Margin"]].sort_values(by=["Points", "Margin"], ascending=False)
+            for key, result in st.session_state.match_results.items():
+                if key.startswith(f"{pod_name}|"):
+                    if name in key:
+                        if result["winner"] == name:
+                            total_points += 1
+                            total_margin += result["margin"]
+                        elif result["winner"] == "Tie":
+                            total_points += 0.5
+                        else:
+                            total_margin -= result["margin"]
+
+            updated_players.append({
+                "name": name,
+                "handicap": player["handicap"],
+                "Points": total_points,
+                "Margin": total_margin
+            })
+
+        df = pd.DataFrame(updated_players)
+        if not df.empty:
+            df = df.sort_values(by=["Points", "Margin"], ascending=False)
             df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
             pod_results[pod_name] = df
 
@@ -716,6 +737,7 @@ with tabs[2]:
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
+
 
 
 # Tab 4: Export
