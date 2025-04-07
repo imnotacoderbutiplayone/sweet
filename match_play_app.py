@@ -311,6 +311,9 @@ def simulate_matches(players, pod_name):
             if st.session_state.authenticated:
                 entry_key = match_key + "_entered"
                 entered = st.checkbox("Enter result for this match", key=entry_key)
+            else:
+                entered = False  # non-admins can't enter match results
+
 
                 if entered:
                     # Pre-fill previous result
