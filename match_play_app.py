@@ -20,6 +20,17 @@ def init_supabase():
 
 supabase = init_supabase()
 
+# --- Save bracket data to Supabase ---
+def save_bracket_data(df):
+    try:
+        json_data = df.to_json(orient="split")
+        response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Failed to save bracket data to Supabase")
+        st.code(str(e))
+        return None
+
 # --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
