@@ -33,16 +33,14 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         "created_at": datetime.utcnow().isoformat()
     }
 
-    st.write("📤 Sending match result to Supabase:", data)  # Add this line
-
     try:
         response = supabase.table("match_results").insert(data).execute()
-        st.write("✅ Supabase response:", response.data)
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
 
 
 # --- Load all match results from Supabase ---
