@@ -294,14 +294,16 @@ margin_lookup = {
 
 import re
 import hashlib
+from collections import defaultdict
 
 def sanitize_key(text):
     """Sanitize and hash widget keys to avoid Streamlit duplication."""
-    cleaned = re.sub(r'\W+', '_', text)  # Replace non-alphanumerics
-    hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Hash keeps it unique
+    cleaned = re.sub(r'\W+', '_', text)  # Replace non-alphanumerics with underscores
+    hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-def simulate_matches(players, pod_name):
+# --- Simulation Function ---
+def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
 
@@ -312,9 +314,9 @@ def simulate_matches(players, pod_name):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
 
-            # Create a consistent match key regardless of player order
+            # Create consistent, unique match key
             player_names = sorted([p1['name'], p2['name']])
-            raw_key = f"{pod_name}|{player_names[0]} vs {player_names[1]}"
+            raw_key = f"{source}_{pod_name}|{player_names[0]} vs {player_names[1]}"
             base_key = sanitize_key(raw_key)
 
             entry_key = f"{base_key}_checkbox"
@@ -322,10 +324,12 @@ def simulate_matches(players, pod_name):
             margin_key = f"{base_key}_margin"
 
             match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
-
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
+
+            # Debug trace to spot duplicate keys
+            st.text(f"KEY TRACE: {entry_key}")
 
             if st.session_state.authenticated:
                 entered = st.checkbox("Enter result for this match", key=entry_key)
@@ -381,8 +385,6 @@ def simulate_matches(players, pod_name):
     for player in players:
         player.update(results[player['name']])
     return players
-
-
 
 # --- Save bracket to Supabase ---
 import json
