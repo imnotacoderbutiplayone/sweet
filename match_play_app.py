@@ -21,19 +21,29 @@ def init_supabase():
 supabase = init_supabase()
 
 # --- Save one match result to Supabase ---
-def save_match_result(pod, player1, player2, winner, margin):
+def save_match_result(pod, player1, player2, winner, margin_text):
+    from datetime import datetime
+
     data = {
         "pod": pod,
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin,
-        "timestamp": datetime.utcnow().isoformat()
+        "margin": margin_text,
+        "created_at": datetime.utcnow().isoformat()
     }
-    response = supabase.table("match_results").insert(data).execute()
-    if response.status_code != 201:
-        st.error("❌ Error saving match result.")
-    return response
+
+    st.write("📤 Sending match result to Supabase:", data)  # Add this line
+
+    try:
+        response = supabase.table("match_results").insert(data).execute()
+        st.write("✅ Supabase response:", response.data)
+        return response
+    except Exception as e:
+        st.error("❌ Error saving match result to Supabase")
+        st.code(str(e))
+        return None
+
 
 # --- Load all match results from Supabase ---
 from collections import defaultdict
