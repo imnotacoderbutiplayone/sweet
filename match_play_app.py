@@ -787,7 +787,7 @@ with tabs[4]:
 with tabs[5]:
     st.subheader("🔮 Predict Bracket")
 
-    if st.session_state.bracket_data.empty or len(st.session_state.bracket_data) < 16:
+    if len(st.session_state.bracket_data) < 16:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
         bracket_df = st.session_state.bracket_data
@@ -801,7 +801,7 @@ with tabs[5]:
             if existing.data:
                 st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
             else:
-                st.markdown("### \U0001F7E6 Left Side Predictions")
+                st.markdown("### 🟦 Left Side Predictions")
                 pred_r16_left, pred_qf_left, pred_sf_left = [], [], []
 
                 for i in range(0, 8, 2):
@@ -835,7 +835,7 @@ with tabs[5]:
 
                 finalist_left = pred_sf_left[0] if pred_sf_left else None
 
-                st.markdown("### \U0001F7E5 Right Side Predictions")
+                st.markdown("### 🟥 Right Side Predictions")
                 pred_r16_right, pred_qf_right, pred_sf_right = [], [], []
 
                 for i in range(0, 8, 2):
@@ -869,7 +869,7 @@ with tabs[5]:
 
                 finalist_right = pred_sf_right[0] if pred_sf_right else None
 
-                if finalist_left and finalist_right:
+                if isinstance(finalist_left, dict) and isinstance(finalist_right, dict):
                     champion = st.radio(
                         "🏆 Predict the Champion:",
                         [label(finalist_left), label(finalist_right)],
@@ -898,6 +898,7 @@ with tabs[5]:
                             st.error("❌ Error saving your prediction.")
                             st.code(str(e))
 
+        # --- Public Ledger ---
         st.subheader("📜 Prediction Ledger")
         try:
             ledger = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
@@ -912,21 +913,6 @@ with tabs[5]:
             st.warning("Could not load prediction ledger.")
             st.code(str(e))
 
-
-    # --- Public Ledger ---
-    st.subheader("📜 Prediction Ledger")
-    try:
-        ledger = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
-        df = pd.DataFrame(ledger.data)
-        if not df.empty:
-            df = df[["timestamp", "name", "champion", "finalist_left", "finalist_right"]]
-            df.rename(columns={"name": "Name", "champion": "Champion"}, inplace=True)
-            st.dataframe(df, use_container_width=True)
-        else:
-            st.info("No predictions submitted yet.")
-    except Exception as e:
-        st.warning("Could not load prediction ledger.")
-        st.code(str(e))
 
 
 
