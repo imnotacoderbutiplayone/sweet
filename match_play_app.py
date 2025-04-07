@@ -39,24 +39,23 @@ def save_match_result(pod, player1, player2, winner, margin):
 from collections import defaultdict
 
 def load_match_results():
-    response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
+    try:
+        response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
 
-    # ✅ Check for errors using the correct method
-    if response.error:
+        match_dict = defaultdict(dict)
+        for r in response.data:
+            match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
+            match_dict[match_key] = {
+                "winner": r["winner"],
+                "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
+            }
+
+        return dict(match_dict)
+
+    except Exception as e:
         st.error("❌ Supabase error loading match results")
-        st.code(response.error)
+        st.code(str(e))
         return {}
-
-    # ✅ Convert flat list into legacy match_key structure
-    match_dict = defaultdict(dict)
-    for r in response.data:
-        match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
-        match_dict[match_key] = {
-            "winner": r["winner"],
-            "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
-        }
-
-    return dict(match_dict)
 
 
 # --- Streamlit App Config and File Paths ---
