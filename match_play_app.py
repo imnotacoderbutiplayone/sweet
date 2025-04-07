@@ -41,7 +41,10 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         st.code(str(e))
         return None
 
-
+margin_lookup = {
+    "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
+    "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
+}
 
 # --- Load all match results from Supabase ---
 from collections import defaultdict
