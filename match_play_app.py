@@ -328,11 +328,16 @@ def simulate_matches(players, pod_name):
                         margin = margin_lookup[result_str]
 
                     # Save result
+                    if winner == "Tie":
+                        result_str = "Tie"  # ✅ default value for tie matches
+
                     st.session_state.match_results[match_key] = {
                         "winner": winner,
                         "margin": margin
                     }
+
                     save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
+
 
                     # Score updating
                     if winner == p1['name']:
