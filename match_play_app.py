@@ -81,17 +81,18 @@ def load_bracket_data():
 
 # Load shared bracket data
 def load_bracket_data():
-    response = supabase.table("bracket_data").select("json_data").order("timestamp", desc=True).limit(1).execute()
+    try:
+        response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
 
-    if response.status_code == 200 and response.data and len(response.data) > 0:
-        try:
+        if response.data and len(response.data) > 0:
             return pd.read_json(response.data[0]["json_data"], orient="split")
-        except Exception as e:
-            st.error(f"🧨 JSON parsing error: {e}")
-            st.code(response.data[0]["json_data"])
+        else:
+            st.info("ℹ️ No bracket data found in Supabase.")
             return pd.DataFrame()
-    else:
-        st.info("ℹ️ No bracket data found yet in Supabase.")
+
+    except Exception as e:
+        st.error("❌ Supabase error loading bracket data")
+        st.code(str(e))
         return pd.DataFrame()
 
 
