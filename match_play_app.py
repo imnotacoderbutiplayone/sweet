@@ -465,7 +465,7 @@ with tabs[1]:
     pod_results = {}
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players, pod_name)
+            updated_players = simulate_matches(players, pod_name, source="group_stage")
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
 
@@ -728,7 +728,7 @@ with tabs[2]:
     pod_results = {}
 
     for pod_name, players in pods.items():
-        updated_players = simulate_matches(players, pod_name)
+        updated_players = simulate_matches(players, pod_name, source="standings")
         df = pd.DataFrame(updated_players)
 
         if "points" in df.columns:
