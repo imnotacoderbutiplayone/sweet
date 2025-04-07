@@ -36,13 +36,27 @@ def save_match_result(pod, player1, player2, winner, margin):
     return response
 
 # --- Load all match results from Supabase ---
+from collections import defaultdict
+
 def load_match_results():
-    response = supabase.table("match_results").select("*").order("timestamp", desc=True).execute()
-    if response.status_code == 200:
-        return response.data
-    else:
-        st.error("❌ Failed to fetch match results.")
-        return []
+    response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
+
+    # ✅ Check for errors using the correct method
+    if response.error:
+        st.error("❌ Supabase error loading match results")
+        st.code(response.error)
+        return {}
+
+    # ✅ Convert flat list into legacy match_key structure
+    match_dict = defaultdict(dict)
+    for r in response.data:
+        match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
+        match_dict[match_key] = {
+            "winner": r["winner"],
+            "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
+        }
+
+    return dict(match_dict)
 
 
 # --- Streamlit App Config and File Paths ---
@@ -264,7 +278,7 @@ def simulate_matches(players, pod_name):
     num_players = len(players)
 
     if "match_results" not in st.session_state:
-        st.session_state.match_results = load_match_results() or {}
+    st.session_state.match_results = load_match_results()
 
     for i in range(num_players):
         for j in range(i + 1, num_players):
