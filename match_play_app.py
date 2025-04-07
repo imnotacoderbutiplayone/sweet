@@ -692,12 +692,29 @@ with tabs[3]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    if not st.session_state.bracket_data.empty and st.session_state.get("tiebreaks_resolved", False):
-        st.dataframe(st.session_state.bracket_data)
-    elif st.session_state.authenticated and not st.session_state.bracket_data.empty:
-        st.info("🔧 Bracket data loaded, but finalization is not complete. Finalize bracket to publish standings.")
+    if "match_results" not in st.session_state:
+        st.session_state.match_results = load_match_results()
+
+    pod_results = {}
+
+    for pod_name, players in pods.items():
+        updated_players = simulate_matches(players, pod_name)
+        df = pd.DataFrame(updated_players)
+
+        if "points" in df.columns:
+            df["Points"] = df["points"]
+            df["Margin"] = df["margin"]
+            df = df[["name", "handicap", "Points", "Margin"]].sort_values(by=["Points", "Margin"], ascending=False)
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
+            pod_results[pod_name] = df
+
+    if pod_results:
+        for pod_name, df in pod_results.items():
+            with st.expander(f"📦 {pod_name} Standings", expanded=True):
+                st.dataframe(df, use_container_width=True)
     else:
-        st.info("📭 Standings will appear here once the bracket has been finalized by an admin.")
+        st.info("📭 No match results have been entered yet.")
+
 
 # Tab 4: Export
 with tabs[4]:
