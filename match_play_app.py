@@ -380,8 +380,6 @@ def simulate_matches(players, pod_name):
 
 
 # --- Save bracket to Supabase ---
-import json
-
 def save_bracket_data(df):
     try:
         data = {
@@ -391,24 +389,18 @@ def save_bracket_data(df):
 
         response = supabase.table("bracket_data").insert(data).execute()
 
-        # Log the exact response from Supabase
-        if hasattr(response, 'error') and response.error:
-            st.error("❌ Supabase API returned an error.")
+        if response.error:
+            st.error("❌ Error saving bracket data to Supabase.")
             st.code(str(response.error))
-        elif response.status_code != 201:
-            st.error("❌ Unexpected response code.")
-            st.code(f"Status code: {response.status_code}")
-            st.code(str(response.data))
         else:
-            st.success("✅ Bracket data saved to Supabase!")
+            st.success("✅ Bracket data saved successfully.")
 
         return response
 
     except Exception as e:
-        st.error("❌ Exception when saving to Supabase")
+        st.error("❌ Exception during save_bracket_data")
         st.code(str(e))
         return None
-
 
 
 # --- Label Helper ---
