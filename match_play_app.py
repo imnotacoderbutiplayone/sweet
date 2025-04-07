@@ -58,9 +58,20 @@ def load_bracket_data():
         return pd.DataFrame()
 
 # Load shared bracket data
-if "bracket_data" not in st.session_state:
-    bracket_df = load_bracket_data()
-    st.session_state.bracket_data = bracket_df
+def load_bracket_data():
+    response = supabase.table("bracket_data").select("json_data").order("timestamp", desc=True).limit(1).execute()
+
+    if response.status_code == 200 and response.data and len(response.data) > 0:
+        try:
+            return pd.read_json(response.data[0]["json_data"], orient="split")
+        except Exception as e:
+            st.error(f"🧨 JSON parsing error: {e}")
+            st.code(response.data[0]["json_data"])
+            return pd.DataFrame()
+    else:
+        st.info("ℹ️ No bracket data found yet in Supabase.")
+        return pd.DataFrame()
+
 
 # Load match results (optional extension later)
 if "match_results" not in st.session_state:
@@ -342,7 +353,8 @@ tabs = st.tabs(["📁 Pods Overview", "📊 Group Stage", "📋 Standings", "�
 
 
 if "bracket_data" not in st.session_state:
-    st.session_state.bracket_data = pd.DataFrame()
+    bracket_df = load_bracket_data()
+    st.session_state.bracket_data = bracket_df
 if "user_predictions" not in st.session_state:
     st.session_state.user_predictions = {}
 
@@ -509,7 +521,8 @@ if st.session_state.get("tiebreaks_resolved", False):
         bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
 
         st.session_state.bracket_data = bracket_df
-        save_json(BRACKET_FILE, bracket_df.to_json(orient="split"))
+        save_bracket_data(bracket_df)
+
 
         st.success("✅ Bracket finalized and seeded.")
         st.write("📊 Final Bracket", st.session_state.bracket_data)
