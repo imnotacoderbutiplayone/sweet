@@ -6,15 +6,44 @@ import json
 import os
 
 # --- Utility functions for persistence ---
-def save_json(file_path, data):
-    with open(file_path, "w") as f:
-        json.dump(data, f)
+from supabase import create_client, Client
+import streamlit as st
+import pandas as pd
+from datetime import datetime
 
-def load_json(file_path):
-    if os.path.exists(file_path):
-        with open(file_path, "r") as f:
-            return json.load(f)
-    return None
+# --- Connect to Supabase ---
+@st.cache_resource
+def init_supabase():
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
+
+supabase = init_supabase()
+
+# --- Save one match result to Supabase ---
+def save_match_result(pod, player1, player2, winner, margin):
+    data = {
+        "pod": pod,
+        "player1": player1,
+        "player2": player2,
+        "winner": winner,
+        "margin": margin,
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    response = supabase.table("match_results").insert(data).execute()
+    if response.status_code != 201:
+        st.error("❌ Error saving match result.")
+    return response
+
+# --- Load all match results from Supabase ---
+def load_match_results():
+    response = supabase.table("match_results").select("*").order("timestamp", desc=True).execute()
+    if response.status_code == 200:
+        return response.data
+    else:
+        st.error("❌ Failed to fetch match results.")
+        return []
+
 
 # --- Streamlit App Config and File Paths ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
@@ -31,7 +60,7 @@ if "bracket_data" not in st.session_state:
 
 # Load match results (optional extension later)
 if "match_results" not in st.session_state:
-    st.session_state.match_results = load_json(RESULTS_FILE) or {}
+    st.session_state.match_results = load_match_results() or {}
 
 # ---- Global Password Protection ----
 admin_password = st.secrets["admin_password"]
@@ -204,7 +233,7 @@ def simulate_matches(players, pod_name):
     num_players = len(players)
 
     if "match_results" not in st.session_state:
-        st.session_state.match_results = load_json(RESULTS_FILE) or {}
+        st.session_state.match_results = load_match_results() or {}
 
     for i in range(num_players):
         for j in range(i + 1, num_players):
@@ -249,7 +278,7 @@ def simulate_matches(players, pod_name):
                         "winner": winner,
                         "margin": margin
                     }
-                    save_json(RESULTS_FILE, st.session_state.match_results)
+                    save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
                     # Score updating
                     if winner == p1['name']:
