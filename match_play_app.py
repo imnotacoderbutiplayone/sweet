@@ -278,7 +278,7 @@ def simulate_matches(players, pod_name):
     num_players = len(players)
 
     if "match_results" not in st.session_state:
-    st.session_state.match_results = load_match_results()
+        st.session_state.match_results = load_match_results()
 
     for i in range(num_players):
         for j in range(i + 1, num_players):
