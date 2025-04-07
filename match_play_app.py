@@ -144,7 +144,6 @@ if st.sidebar.button("🚀 Test Save to Supabase"):
     st.sidebar.write("Response:", test_response.data)
     st.sidebar.write("Error:", test_response.error)
 
-
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
     """
