@@ -52,11 +52,8 @@ RESULTS_FILE = "match_results.json"
 
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
-    bracket_raw = load_json(BRACKET_FILE)
-    if bracket_raw:
-        st.session_state.bracket_data = pd.read_json(bracket_raw, orient="split")
-    else:
-        st.session_state.bracket_data = pd.DataFrame()
+    bracket_df = load_bracket_data()
+    st.session_state.bracket_data = bracket_df
 
 # Load match results (optional extension later)
 if "match_results" not in st.session_state:
@@ -316,6 +313,24 @@ def simulate_matches(players, pod_name):
     return players
 
 
+# --- Save bracket to Supabase ---
+def save_bracket_data(df):
+    data = {
+        "json_data": df.to_json(orient="split"),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+    response = supabase.table("bracket_data").insert(data).execute()
+    if response.status_code != 201:
+        st.error("❌ Error saving bracket data.")
+    return response
+
+# --- Load latest bracket from Supabase ---
+def load_bracket_data():
+    response = supabase.table("bracket_data").select("json_data").order("timestamp", desc=True).limit(1).execute()
+    if response.status_code == 200 and response.data:
+        return pd.read_json(response.data[0]["json_data"], orient="split")
+    else:
+        return pd.DataFrame()
 
 
 # --- Label Helper ---
