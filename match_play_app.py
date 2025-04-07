@@ -301,69 +301,72 @@ def simulate_matches(players, pod_name):
         st.session_state.match_results = load_match_results()
 
     for i in range(num_players):
-    for j in range(i + 1, num_players):
-        p1, p2 = players[i], players[j]
-        match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
-        h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
-        h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
-        st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
+        for j in range(i + 1, num_players):
+            p1, p2 = players[i], players[j]
+            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
 
-        if st.session_state.authenticated:
-            entry_key = match_key + "_entered"
-            entered = st.checkbox("Enter result for this match", key=entry_key)
-        else:
-            entered = False  # non-admins can't enter match results
+            # Unique and sanitized keys
+            base_key = f"{pod_name}_{p1['name']}_vs_{p2['name']}".replace(" ", "_")
+            entry_key = f"{base_key}_checkbox"
+            winner_key = f"{base_key}_winner"
+            margin_key = f"{base_key}_margin"
 
-        if entered:
-            # Pre-fill previous result
-            prev_result = st.session_state.match_results.get(match_key, {})
-            prev_winner = prev_result.get("winner", "Tie")
-            margin_val = prev_result.get("margin", 0)
-            prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
+            h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
+            h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
+            st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
-            # Winner radio button
-            winner = st.radio(
-                f"Who won?",
-                [p1['name'], p2['name'], "Tie"],
-                index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
-                key=match_key
-            )
+            if st.session_state.authenticated:
+                entered = st.checkbox("Enter result for this match", key=entry_key)
+            else:
+                entered = False  # non-admins can't enter match results
 
-                    # Margin selectbox
-                    margin = 0
-                    if winner != "Tie":
-                        result_str = st.selectbox(
-                            "Select Match Result (Win Margin)",
-                            options=list(margin_lookup.keys()),
-                            index=list(margin_lookup.keys()).index(prev_margin),
-                            key=match_key + "_result"
-                        )
-                        margin = margin_lookup[result_str]
+            if entered:
+                # Pre-fill previous result
+                prev_result = st.session_state.match_results.get(match_key, {})
+                prev_winner = prev_result.get("winner", "Tie")
+                margin_val = prev_result.get("margin", 0)
+                prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
 
-                    # Save result
-                    if winner == "Tie":
-                        result_str = "Tie"  # ✅ default value for tie matches
+                # Winner radio button
+                winner = st.radio(
+                    "Who won?",
+                    [p1['name'], p2['name'], "Tie"],
+                    index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
+                    key=winner_key
+                )
 
-                    st.session_state.match_results[match_key] = {
-                        "winner": winner,
-                        "margin": margin
-                    }
+                # Margin selectbox
+                margin = 0
+                if winner != "Tie":
+                    result_str = st.selectbox(
+                        "Select Match Result (Win Margin)",
+                        options=list(margin_lookup.keys()),
+                        index=list(margin_lookup.keys()).index(prev_margin),
+                        key=margin_key
+                    )
+                    margin = margin_lookup[result_str]
+                else:
+                    result_str = "Tie"
 
-                    save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
+                # Save result to session and Supabase
+                st.session_state.match_results[match_key] = {
+                    "winner": winner,
+                    "margin": margin
+                }
+                save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
-
-                    # Score updating
-                    if winner == p1['name']:
-                        results[p1['name']]['points'] += 1
-                        results[p1['name']]['margin'] += margin
-                        results[p2['name']]['margin'] -= margin
-                    elif winner == p2['name']:
-                        results[p2['name']]['points'] += 1
-                        results[p2['name']]['margin'] += margin
-                        results[p1['name']]['margin'] -= margin
-                    else:  # Tie
-                        results[p1['name']]['points'] += 0.5
-                        results[p2['name']]['points'] += 0.5
+                # Score updating
+                if winner == p1['name']:
+                    results[p1['name']]['points'] += 1
+                    results[p1['name']]['margin'] += margin
+                    results[p2['name']]['margin'] -= margin
+                elif winner == p2['name']:
+                    results[p2['name']]['points'] += 1
+                    results[p2['name']]['margin'] += margin
+                    results[p1['name']]['margin'] -= margin
+                else:  # Tie
+                    results[p1['name']]['points'] += 0.5
+                    results[p2['name']]['points'] += 0.5
             else:
                 st.info("🔒 Only admin can enter match results.")
 
