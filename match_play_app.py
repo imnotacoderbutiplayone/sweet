@@ -374,7 +374,7 @@ def simulate_matches(players, pod_name):
 def save_bracket_data(df):
     data = {
         "json_data": df.to_json(orient="split"),
-        "timestamp": datetime.utcnow().isoformat()
+        "created_at": datetime.utcnow().isoformat()
     }
     response = supabase.table("bracket_data").insert(data).execute()
     if response.status_code != 201:
