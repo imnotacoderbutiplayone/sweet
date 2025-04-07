@@ -293,12 +293,14 @@ margin_lookup = {
 
 
 import re
+import hashlib
 
-def sanitize_key(key):
-    """Sanitize widget keys to ensure uniqueness and compatibility."""
-    return re.sub(r'[^a-zA-Z0-9_]', '_', key)
+def sanitize_key(text):
+    """Sanitize and hash widget keys to avoid Streamlit duplication."""
+    cleaned = re.sub(r'\W+', '_', text)  # Replace non-alphanumerics
+    hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Hash keeps it unique
+    return f"{cleaned}_{hashed}"
 
-# --- Simulation Function ---
 def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -310,17 +312,19 @@ def simulate_matches(players, pod_name):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
 
-            # Sorted player names to make keys consistent regardless of order
-            names_sorted = sorted([p1['name'], p2['name']])
-            base_key = sanitize_key(f"{pod_name}_{names_sorted[0]}_vs_{names_sorted[1]}")
+            # Create a consistent match key regardless of player order
+            player_names = sorted([p1['name'], p2['name']])
+            raw_key = f"{pod_name}|{player_names[0]} vs {player_names[1]}"
+            base_key = sanitize_key(raw_key)
+
             entry_key = f"{base_key}_checkbox"
             winner_key = f"{base_key}_winner"
             margin_key = f"{base_key}_margin"
 
             match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
+
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
-
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
@@ -377,6 +381,7 @@ def simulate_matches(players, pod_name):
     for player in players:
         player.update(results[player['name']])
     return players
+
 
 
 # --- Save bracket to Supabase ---
