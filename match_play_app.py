@@ -308,12 +308,11 @@ def simulate_matches(players, pod_name):
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
-            if st.session_state.authenticated:
-                entry_key = match_key + "_entered"
-                entered = st.checkbox("Enter result for this match", key=entry_key)
-            else:
-                entered = False  # non-admins can't enter match results
-
+        if st.session_state.authenticated:
+            entry_key = match_key + "_entered"
+            entered = st.checkbox("Enter result for this match", key=entry_key)
+        else:
+            entered = False  # non-admins can't enter match results
 
                 if entered:
                     # Pre-fill previous result
