@@ -128,6 +128,23 @@ else:
         else:
             st.sidebar.error("❌ You must type RESET to confirm.")
 
+# --- Test Supabase Insert ---
+st.sidebar.markdown("---")
+st.sidebar.subheader("🧪 Supabase Test")
+
+if st.sidebar.button("🚀 Test Save to Supabase"):
+    test_response = save_match_result(
+        pod="Pod Test",
+        player1="Player A",
+        player2="Player B",
+        winner="Player A",
+        margin="2 and 1"
+    )
+    st.sidebar.write("Status Code:", test_response.status_code)
+    st.sidebar.write("Response:", test_response.data)
+    st.sidebar.write("Error:", test_response.error)
+
+
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
     """
