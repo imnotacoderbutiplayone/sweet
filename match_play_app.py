@@ -66,13 +66,13 @@ RESULTS_FILE = "match_results.json"
 def load_bracket_data():
     try:
         response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
-        
+
         if response.data and len(response.data) > 0:
             return pd.read_json(response.data[0]["json_data"], orient="split")
         else:
             st.info("ℹ️ No bracket data found in Supabase.")
             return pd.DataFrame()
-            
+
     except Exception as e:
         st.error("❌ Supabase error loading bracket data")
         st.code(str(e))
