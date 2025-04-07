@@ -598,7 +598,6 @@ with tabs[1]:
                 st.write("📊 Final Bracket", st.session_state.bracket_data)
 
 
-# Tab 3: Bracket
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
@@ -611,8 +610,9 @@ with tabs[3]:
 
         col1, col2 = st.columns(2)
 
-        r16_left, qf_left, sf_left = [], [], []
-        r16_right, qf_right, sf_right = [], [], []
+        r16_left, r16_right = [], []
+        qf_left, qf_right = [], []
+        sf_left, sf_right = [], []
         finalist_left = finalist_right = None
         champion = None
 
@@ -717,6 +717,7 @@ with tabs[3]:
 
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
+
 
 
 # Tab 3: Standings
