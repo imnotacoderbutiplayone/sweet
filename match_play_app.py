@@ -402,7 +402,16 @@ def label(player):
 
 
 st.title("\U0001F3CC️ Golf Match Play Tournament Dashboard")
-tabs = st.tabs(["📁 Pods Overview", "📊 Group Stage", "📋 Standings", "🏆 Bracket", "📤 Export", "🔮 Predict Bracket", "🗃️ Results Log"])
+tabs = st.tabs([
+    "📁 Pods Overview", 
+    "📊 Group Stage", 
+    "📋 Standings", 
+    "🏆 Bracket", 
+    "📤 Export", 
+    "🔮 Predict Bracket", 
+    "🗃️ Results Log",
+    "🏅 Leaderboard"  # 👈 NEW TAB
+])
 
 
 if "bracket_data" not in st.session_state:
@@ -929,3 +938,92 @@ with tabs[6]:
         # Optional: Download CSV
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+
+# Tab 7: Leaderboard
+with tabs[7]:
+    st.subheader("🏅 Prediction Leaderboard")
+
+    try:
+        # Load predictions from Supabase
+        response = supabase.table("predictions").select("*").execute()
+        predictions = response.data
+    except Exception as e:
+        st.error("Failed to load predictions.")
+        st.code(str(e))
+        st.stop()
+
+    # Load actual bracket winners from st.session_state
+    actual = {
+        "r16_left": [],
+        "r16_right": [],
+        "qf_left": [],
+        "qf_right": [],
+        "finalist_left": "",
+        "finalist_right": "",
+        "champion": ""
+    }
+
+    if st.session_state.get("bracket_data") is not None:
+        try:
+            bracket_df = st.session_state.bracket_data
+            left = bracket_df.iloc[0:8].reset_index(drop=True)
+            right = bracket_df.iloc[8:16].reset_index(drop=True)
+
+            def extract_names(pairs):
+                return [p["name"] for p in pairs]
+
+            def safe_get(name):
+                return name["name"] if isinstance(name, dict) else name
+
+            actual["r16_left"] = extract_names(left.iloc[::2].to_dict("records"))
+            actual["r16_right"] = extract_names(right.iloc[::2].to_dict("records"))
+
+            # We'll estimate QFs and SFs based on what was picked — adjust here if you've saved real progression
+            actual["qf_left"] = []  # Fill this in if you track them
+            actual["qf_right"] = []
+            actual["finalist_left"] = st.session_state.get("finalist_left", "")
+            actual["finalist_right"] = st.session_state.get("finalist_right", "")
+            actual["champion"] = st.session_state.get("champion", "")
+        except Exception as e:
+            st.error("⚠️ Error extracting actual bracket data.")
+            st.code(str(e))
+            st.stop()
+
+    scores = []
+    for row in predictions:
+        name = row["name"]
+        score = 0
+
+        try:
+            r16_left = json.loads(row.get("r16_left", "[]"))
+            r16_right = json.loads(row.get("r16_right", "[]"))
+            qf_left = json.loads(row.get("qf_left", "[]"))
+            qf_right = json.loads(row.get("qf_right", "[]"))
+        except Exception:
+            continue
+
+        score += len(set(r16_left) & set(actual["r16_left"]))
+        score += len(set(r16_right) & set(actual["r16_right"]))
+        score += len(set(qf_left) & set(actual["qf_left"]))
+        score += len(set(qf_right) & set(actual["qf_right"]))
+
+        if row.get("finalist_left") == actual["finalist_left"]:
+            score += 2
+        if row.get("finalist_right") == actual["finalist_right"]:
+            score += 2
+        if row.get("champion") == actual["champion"]:
+            score += 5
+
+        scores.append({
+            "Name": name,
+            "Score": score,
+            "Champion": row.get("champion"),
+            "Finalists": f"{row.get('finalist_left')} vs {row.get('finalist_right')}",
+            "Submitted At": row.get("timestamp")
+        })
+
+    leaderboard_df = pd.DataFrame(scores)
+    leaderboard_df = leaderboard_df.sort_values(by="Score", ascending=False).reset_index(drop=True)
+
+    st.dataframe(leaderboard_df, use_container_width=True)
+
