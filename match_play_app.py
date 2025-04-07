@@ -613,14 +613,11 @@ with tabs[3]:
         col1, col2 = st.columns(2)
 
         r16_left_winners, r16_right_winners = [], []
-        qf_left_winners, qf_right_winners = [], []
-        sf_left_winner = sf_right_winner = None
-        champion = None
 
         # === LEFT SIDE ===
         with col1:
             st.markdown("### 🟦 Left Side")
-            st.markdown("#### Round of 16")
+            st.markdown("#### 🏁 Round of 16")
 
             for i in range(0, len(left), 2):
                 try:
@@ -636,34 +633,41 @@ with tabs[3]:
                 else:
                     st.markdown(f"🔒 {match_label} _(Admin only)_")
 
-            st.markdown("#### Quarterfinals")
-            for i in range(0, len(r16_left_winners), 2):
-                if i + 1 >= len(r16_left_winners):
-                    continue
-                p1, p2 = r16_left_winners[i], r16_left_winners[i + 1]
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFL_{i}", index=None)
-                    if winner:
-                        qf_left_winners.append(p1 if winner == label(p1) else p2)
-                else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
+            st.markdown("#### 🥈 Quarterfinals")
+            qf_left_winners = []
+            for i in range(0, 8, 2):
+                try:
+                    p1 = r16_left_winners[i]
+                    p2 = r16_left_winners[i + 1]
+                except IndexError:
+                    p1 = p2 = None
 
-            st.markdown("#### Semifinal")
-            if len(qf_left_winners) == 2:
-                p1, p2 = qf_left_winners
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio("Left Finalist", [label(p1), label(p2)], key="SF_L", index=None)
-                    if winner:
-                        sf_left_winner = p1 if winner == label(p1) else p2
+                if p1 and p2:
+                    match_label = f"{label(p1)} vs {label(p2)}"
+                    if st.session_state.authenticated:
+                        winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFL_{i}", index=None)
+                        if winner:
+                            qf_left_winners.append(p1 if winner == label(p1) else p2)
+                    else:
+                        st.markdown(f"🔒 {match_label} _(Admin only)_")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
+                    st.info(f"Waiting for Round of 16 results for Match {i//2 + 1}")
+
+            if len(qf_left_winners) == 2:
+                st.markdown("#### 🥇 Semifinal Winner")
+                if st.session_state.authenticated:
+                    finalist_label = st.radio(
+                        "🏅 Left Finalist:", [label(qf_left_winners[0]), label(qf_left_winners[1])], key="LFinal", index=None
+                    )
+                    if finalist_label:
+                        finalist_left = qf_left_winners[0] if finalist_label == label(qf_left_winners[0]) else qf_left_winners[1]
+                else:
+                    st.markdown("🔒 Semifinal (Left) — _(Admin only)_")
 
         # === RIGHT SIDE ===
         with col2:
             st.markdown("### 🟥 Right Side")
-            st.markdown("#### Round of 16")
+            st.markdown("#### 🏁 Round of 16")
 
             for i in range(0, len(right), 2):
                 try:
@@ -679,47 +683,55 @@ with tabs[3]:
                 else:
                     st.markdown(f"🔒 {match_label} _(Admin only)_")
 
-            st.markdown("#### Quarterfinals")
-            for i in range(0, len(r16_right_winners), 2):
-                if i + 1 >= len(r16_right_winners):
-                    continue
-                p1, p2 = r16_right_winners[i], r16_right_winners[i + 1]
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFR_{i}", index=None)
-                    if winner:
-                        qf_right_winners.append(p1 if winner == label(p1) else p2)
-                else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
+            st.markdown("#### 🥈 Quarterfinals")
+            qf_right_winners = []
+            for i in range(0, 8, 2):
+                try:
+                    p1 = r16_right_winners[i]
+                    p2 = r16_right_winners[i + 1]
+                except IndexError:
+                    p1 = p2 = None
 
-            st.markdown("#### Semifinal")
-            if len(qf_right_winners) == 2:
-                p1, p2 = qf_right_winners
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio("Right Finalist", [label(p1), label(p2)], key="SF_R", index=None)
-                    if winner:
-                        sf_right_winner = p1 if winner == label(p1) else p2
+                if p1 and p2:
+                    match_label = f"{label(p1)} vs {label(p2)}"
+                    if st.session_state.authenticated:
+                        winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFR_{i}", index=None)
+                        if winner:
+                            qf_right_winners.append(p1 if winner == label(p1) else p2)
+                    else:
+                        st.markdown(f"🔒 {match_label} _(Admin only)_")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
+                    st.info(f"Waiting for Round of 16 results for Match {i//2 + 1}")
+
+            if len(qf_right_winners) == 2:
+                st.markdown("#### 🥇 Semifinal Winner")
+                if st.session_state.authenticated:
+                    finalist_label = st.radio(
+                        "🏅 Right Finalist:", [label(qf_right_winners[0]), label(qf_right_winners[1])], key="RFinal", index=None
+                    )
+                    if finalist_label:
+                        finalist_right = qf_right_winners[0] if finalist_label == label(qf_right_winners[0]) else qf_right_winners[1]
+                else:
+                    st.markdown("🔒 Semifinal (Right) — _(Admin only)_")
 
         # === FINAL MATCH ===
         st.markdown("### 🏁 Final Match")
-        if st.session_state.authenticated and sf_left_winner and sf_right_winner:
-            final_label = f"{label(sf_left_winner)} vs {label(sf_right_winner)}"
+        if st.session_state.authenticated and 'finalist_left' in locals() and 'finalist_right' in locals():
             champ_label = st.radio(
-                "🏆 Champion:", [label(sf_left_winner), label(sf_right_winner)], key="Champ", index=None
+                "🏆 Champion:", [label(finalist_left), label(finalist_right)], key="Champ", index=None
             )
             if champ_label:
-                champion = sf_left_winner if champ_label == label(sf_left_winner) else sf_right_winner
+                champion = finalist_left if champ_label == label(finalist_left) else finalist_right
                 st.success(f"🎉 Champion: {champion['name']} ({champion['handicap']})")
 
+                # Store actual results for leaderboard scoring
                 st.session_state["champion_name"] = champion["name"]
-                st.session_state["finalist_left_name"] = sf_left_winner["name"]
-                st.session_state["finalist_right_name"] = sf_right_winner["name"]
+                st.session_state["finalist_left_name"] = finalist_left["name"]
+                st.session_state["finalist_right_name"] = finalist_right["name"]
 
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
+
 
 # Tab 3: Standings
 # Tab 2: Standings
