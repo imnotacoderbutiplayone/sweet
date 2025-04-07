@@ -292,6 +292,12 @@ margin_lookup = {
 }
 
 
+import re
+
+def sanitize_key(key):
+    """Sanitize widget keys to ensure uniqueness and compatibility."""
+    return re.sub(r'[^a-zA-Z0-9_]', '_', key)
+
 # --- Simulation Function ---
 def simulate_matches(players, pod_name):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
@@ -303,34 +309,31 @@ def simulate_matches(players, pod_name):
     for i in range(num_players):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
-            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
 
-            # Unique and sanitized keys
-            # Always sort names to avoid ordering conflicts
+            # Sorted player names to make keys consistent regardless of order
             names_sorted = sorted([p1['name'], p2['name']])
-            base_key = f"{pod_name}_{names_sorted[0]}_vs_{names_sorted[1]}".replace(' ', '_').replace('-', '_')
-
+            base_key = sanitize_key(f"{pod_name}_{names_sorted[0]}_vs_{names_sorted[1]}")
             entry_key = f"{base_key}_checkbox"
             winner_key = f"{base_key}_winner"
             margin_key = f"{base_key}_margin"
 
+            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
             h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
             h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
+
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             if st.session_state.authenticated:
                 entered = st.checkbox("Enter result for this match", key=entry_key)
             else:
-                entered = False  # non-admins can't enter match results
+                entered = False
 
             if entered:
-                # Pre-fill previous result
                 prev_result = st.session_state.match_results.get(match_key, {})
                 prev_winner = prev_result.get("winner", "Tie")
                 margin_val = prev_result.get("margin", 0)
                 prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
 
-                # Winner radio button
                 winner = st.radio(
                     "Who won?",
                     [p1['name'], p2['name'], "Tie"],
@@ -338,7 +341,6 @@ def simulate_matches(players, pod_name):
                     key=winner_key
                 )
 
-                # Margin selectbox
                 margin = 0
                 if winner != "Tie":
                     result_str = st.selectbox(
@@ -351,14 +353,13 @@ def simulate_matches(players, pod_name):
                 else:
                     result_str = "Tie"
 
-                # Save result to session and Supabase
                 st.session_state.match_results[match_key] = {
                     "winner": winner,
                     "margin": margin
                 }
+
                 save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
-                # Score updating
                 if winner == p1['name']:
                     results[p1['name']]['points'] += 1
                     results[p1['name']]['margin'] += margin
@@ -367,7 +368,7 @@ def simulate_matches(players, pod_name):
                     results[p2['name']]['points'] += 1
                     results[p2['name']]['margin'] += margin
                     results[p1['name']]['margin'] -= margin
-                else:  # Tie
+                else:
                     results[p1['name']]['points'] += 0.5
                     results[p2['name']]['points'] += 0.5
             else:
