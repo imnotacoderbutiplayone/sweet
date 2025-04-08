@@ -616,7 +616,6 @@ with tabs[3]:
         # =============================
         with col1:
             st.markdown("### 🟦 Left Side")
-            
             # ---- Round of 16 (Left) ----
             st.markdown("#### 🏁 Round of 16")
             if "r16_left" not in st.session_state:
@@ -675,11 +674,11 @@ with tabs[3]:
                             sf_left_choices[i] = p1 if choice == label(p1) else p2
                     if st.button("Confirm Semifinals (Left Side)"):
                         st.session_state.sf_left = [sf_left_choices[i] for i in sorted(sf_left_choices)]
-                        st.success("Semifinal winner (Left) confirmed!")
+                        st.success("Semifinal winners (Left) confirmed!")
                 else:
                     st.warning("Please confirm Quarterfinals first.")
             else:
-                st.info("Semifinal winner (Left) has been confirmed:")
+                st.info("Semifinal winners (Left) have been confirmed:")
                 for p in st.session_state.sf_left:
                     st.write(label(p))
         
@@ -688,7 +687,6 @@ with tabs[3]:
         # ==============================
         with col2:
             st.markdown("### 🟥 Right Side")
-            
             # ---- Round of 16 (Right) ----
             st.markdown("#### 🏁 Round of 16")
             if "r16_right" not in st.session_state:
@@ -747,11 +745,11 @@ with tabs[3]:
                             sf_right_choices[i] = p1 if choice == label(p1) else p2
                     if st.button("Confirm Semifinals (Right Side)"):
                         st.session_state.sf_right = [sf_right_choices[i] for i in sorted(sf_right_choices)]
-                        st.success("Semifinal winner (Right) confirmed!")
+                        st.success("Semifinal winners (Right) confirmed!")
                 else:
                     st.warning("Please confirm Quarterfinals first.")
             else:
-                st.info("Semifinal winner (Right) has been confirmed:")
+                st.info("Semifinal winners (Right) have been confirmed:")
                 for p in st.session_state.sf_right:
                     st.write(label(p))
         
@@ -775,18 +773,17 @@ with tabs[3]:
                     
                     # Persist final results to Supabase for all users to see:
                     final_results = {
-                        "r16_left": json.dumps([...]),
-                        "r16_right": json.dumps([...]),
-                        "qf_left": json.dumps([...]),
-                        "qf_right": json.dumps([...]),
-                        "sf_left": json.dumps([...]),
-                        "sf_right": json.dumps([...]),
+                        "r16_left": json.dumps([p["name"] for p in st.session_state.get("r16_left", [])]),
+                        "r16_right": json.dumps([p["name"] for p in st.session_state.get("r16_right", [])]),
+                        "qf_left": json.dumps([p["name"] for p in st.session_state.get("qf_left", [])]),
+                        "qf_right": json.dumps([p["name"] for p in st.session_state.get("qf_right", [])]),
+                        "sf_left": json.dumps([p["name"] for p in st.session_state.get("sf_left", [])]),
+                        "sf_right": json.dumps([p["name"] for p in st.session_state.get("sf_right", [])]),
                         "champion": champion["name"],
                         "finalist_left": finalist_left["name"],
                         "finalist_right": finalist_right["name"],
                         "created_at": datetime.utcnow().isoformat()
                     }
-
                     supabase.table("final_results").insert(final_results).execute()
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
