@@ -59,6 +59,7 @@ def get_players_by_names(source_players, names):
     # Return the full player records in the same order
     return [name_lookup.get(name, {"name": name, "handicap": "N/A"}) for name in names]
 
+
 #-- load round players ---
 def load_round_players(round_key, progression_data, source_players=None):
     """
@@ -76,6 +77,7 @@ def load_round_players(round_key, progression_data, source_players=None):
         source_players = pods  # fallback to global pods
 
     try:
+        # Get player names from progression data
         names = parse_json_field(progression_data.get(round_key, "[]"))
         
         # Ensure players are full dictionaries
@@ -84,7 +86,6 @@ def load_round_players(round_key, progression_data, source_players=None):
     except Exception as e:
         st.warning(f"⚠️ Failed to load round '{round_key}': {e}")
         return []
-
 
 
 
