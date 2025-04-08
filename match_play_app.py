@@ -416,13 +416,15 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        # Always fetch the latest match results from Supabase (no session state caching)
+        # Always fetch the latest match results from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        if response.error:
-            st.error(f"❌ Error fetching match results: {response.error}")
+        # Check if the response is successful
+        if response.status_code != 200:
+            st.error(f"❌ Error fetching match results: Status code {response.status_code}")
             return {}
 
+        # Process the response data
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
@@ -434,9 +436,9 @@ def load_match_results():
         return dict(match_dict)  # Return the fresh match results
 
     except Exception as e:
-        st.error("❌ Error loading match results from Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error loading match results from Supabase: {e}")
         return {}
+
 
 
 # --- Load all predictions from Supabase ---
