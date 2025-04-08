@@ -630,7 +630,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    # Load match results from Supabase
+    # Load match results from Supabase (or session state if loaded earlier)
     match_results = load_match_results()
     st.session_state.match_results = match_results
 
@@ -659,8 +659,8 @@ with tabs[1]:
 
             # Update pod standings after each match
             pod_results[pod_name] = pd.DataFrame(players)
-    
-    # If authenticated, proceed with tiebreakers
+
+    # If authenticated, allow to review and resolve tiebreakers
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
@@ -672,7 +672,6 @@ with tabs[1]:
         unresolved = False
         pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-        # Resolve ties for 1st and 2nd place
         for pod_name, df in pod_scores.items():
             if df.empty or "points" not in df.columns:
                 st.info(f"📭 No match results entered yet for {pod_name}.")
@@ -718,7 +717,6 @@ with tabs[1]:
             else:
                 st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
 
-        # Check if all tiebreakers are resolved
         if unresolved:
             st.error("⛔ Please resolve all tiebreakers before finalizing.")
             st.session_state.tiebreaks_resolved = False
@@ -726,7 +724,6 @@ with tabs[1]:
             st.success("✅ All tiebreakers selected.")
             st.session_state.tiebreaks_resolved = True
 
-        # Finalize bracket after resolving tiebreakers
         if st.session_state.get("tiebreaks_resolved", False):
             if st.button("🏁 Finalize Bracket and Seed Field"):
                 bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
