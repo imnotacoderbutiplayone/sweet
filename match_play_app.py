@@ -809,15 +809,17 @@ with tabs[2]:
             total_margin = 0
 
             for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|"):
-                    if name in key:
-                        if result["winner"] == name:
-                            total_points += 1
-                            total_margin += result["margin"]
-                        elif result["winner"] == "Tie":
-                            total_points += 0.5
-                        else:
-                            total_margin -= result["margin"]
+                if key.startswith(f"{pod_name}|") and name in key:
+                    winner = result.get("winner", "")
+                    margin = result.get("margin", 0)
+
+                    if winner == name:
+                        total_points += 1
+                        total_margin += margin
+                    elif winner == "Tie":
+                        total_points += 0.5
+                    else:
+                        total_margin -= margin
 
             updated_players.append({
                 "Player": name,
@@ -837,6 +839,7 @@ with tabs[2]:
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
+
 
 
 
