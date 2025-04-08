@@ -55,8 +55,59 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         st.code(str(e))
         return None
 
+# --- Render Match ----
+def render_match(player1, player2, winner, readonly=False, key_prefix=""):
+    """
+    Renders the match between two players.
+    - player1, player2: dictionaries containing player info (e.g., name, handicap)
+    - winner: the current winner (or "Tie")
+    - readonly: if True, makes the match readonly (admin-only input)
+    - key_prefix: ensures that each checkbox/radio button has a unique key
 
+    Returns the winner of the match.
+    """
+    # Display match information
+    st.write(f"### Match: {player1['name']} vs {player2['name']}")
+    st.write(f"**Handicaps**: {player1['handicap']} vs {player2['handicap']}")
+    
+    # Show the winner (if known)
+    st.write(f"**Current Winner**: {winner if winner != 'Tie' else 'No winner yet'}")
 
+    # If readonly is False, allow the admin to select the winner
+    if not readonly:
+        winner_key = f"{key_prefix}_winner"
+        margin_key = f"{key_prefix}_margin"
+
+        # Radio button to choose the winner (or tie)
+        selected_winner = st.radio(
+            "Select winner",
+            options=[player1['name'], player2['name'], "Tie"],
+            index=[player1['name'], player2['name'], "Tie"].index(winner),
+            key=winner_key
+        )
+        
+        # Select margin if there is a winner
+        if selected_winner != "Tie":
+            margin = st.selectbox(
+                "Select win margin",
+                options=["1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4"],
+                key=margin_key
+            )
+        else:
+            margin = "Tie"
+        
+        # Display result button
+        if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
+            # Here you would save the result to Supabase
+            save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
+            st.success(f"Result saved: {selected_winner} wins {margin}")
+            return selected_winner
+    else:
+        # If readonly is True, just display the result
+        st.write(f"Match result: {winner}")
+        return winner
+
+#--- Simulate Matches ----
 def simulate_matches(players, pod_name, source=""):
     # Initialize result dictionary for players
     results = defaultdict(lambda: {"points": 0, "margin": 0})
