@@ -134,21 +134,26 @@ def get_winner_player(player1, player2, winner_name):
             return p
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
-# --- Render Match ----
-# --- Render Match Function (Updated for Group Stage) ---
 def render_match(player1, player2, winner, margin, readonly=False, key_prefix=""):
     """
     Renders the match between two players.
     - player1, player2: dictionaries containing player info (e.g., name, handicap)
     - winner: the current winner (or "Tie")
-    - margin: the margin of victory
+    - margin: the margin of victory (or "Tie")
     - readonly: if True, makes the match readonly (admin-only input)
     - key_prefix: ensures that each checkbox/radio button has a unique key
 
-    Returns the winner of the match and margin.
+    Returns the winner of the match and the margin.
     """
+    # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
+        return None, None
+    if "name" not in player1 or "handicap" not in player1:
+        st.error(f"❌ Invalid player data for {player1}")
+        return None, None
+    if "name" not in player2 or "handicap" not in player2:
+        st.error(f"❌ Invalid player data for {player2}")
         return None, None
 
     # Display match information
@@ -198,37 +203,6 @@ def render_match(player1, player2, winner, margin, readonly=False, key_prefix=""
         st.write(f"Match result: {winner}")
         st.write(f"Margin: {margin}")
         return winner, margin
-
-# --- Compute standings dynamically from match results ---
-def compute_pod_standings_from_results(pods, match_results):
-    pod_scores = {}
-
-    for pod_name, players in pods.items():
-        results = []
-        for player in players:
-            name = player["name"]
-            points, margin = 0, 0
-
-            for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|") and name in key:
-                    if result["winner"] == name:
-                        points += 1
-                        margin += result["margin"]
-                    elif result["winner"] == "Tie":
-                        points += 0.5
-                    else:
-                        margin -= result["margin"]
-
-            results.append({
-                "name": name,
-                "handicap": player["handicap"],
-                "points": points,
-                "margin": margin
-            })
-
-        pod_scores[pod_name] = pd.DataFrame(results)
-
-    return pod_scores
 
 
 # --- Build bracket from scores and tiebreaks ---
