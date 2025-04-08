@@ -48,15 +48,13 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("match_results_new").insert(data).execute()
-        if response.status_code != 200:
-            st.error(f"❌ Failed to save match result: {response.error_message}")
-            st.code(response.json())
+        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
         return response
     except Exception as e:
-        st.error(f"❌ Error saving match result to Supabase: {e}")
+        st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
 
 
 def simulate_matches(players, pod_name, source=""):
@@ -156,7 +154,7 @@ def simulate_matches(players, pod_name, source=""):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        response = supabase.table("match_results_new").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()  # Updated to tournament_matches
 
         match_dict = defaultdict(dict)
         for r in response.data:
