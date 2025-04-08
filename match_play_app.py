@@ -1361,23 +1361,23 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Load match results from Supabase directly
+        # Fetch match results from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Debug: Check the status code and the raw response
+        # Debug: Log the status code and response to check for issues
+        st.write(f"Response Status Code: {response.status_code}")
+        st.write(f"Response Data: {response.data}")
+
         if response.status_code != 200:
             st.error(f"❌ Error: Supabase returned status code {response.status_code}")
-            st.code(response.json())  # Show raw response in case of an error
-            st.stop()  # Stop further execution if there's an error
-
-        # Debugging: Display the raw data fetched from Supabase
-        st.write("Fetched Data from Supabase:", response.data)
+            st.write("Error Details:", response.error)  # Log the error details from Supabase
+            st.stop()
 
         if not response.data:
             st.warning("No data returned from Supabase.")
-            st.stop()  # Stop further execution if there's no data
+            st.stop()
 
-        # Process the response data
+        # Process the data to format it
         match_results = {
             f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
@@ -1385,20 +1385,20 @@ with tabs[6]:
             } for r in response.data
         }
 
-        # Debugging: Print the processed match results
+        # Debugging: Show processed match results
         st.write("Processed Match Results:", match_results)
 
-        # Convert the match results into a DataFrame
+        # Create the DataFrame
         data = []
         for key, result in match_results.items():
             if "|" not in key:
-                continue  # Skip malformed or legacy keys
+                continue
 
             pod_name, match_str = key.split("|", 1)
             try:
                 player1, player2 = match_str.split(" vs ")
             except ValueError:
-                continue  # Skip malformed match strings
+                continue
 
             winner = result.get("winner", "Tie")
             margin = result.get("margin", 0)
@@ -1415,20 +1415,21 @@ with tabs[6]:
                 "Margin": margin_text
             })
 
-        # Create DataFrame to display the match results
+        # Create DataFrame
         df = pd.DataFrame(data)
         df = df.sort_values(by=["Pod", "Player 1"])
 
-        # Display the match results DataFrame
+        # Display the DataFrame
         st.dataframe(df, use_container_width=True)
 
-        # Optional: Allow the user to download the match results as CSV
+        # Optional: Allow the user to download the results as CSV
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
     except Exception as e:
-        st.error("❌ Error loading match results.")
-        st.code(str(e))  # Show the exception error if it fails
+        st.error(f"❌ Error loading match results: {e}")
+        st.write("Exception:", e)
+
 
 
 
