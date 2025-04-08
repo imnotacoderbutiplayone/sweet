@@ -77,19 +77,14 @@ def load_round_players(round_key, progression_data, source_players=None):
 
     try:
         names = parse_json_field(progression_data.get(round_key, "[]"))
-        # Validate the player data
+        
+        # Ensure players are full dictionaries
         players = get_players_by_names(source_players, names)
-        
-        # Ensure that all player data is valid
-        for player in players:
-            if "name" not in player or "handicap" not in player:
-                st.error(f"❌ Invalid player data for {player}")
-                return []
-        
         return players
     except Exception as e:
         st.warning(f"⚠️ Failed to load round '{round_key}': {e}")
         return []
+
 
 
 
