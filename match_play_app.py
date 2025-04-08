@@ -1359,12 +1359,15 @@ with tabs[5]:
 
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
+    
+    # Debugging if this section is being executed
+    st.text("Inside the Results Log tab!")  # Check if the code block is being run
 
     try:
         # Fetch match results from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Debug: Log the status code and response to check for issues
+        # Check if data is being returned
         st.write(f"Response Status Code: {response.status_code}")
         st.write(f"Response Data: {response.data}")
 
@@ -1429,7 +1432,6 @@ with tabs[6]:
     except Exception as e:
         st.error(f"❌ Error loading match results: {e}")
         st.write("Exception:", e)
-
 
 
 
