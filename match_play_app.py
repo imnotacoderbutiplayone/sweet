@@ -101,7 +101,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Save one match result to Supabase ---
+#-- save match results ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -113,13 +113,17 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
-        # After saving, refresh match results
-        st.session_state.match_results = load_match_results()  # Reload the match results after saving
-        return response
+        response = supabase.table("tournament_matches").insert(data).execute()
+
+        # Check if the insertion was successful by examining the response data
+        if response.data:
+            st.success(f"Match result saved: {winner} wins {margin_text}")
+            return response
+        else:
+            st.error(f"❌ Error saving match result to Supabase: {response}")
+            return None
     except Exception as e:
-        st.error("❌ Error saving match result to Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error saving match result to Supabase: {str(e)}")
         return None
 
 
@@ -790,14 +794,10 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Load match results from session state (make sure it's up to date)
+    # Load match results from session state
     if "match_results" not in st.session_state:
         st.session_state.match_results = load_match_results()
 
-    # Make sure the match results are fresh and up to date
-    match_results = st.session_state.match_results  # Always ensure we're using the most recent match results
-
-    # Calculate standings based on the latest match results
     pod_results = {}
 
     # Process each pod and calculate the points and margins for each player
@@ -809,7 +809,7 @@ with tabs[2]:
             total_margin = 0
 
             # Iterate through all match results and calculate points and margins
-            for key, result in match_results.items():
+            for key, result in st.session_state.match_results.items():
                 if key.startswith(f"{pod_name}|"):
                     if name in key:
                         if result["winner"] == name:
@@ -842,7 +842,6 @@ with tabs[2]:
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
-
 
 
 # --- Admin View Rendering Bracket ---
