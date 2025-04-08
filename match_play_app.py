@@ -101,7 +101,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-#-- save match results ---
+# --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -113,17 +113,13 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()
-
-        # Check if the insertion was successful by examining the response data
-        if response.data:
-            st.success(f"Match result saved: {winner} wins {margin_text}")
-            return response
-        else:
-            st.error(f"❌ Error saving match result to Supabase: {response}")
-            return None
+        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
+        # After saving, refresh match results
+        st.session_state.match_results = load_match_results()  # Reload the match results after saving
+        return response
     except Exception as e:
-        st.error(f"❌ Error saving match result to Supabase: {str(e)}")
+        st.error("❌ Error saving match result to Supabase")
+        st.code(str(e))
         return None
 
 
@@ -794,10 +790,11 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Load match results from session state
+    # Load match results from session state (make sure it's up to date)
     if "match_results" not in st.session_state:
         st.session_state.match_results = load_match_results()
 
+    # Calculate standings based on the latest match results
     pod_results = {}
 
     # Process each pod and calculate the points and margins for each player
@@ -842,6 +839,7 @@ with tabs[2]:
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
+
 
 
 # --- Admin View Rendering Bracket ---
