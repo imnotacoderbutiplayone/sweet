@@ -361,6 +361,8 @@ def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
         return p1 if choice == label1 else p2
     
 
+import time  # Make sure this is at the top of your script
+
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -415,24 +417,16 @@ def simulate_matches(players, pod_name, source=""):
                 else:
                     result_str = "Tie"
 
-                # Save to session
-                st.session_state.match_results[match_key] = {
-                    "winner": winner,
-                    "margin": margin
-                }
-
                 # Save to Supabase
                 save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
-                # 🧠 Add this line to refresh session with fresh Supabase data
+                # Slight delay to ensure Supabase reflects updated result
+                time.sleep(0.5)
+
+                # Refresh the latest from Supabase to stay in sync
                 st.session_state.match_results = load_match_results()
 
-                # 🧪 Debug logs
-                st.success(f"✅ Saved match: {match_key} → {winner} ({result_str})")
-                st.write("Match key:", match_key)
-                st.write("Session state match result:", st.session_state.match_results[match_key])
-
-                # Update scores
+                # Update points/margin logic
                 if winner == p1['name']:
                     results[p1['name']]['points'] += 1
                     results[p1['name']]['margin'] += margin
@@ -450,7 +444,6 @@ def simulate_matches(players, pod_name, source=""):
     for player in players:
         player.update(results[player['name']])
     return players
-
 
 
 # --- Label Helper ---
