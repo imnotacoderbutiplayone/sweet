@@ -186,6 +186,54 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         st.write(f"Match result: {winner}")
         return winner
 
+#--- resolve tiebreakers --
+def resolve_tiebreakers(pod_scores):
+    unresolved = False
+    for pod_name, df in pod_scores.items():
+        if df.empty or "points" not in df.columns:
+            st.info(f"📭 No match results entered yet for {pod_name}.")
+            continue
+
+        sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+
+        # Resolve tiebreakers for first place
+        top_score = sorted_players.iloc[0]["points"]
+        top_margin = sorted_players.iloc[0]["margin"]
+        tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
+
+        if len(tied_first) > 1:
+            st.warning(f"🔁 Tie for 1st in {pod_name}")
+            options = tied_first["name"].tolist()
+            selected = st.radio(f"Select 1st place in {pod_name}:", options, key=f"{pod_name}_1st")
+            if selected:
+                st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
+            else:
+                unresolved = True
+        else:
+            st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
+
+        # Resolve second place if there's still a tie
+        remaining = sorted_players[sorted_players["name"] != selected].reset_index(drop=True)
+        if remaining.empty:
+            st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
+            continue
+
+        second_score = remaining.iloc[0]["points"]
+        second_margin = remaining.iloc[0]["margin"]
+        tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
+
+        if len(tied_second) > 1:
+            st.warning(f"🔁 Tie for 2nd in {pod_name}")
+            options = tied_second["name"].tolist()
+            selected = st.radio(f"Select 2nd place in {pod_name}:", options, key=f"{pod_name}_2nd")
+            if selected:
+                st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
+            else:
+                unresolved = True
+        else:
+            st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
+
+    return unresolved
 
 
 # --- Compute standings dynamically from match results ---
