@@ -805,12 +805,13 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Always load match results from Supabase to get the most recent results
+    # Fetch the most recent match results from Supabase
     match_results = load_match_results()
 
+    # Initialize an empty dictionary to store the standings for each pod
     pod_results = {}
 
-    # Process each pod and calculate the points and margins for each player
+    # Process each pod and calculate points and margin for each player
     for pod_name, players in pods.items():
         updated_players = []
         for player in players:
@@ -819,24 +820,23 @@ with tabs[2]:
             total_margin = 0
 
             # Iterate through all match results and calculate points and margins
-for key, result in match_results.items():
-    if key.startswith(f"{pod_name}|"):
-        if name in key:
-            # Debugging: Print the result to check its structure
-            print(f"Result for {key}: {result}")
-            
-            if isinstance(result, dict):  # Ensure result is a dictionary
-                if result.get("winner") == name:
-                    total_points += 1
-                    total_margin += result.get("margin", 0)  # Safely access margin
-                elif result.get("winner") == "Tie":
-                    total_points += 0.5
-                else:
-                    total_margin -= result.get("margin", 0)  # Safely access margin
-            else:
-                print(f"Unexpected data type for result: {type(result)}")
-                total_margin -= 0  # Default to subtracting 0 if result is not a dictionary
-
+            for key, result in match_results.items():
+                if key.startswith(f"{pod_name}|"):
+                    if name in key:
+                        # Debugging: Print the result to check its structure
+                        print(f"Result for {key}: {result}")
+                        
+                        if isinstance(result, dict):  # Ensure result is a dictionary
+                            if result.get("winner") == name:
+                                total_points += 1
+                                total_margin += result.get("margin", 0)  # Safely access margin
+                            elif result.get("winner") == "Tie":
+                                total_points += 0.5
+                            else:
+                                total_margin -= result.get("margin", 0)  # Safely access margin
+                        else:
+                            print(f"Unexpected data type for result: {type(result)}")
+                            total_margin -= 0  # Default to subtracting 0 if result is not a dictionary
 
             # Store the player's updated stats
             updated_players.append({
@@ -860,6 +860,7 @@ for key, result in match_results.items():
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
+
 
 # --- Admin View Rendering Bracket ---
 # --- Bracket ---
