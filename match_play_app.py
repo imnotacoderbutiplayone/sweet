@@ -829,16 +829,24 @@ with tabs[2]:
             total_margin = 0
 
             # Iterate through all match results and calculate points and margins
-            for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|"):
-                    if name in key:
-                        if result.get("winner") == name:
-                            total_points += 1
-                            total_margin += result.get("margin", 0)  # Use .get() to safely access margin
-                        elif result.get("winner") == "Tie":
-                            total_points += 0.5
-                        else:
-                            total_margin -= result.get("margin", 0)  # Use .get() to safely access margin
+for key, result in match_results.items():
+    if key.startswith(f"{pod_name}|"):
+        if name in key:
+            # Debugging: Print the result to check its structure
+            print(f"Result for {key}: {result}")
+            
+            if isinstance(result, dict):  # Ensure result is a dictionary
+                if result.get("winner") == name:
+                    total_points += 1
+                    total_margin += result.get("margin", 0)  # Safely access margin
+                elif result.get("winner") == "Tie":
+                    total_points += 0.5
+                else:
+                    total_margin -= result.get("margin", 0)  # Safely access margin
+            else:
+                print(f"Unexpected data type for result: {type(result)}")
+                total_margin -= 0  # Default to subtracting 0 if result is not a dictionary
+
 
             # Store the player's updated stats
             updated_players.append({
