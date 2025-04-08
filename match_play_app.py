@@ -913,7 +913,7 @@ with tabs[4]:
         st.warning("No bracket data available for export.")
 
 
-    # Export Match Results
+# Export Match Results
 if "match_results" in st.session_state and st.session_state.match_results:
     match_results_data = []
     for key, result in st.session_state.match_results.items():
@@ -944,9 +944,9 @@ if "match_results" in st.session_state and st.session_state.match_results:
     df_match_results = pd.DataFrame(match_results_data)
     df_match_results = df_match_results.sort_values(by=["Pod", "Player 1"])
 
-    # Display match results CSV download button
+    # Display match results CSV download button (Ensure unique key for button)
     csv_match_results = df_match_results.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Download Match Results CSV", csv_match_results, "match_results.csv", "text/csv", key="match_results_download_button")
+    st.download_button("📥 Download Match Results CSV", csv_match_results, "match_results.csv", "text/csv", key="unique_match_results_download_button")
 else:
     st.warning("No match results available for export.")
 
