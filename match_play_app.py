@@ -879,7 +879,6 @@ with tabs[5]:
 
                 finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
 
-                champion_final = None
                 if finalist_left and finalist_right:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
@@ -887,45 +886,30 @@ with tabs[5]:
                         [label(finalist_left), label(finalist_right)],
                         key=f"PickChamp_{full_name}"
                     )
-                    if champ_label == label(finalist_left):
-                        champion_final = finalist_left
-                    elif champ_label == label(finalist_right):
-                        champion_final = finalist_right
 
-                if champion_final and st.button("🚀 Submit My Bracket Prediction"):
-                    try:
-                        prediction_entry = {
-                            "name": full_name,
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "champion": champion_final["name"],
-                            "finalist_left": finalist_left["name"],
-                            "finalist_right": finalist_right["name"],
-                            "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
-                            "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
-                            "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
-                            "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
-                        }
+                    if champ_label:
+                        champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
 
-                        supabase.table("predictions").insert(prediction_entry).execute()
-                        st.success("✅ Your bracket prediction has been submitted!")
+                        if st.button("🚀 Submit My Bracket Prediction"):
+                            try:
+                                prediction_entry = {
+                                    "name": full_name,
+                                    "timestamp": datetime.utcnow().isoformat(),
+                                    "champion": champion_final["name"],
+                                    "finalist_left": finalist_left["name"],
+                                    "finalist_right": finalist_right["name"],
+                                    "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
+                                    "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
+                                    "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
+                                    "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
+                                }
 
-                    except Exception as e:
-                        st.error("❌ Error saving your prediction.")
-                        st.code(str(e))
+                                supabase.table("predictions").insert(prediction_entry).execute()
+                                st.success("✅ Your bracket prediction has been submitted!")
 
-        st.subheader("📜 Prediction Ledger")
-        try:
-            ledger = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
-            df = pd.DataFrame(ledger.data)
-            if not df.empty:
-                df = df[["timestamp", "name", "champion", "finalist_left", "finalist_right"]]
-                df.rename(columns={"name": "Name", "champion": "Champion"}, inplace=True)
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.info("No predictions submitted yet.")
-        except Exception as e:
-            st.warning("Could not load prediction ledger.")
-            st.code(str(e))
+                            except Exception as e:
+                                st.error("❌ Error saving your prediction.")
+                                st.code(str(e))
 
 
 
