@@ -102,7 +102,6 @@ def sanitize_key(text):
     return f"{cleaned}_{hashed}"
 
 #-- save match results ---
-# Save match result to Supabase
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -114,16 +113,24 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
+        # Print data for debugging purposes
+        print("Saving match result:", data)
+
+        # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Check if the insertion was successful by examining the response data
+        # Check the response for errors
         if response.error:
             st.error(f"❌ Error saving match result: {response.error}")
+            print(response.error)  # Log error for debugging
             return None
+
+        # Successful insertion
         st.success(f"Match result saved: {winner} wins {margin_text}")
-        return response.data
+        return response.data  # Return the inserted data
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
+        print(f"Error: {str(e)}")  # Log exception for debugging
         return None
 
 
