@@ -676,40 +676,56 @@ with tabs[3]:
     if st.session_state.authenticated:
         st.info("🔐 Admin mode: Enter results and save")
 
+        # --------------------
+        # LEFT SIDE
+        # --------------------
         with col1:
             st.markdown("### 🟦 Left Side")
 
+            st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
                 r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
 
+            st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
                 qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
 
+            st.markdown("#### 🥈 Semifinal")
             sf_left = []
             for i in range(0, len(qf_left), 2):
                 sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
 
+        # --------------------
+        # RIGHT SIDE
+        # --------------------
         with col2:
             st.markdown("### 🟥 Right Side")
 
+            st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
                 r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
 
+            st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
             for i in range(0, len(r16_right), 2):
                 qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
 
+            st.markdown("#### 🥈 Semifinal")
             sf_right = []
             for i in range(0, len(qf_right), 2):
                 sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
 
-        # Final match
+        # --------------------
+        # FINAL MATCH
+        # --------------------
         if sf_left and sf_right:
-            champ_choice = st.radio("🏁 Final Match – Select Champion",
-                                    [label(sf_left[0]), label(sf_right[0])])
+            st.markdown("### 🏁 Final Match")
+            champ_choice = st.radio("🏆 Select the Champion",
+                                    [label(sf_left[0]), label(sf_right[0])],
+                                    key="final_match_radio")
             champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
         else:
             champion = None
@@ -734,36 +750,42 @@ with tabs[3]:
         else:
             with col1:
                 st.markdown("### 🟦 Left Side")
-                r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
-                qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
-                sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
 
+                st.markdown("#### 🔹 Round of 16")
+                r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
                 for i in range(0, len(left), 2):
                     winner = r16_left[i//2]["name"]
                     render_match(left[i], left[i+1], winner, readonly=True)
 
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
                 for i in range(0, len(r16_left), 2):
                     winner = qf_left[i//2]["name"]
                     render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
 
+                st.markdown("#### 🥈 Semifinal")
+                sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
                 for i in range(0, len(qf_left), 2):
                     winner = sf_left[i//2]["name"]
                     render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
 
             with col2:
                 st.markdown("### 🟥 Right Side")
-                r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
-                qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
-                sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
 
+                st.markdown("#### 🔹 Round of 16")
+                r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
                 for i in range(0, len(right), 2):
                     winner = r16_right[i//2]["name"]
                     render_match(right[i], right[i+1], winner, readonly=True)
 
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
                 for i in range(0, len(r16_right), 2):
                     winner = qf_right[i//2]["name"]
                     render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
 
+                st.markdown("#### 🥈 Semifinal")
+                sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
                 for i in range(0, len(qf_right), 2):
                     winner = sf_right[i//2]["name"]
                     render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
