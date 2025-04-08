@@ -740,7 +740,10 @@ with tabs[3]:
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
-                qf_left.append(render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix="qf_left"))
+                if i + 1 < len(r16_left):
+                    qf_left.append(render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix="qf_left"))
+                else:
+                    st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
 
             # Semifinal
             st.markdown("#### 🥈 Semifinal")
