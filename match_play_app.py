@@ -103,17 +103,20 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         "player2": player2,
         "winner": winner,
         "margin": margin_text,  # Ensure the margin is saved
-        "created_at": datetime.utcnow().isoformat()
+        "status": "pending",  # Assuming the match is still pending until the result is finalized
+        "created_at": datetime.utcnow().isoformat(),
+        "updated_at": datetime.utcnow().isoformat()
     }
 
     try:
         response = supabase.table("tournament_matches").insert(data).execute()  # Save to the database
-        st.write("Match Result Saved:", response)  # Add this line to check the response
+        st.write("Match Result Saved:", response)  # Debugging line to check the response
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
@@ -192,7 +195,6 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         st.write(f"Match result: {winner}")
         st.write(f"Margin: {margin}")
         return winner, margin
-
 
 
 # --- Compute standings dynamically from match results ---
