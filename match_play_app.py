@@ -784,7 +784,7 @@ with tabs[2]:
         st.info("📭 No match results have been entered yet.")
 
 
-# --- Bracket ---
+# --- Admin View Rendering Bracket ---
 with tabs[3]:  # Bracket Tab
     st.subheader("🏆 Bracket")
 
@@ -931,7 +931,6 @@ with tabs[3]:  # Bracket Tab
                 "champion": champion["name"] if champion else ""
             })
             st.success("✅ Bracket progression saved!")
-
 
 
 # --- Export ---
