@@ -34,7 +34,7 @@ def save_bracket_data(df):
         st.error("❌ Failed to save bracket data to Supabase")
         st.code(str(e))
         return None
-        
+
 # --- Helper: Parse JSON field ---
 def parse_json_field(json_data):
     """Parse the JSON string into a Python object."""
@@ -101,6 +101,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
+#-- save match results ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -114,8 +115,9 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     try:
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Check if the response is successful
-        if response.status_code == 201:  # 201 means success
+        # Check if the insertion was successful by examining the response data
+        if response.data:
+            st.success(f"Match result saved: {winner} wins {margin_text}")
             return response
         else:
             st.error(f"❌ Error saving match result to Supabase: {response}")
