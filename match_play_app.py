@@ -1147,7 +1147,7 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Check if match results are in session state, if not, try to load from Supabase
+        # Check if match results are in session state, if not, load from Supabase
         if "match_results" not in st.session_state:
             st.info("No match results found in session state. Attempting to load from Supabase...")
 
@@ -1219,6 +1219,7 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
 
 
 
