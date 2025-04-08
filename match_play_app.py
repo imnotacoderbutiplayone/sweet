@@ -117,15 +117,15 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         response = supabase.table("tournament_matches").insert(data).execute()
 
         # Check if the insertion was successful by examining the response data
-        if response.data:
-            st.success(f"Match result saved: {winner} wins {margin_text}")
-            return response
-        else:
-            st.error(f"❌ Error saving match result to Supabase: {response}")
+        if response.error:
+            st.error(f"❌ Error saving match result: {response.error}")
             return None
+        st.success(f"Match result saved: {winner} wins {margin_text}")
+        return response.data
     except Exception as e:
-        st.error(f"❌ Error saving match result to Supabase: {str(e)}")
+        st.error(f"❌ Error saving match result: {str(e)}")
         return None
+
 
 
 #-- winner data ---
@@ -416,8 +416,12 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        # Fetch the latest match results directly from Supabase
+        # Always fetch the latest match results from Supabase (no session state caching)
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+
+        if response.error:
+            st.error(f"❌ Error fetching match results: {response.error}")
+            return {}
 
         match_dict = defaultdict(dict)
         for r in response.data:
@@ -433,6 +437,7 @@ def load_match_results():
         st.error("❌ Error loading match results from Supabase")
         st.code(str(e))
         return {}
+
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
