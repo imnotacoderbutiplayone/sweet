@@ -772,7 +772,7 @@ with tabs[3]:
                     st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
                     
                     # Build final results using native Python types for JSONB columns.
-                    # Append a "Z" to the UTC ISO string to indicate timezone (if needed).
+                    # We are not sending "created_at" so that PostgreSQL uses its default.
                     final_results = {
                         "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
                         "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
@@ -782,12 +782,17 @@ with tabs[3]:
                         "sf_right": [p["name"] for p in st.session_state.get("sf_right", [])],
                         "champion": champion["name"],
                         "finalist_left": finalist_left["name"],
-                        "finalist_right": finalist_right["name"],
-                        "created_at": datetime.utcnow().isoformat() + "Z"  # ensure UTC timezone
+                        "finalist_right": finalist_right["name"]
                     }
-                    # Wrap the dictionary in a list for insert.
-                    response = supabase.table("final_results").insert([final_results]).execute()
-                    st.write("Final results persisted:", response)
+                    
+                    try:
+                        # Wrap the dictionary in a list for insert.
+                        response = supabase.table("final_results").insert([final_results]).execute()
+                        st.write("Final results persisted:", response)
+                    except Exception as e:
+                        # Print out the error details for debugging.
+                        st.error("Error inserting final results:")
+                        st.error(e)
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
 
