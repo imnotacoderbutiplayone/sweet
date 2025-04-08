@@ -97,22 +97,25 @@ def sanitize_key(text):
 
 # --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
+# Save one match result to Supabase
+def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin_text,
+        "margin": margin_text,  # Ensure the margin is saved
         "created_at": datetime.utcnow().isoformat()
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
+        response = supabase.table("tournament_matches").insert(data).execute()  # Save to the database
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
@@ -133,10 +136,6 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
 
     Returns the winner of the match.
     """
-    # Debugging: Print out player data
-    #st.write(f"Player 1 Data: {player1}")
-    #st.write(f"Player 2 Data: {player2}")
-    
     # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
@@ -172,25 +171,26 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         )
 
         # Select margin if there is a winner
+        margin = "Tie"  # Default if it's a tie
         if selected_winner != "Tie":
             margin = st.selectbox(
                 "Select win margin",
                 options=["1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4"],
                 key=margin_key
             )
-        else:
-            margin = "Tie"
         
         # Display result button
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
-            # Here you would save the result to Supabase
+            # Save the result to Supabase
             save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
             st.success(f"Result saved: {selected_winner} wins {margin}")
-            return selected_winner
+            return selected_winner, margin
     else:
-        # If readonly is True, just display the result
+        # If readonly is True, just display the result and margin
         st.write(f"Match result: {winner}")
-        return winner
+        st.write(f"Margin: {margin}")
+        return winner, margin
+
 
 
 # --- Compute standings dynamically from match results ---
