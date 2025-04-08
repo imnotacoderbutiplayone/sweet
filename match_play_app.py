@@ -330,11 +330,14 @@ def compute_pod_standings_from_results(pods, match_results):
                     winner = result.get("winner")
                     margin_str = result.get("margin", "Tie")  # Default to "Tie" if no margin
 
-                    # Check if margin_str exists in the lookup dictionary
-                    if margin_str != "Tie":
+                    # Debugging: Print margin for inspection
+                    print(f"Result for {key}: winner={winner}, margin_str={margin_str}")
+
+                    # If margin is a string like "1 up", "2 and 1", etc., look it up
+                    if isinstance(margin_str, str) and margin_str != "Tie":
                         margin_value = margin_lookup.get(margin_str, 0)  # Default to 0 if not found in lookup
                     else:
-                        margin_value = 0  # "Tie", treat margin as 0
+                        margin_value = 0  # "Tie" or non-string values, treat margin as 0
 
                     # Update points and margin based on the winner
                     if winner == name:
