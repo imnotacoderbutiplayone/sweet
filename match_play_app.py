@@ -598,152 +598,183 @@ with tabs[1]:
                 st.write("📊 Final Bracket", st.session_state.bracket_data)
 
 
-# Tab 3: Bracket
+# --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
-
+    
     if st.session_state.bracket_data.empty:
         st.warning("Please calculate bracket seeding from the Group Stage tab first.")
     else:
         bracket_df = st.session_state.bracket_data
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
-
+        
         col1, col2 = st.columns(2)
-
-        r16_left, r16_right = [], []
-        qf_left, qf_right = [], []
-        sf_left, sf_right = [], []
-        finalist_left = finalist_right = None
-        champion = None
-
-        # === LEFT SIDE ===
+        
+        # =============================
+        # LEFT SIDE – Admin Confirmation
+        # =============================
         with col1:
             st.markdown("### 🟦 Left Side")
+            
+            # ---- Round of 16 (Left) ----
             st.markdown("#### 🏁 Round of 16")
-
-            for i in range(0, len(left), 2):
-                p1, p2 = left.iloc[i], left.iloc[i + 1]
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"R16L_{i}", index=None)
-                    if winner:
-                        r16_left.append(p1 if winner == label(p1) else p2)
-                else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
+            if "r16_left" not in st.session_state:
+                r16_left_choices = {}
+                for i in range(0, len(left), 2):
+                    p1, p2 = left.iloc[i], left.iloc[i + 1]
+                    match_label = f"{label(p1)} vs {label(p2)}"
+                    if st.session_state.authenticated:
+                        # Show radio buttons for each match.
+                        choice = st.radio(match_label, [label(p1), label(p2)], key=f"R16L_{i}")
+                        # Temporarily store the winner for this match.
+                        r16_left_choices[i] = p1 if choice == label(p1) else p2
+                    else:
+                        st.markdown(f"🔒 {match_label} _(Admin only)_")
+                if st.button("Confirm Round of 16 (Left Side)"):
+                    st.session_state.r16_left = [r16_left_choices[i] for i in sorted(r16_left_choices)]
+                    st.success("Round of 16 winners (Left) confirmed!")
+            else:
+                st.info("Round of 16 winners (Left) have been confirmed:")
+                for p in st.session_state.r16_left:
+                    st.write(label(p))
+            
+            # ---- Quarterfinals (Left) ----
             st.markdown("#### 🥈 Quarterfinals")
-            for i in range(0, len(r16_left), 2):
-                if i + 1 >= len(r16_left):
-                    continue
-                p1, p2 = r16_left[i], r16_left[i + 1]
-                match_label = f"QF: {label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFL_{i}", index=None)
-                    if winner:
-                        qf_left.append(p1 if winner == label(p1) else p2)
+            if "qf_left" not in st.session_state:
+                if "r16_left" in st.session_state:
+                    r16_left = st.session_state.r16_left
+                    qf_left_choices = {}
+                    for i in range(0, len(r16_left), 2):
+                        if i + 1 < len(r16_left):
+                            p1 = r16_left[i]
+                            p2 = r16_left[i + 1]
+                            match_label = f"QF: {label(p1)} vs {label(p2)}"
+                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"QFL_{i}")
+                            qf_left_choices[i] = p1 if choice == label(p1) else p2
+                    if st.button("Confirm Quarterfinals (Left Side)"):
+                        st.session_state.qf_left = [qf_left_choices[i] for i in sorted(qf_left_choices)]
+                        st.success("Quarterfinal winners (Left) confirmed!")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
+                    st.warning("Please confirm Round of 16 first.")
+            else:
+                st.info("Quarterfinal winners (Left) have been confirmed:")
+                for p in st.session_state.qf_left:
+                    st.write(label(p))
+            
+            # ---- Semifinals (Left) ----
             st.markdown("#### 🥇 Semifinals")
-            for i in range(0, len(qf_left), 2):
-                if i + 1 >= len(qf_left):
-                    continue
-                p1, p2 = qf_left[i], qf_left[i + 1]
-                match_label = f"SF: {label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"SFL_{i}", index=None)
-                    if winner:
-                        sf_left.append(p1 if winner == label(p1) else p2)
+            if "sf_left" not in st.session_state:
+                if "qf_left" in st.session_state:
+                    qf_left = st.session_state.qf_left
+                    sf_left_choices = {}
+                    for i in range(0, len(qf_left), 2):
+                        if i + 1 < len(qf_left):
+                            p1 = qf_left[i]
+                            p2 = qf_left[i + 1]
+                            match_label = f"SF: {label(p1)} vs {label(p2)}"
+                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"SFL_{i}")
+                            sf_left_choices[i] = p1 if choice == label(p1) else p2
+                    if st.button("Confirm Semifinals (Left Side)"):
+                        st.session_state.sf_left = [sf_left_choices[i] for i in sorted(sf_left_choices)]
+                        st.success("Semifinal winner (Left) confirmed!")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
-        # === RIGHT SIDE ===
+                    st.warning("Please confirm Quarterfinals first.")
+            else:
+                st.info("Semifinal winner (Left) has been confirmed:")
+                for p in st.session_state.sf_left:
+                    st.write(label(p))
+        
+        # ==============================
+        # RIGHT SIDE – Admin Confirmation
+        # ==============================
         with col2:
             st.markdown("### 🟥 Right Side")
+            
+            # ---- Round of 16 (Right) ----
             st.markdown("#### 🏁 Round of 16")
-
-            for i in range(0, len(right), 2):
-                p1, p2 = right.iloc[i], right.iloc[i + 1]
-                match_label = f"{label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"R16R_{i}", index=None)
-                    if winner:
-                        r16_right.append(p1 if winner == label(p1) else p2)
-                else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
+            if "r16_right" not in st.session_state:
+                r16_right_choices = {}
+                for i in range(0, len(right), 2):
+                    p1, p2 = right.iloc[i], right.iloc[i + 1]
+                    match_label = f"{label(p1)} vs {label(p2)}"
+                    if st.session_state.authenticated:
+                        choice = st.radio(match_label, [label(p1), label(p2)], key=f"R16R_{i}")
+                        r16_right_choices[i] = p1 if choice == label(p1) else p2
+                    else:
+                        st.markdown(f"🔒 {match_label} _(Admin only)_")
+                if st.button("Confirm Round of 16 (Right Side)"):
+                    st.session_state.r16_right = [r16_right_choices[i] for i in sorted(r16_right_choices)]
+                    st.success("Round of 16 winners (Right) confirmed!")
+            else:
+                st.info("Round of 16 winners (Right) have been confirmed:")
+                for p in st.session_state.r16_right:
+                    st.write(label(p))
+            
+            # ---- Quarterfinals (Right) ----
             st.markdown("#### 🥈 Quarterfinals")
-            for i in range(0, len(r16_right), 2):
-                if i + 1 >= len(r16_right):
-                    continue
-                p1, p2 = r16_right[i], r16_right[i + 1]
-                match_label = f"QF: {label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"QFR_{i}", index=None)
-                    if winner:
-                        qf_right.append(p1 if winner == label(p1) else p2)
+            if "qf_right" not in st.session_state:
+                if "r16_right" in st.session_state:
+                    r16_right = st.session_state.r16_right
+                    qf_right_choices = {}
+                    for i in range(0, len(r16_right), 2):
+                        if i + 1 < len(r16_right):
+                            p1 = r16_right[i]
+                            p2 = r16_right[i + 1]
+                            match_label = f"QF: {label(p1)} vs {label(p2)}"
+                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"QFR_{i}")
+                            qf_right_choices[i] = p1 if choice == label(p1) else p2
+                    if st.button("Confirm Quarterfinals (Right Side)"):
+                        st.session_state.qf_right = [qf_right_choices[i] for i in sorted(qf_right_choices)]
+                        st.success("Quarterfinal winners (Right) confirmed!")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
+                    st.warning("Please confirm Round of 16 first.")
+            else:
+                st.info("Quarterfinal winners (Right) have been confirmed:")
+                for p in st.session_state.qf_right:
+                    st.write(label(p))
+            
+            # ---- Semifinals (Right) ----
             st.markdown("#### 🥇 Semifinals")
-            for i in range(0, len(qf_right), 2):
-                if i + 1 >= len(qf_right):
-                    continue
-                p1, p2 = qf_right[i], qf_right[i + 1]
-                match_label = f"SF: {label(p1)} vs {label(p2)}"
-                if st.session_state.authenticated:
-                    winner = st.radio(match_label, [label(p1), label(p2)], key=f"SFR_{i}", index=None)
-                    if winner:
-                        sf_right.append(p1 if winner == label(p1) else p2)
+            if "sf_right" not in st.session_state:
+                if "qf_right" in st.session_state:
+                    qf_right = st.session_state.qf_right
+                    sf_right_choices = {}
+                    for i in range(0, len(qf_right), 2):
+                        if i + 1 < len(qf_right):
+                            p1 = qf_right[i]
+                            p2 = qf_right[i + 1]
+                            match_label = f"SF: {label(p1)} vs {label(p2)}"
+                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"SFR_{i}")
+                            sf_right_choices[i] = p1 if choice == label(p1) else p2
+                    if st.button("Confirm Semifinals (Right Side)"):
+                        st.session_state.sf_right = [sf_right_choices[i] for i in sorted(sf_right_choices)]
+                        st.success("Semifinal winner (Right) confirmed!")
                 else:
-                    st.markdown(f"🔒 {match_label} _(Admin only)_")
-
-        # === FINAL MATCH ===
+                    st.warning("Please confirm Quarterfinals first.")
+            else:
+                st.info("Semifinal winner (Right) has been confirmed:")
+                for p in st.session_state.sf_right:
+                    st.write(label(p))
+        
+        # ============================
+        # FINAL MATCH – Champion Confirm
+        # ============================
         st.markdown("### 🏁 Final Match")
-
-        if (
-            st.session_state.authenticated
-            and isinstance(sf_left, list) and len(sf_left) == 1
-            and isinstance(sf_right, list) and len(sf_right) == 1
-        ):
-            finalist_left = sf_left[0]
-            finalist_right = sf_right[0]
-
-            champ_label = st.radio(
-                "🏆 Champion:",
-                [label(finalist_left), label(finalist_right)],
-                key="Champ", index=None
-            )
-
-            if champ_label:
-                champion = finalist_left if champ_label == label(finalist_left) else finalist_right
-                st.success(f"🎉 Champion: {champion['name']} ({champion['handicap']})")
-
-                st.session_state["champion_name"] = champion["name"]
-                st.session_state["finalist_left_name"] = finalist_left["name"]
-                st.session_state["finalist_right_name"] = finalist_right["name"]
-
-                # Show bracket summary
-                with st.expander("📈 View Full Bracket Results", expanded=True):
-                    def fmt(players):
-                        return [f"{p['name']} ({p['handicap']})" for p in players]
-
-                    st.markdown("**Left Side Progression**")
-                    st.write("Round of 16:", fmt(r16_left))
-                    st.write("Quarterfinals:", fmt(qf_left))
-                    st.write("Semifinalist:", fmt(sf_left))
-
-                    st.markdown("**Right Side Progression**")
-                    st.write("Round of 16:", fmt(r16_right))
-                    st.write("Quarterfinals:", fmt(qf_right))
-                    st.write("Semifinalist:", fmt(sf_right))
-
-                    st.markdown("**Finals**")
-                    st.write(f"{label(finalist_left)} vs {label(finalist_right)}")
-                    st.write(f"**🏆 Champion: {champion['name']}**")
-
-        elif not st.session_state.authenticated:
+        if st.session_state.authenticated and "sf_left" in st.session_state and "sf_right" in st.session_state:
+            finalist_left = st.session_state.sf_left[0] if st.session_state.sf_left else None
+            finalist_right = st.session_state.sf_right[0] if st.session_state.sf_right else None
+            if finalist_left and finalist_right:
+                final_choice = st.radio("Select the Final Champion:",
+                                        [label(finalist_left), label(finalist_right)],
+                                        key="FinalMatch")
+                if st.button("Confirm Final Match"):
+                    champion = finalist_left if final_choice == label(finalist_left) else finalist_right
+                    st.session_state.champion_name = champion["name"]
+                    st.session_state.finalist_left_name = finalist_left["name"]
+                    st.session_state.finalist_right_name = finalist_right["name"]
+                    st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
+        else:
             st.markdown("🔒 Final match — _(Admin only)_")
 
 
