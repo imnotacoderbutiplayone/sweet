@@ -760,79 +760,86 @@ with tabs[3]:
         return {"name": winner_name, "handicap": "N/A"}
 
     # Admin mode
-    if st.session_state.authenticated:
-        st.info("🔐 Admin mode: Enter results and save")
+if st.session_state.authenticated:
+    st.info("🔐 Admin mode: Enter results and save")
 
-        with col1:
-            st.markdown("### 🟦 Left Side")
+    with col1:
+        st.markdown("### 🟦 Left Side")
 
-            st.markdown("#### 🔹 Round of 16")
-            r16_left = []
-            for i in range(0, len(left), 2):
-                winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
+        st.markdown("#### 🔹 Round of 16")
+        r16_left = []
+        for i in range(0, len(left), 2):
+            winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
+            if winner_name:
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
-            st.markdown("#### 🥉 Quarterfinals")
-            qf_left = []
-            for i in range(0, len(r16_left), 2):
-                if i + 1 < len(r16_left):
-                    winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
+        st.markdown("#### 🥉 Quarterfinals")
+        qf_left = []
+        for i in range(0, len(r16_left), 2):
+            if i + 1 < len(r16_left):
+                winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
+                if winner_name:
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
-                else:
-                    st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
+            else:
+                st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i].get('name', 'Unknown')}")
 
-            st.markdown("#### 🥈 Semifinal")
-            sf_left = []
-            for i in range(0, len(qf_left), 2):
-                if i + 1 < len(qf_left):
-                    winner_name = render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix=f"sf_left_{i}")
+        st.markdown("#### 🥈 Semifinal")
+        sf_left = []
+        for i in range(0, len(qf_left), 2):
+            if i + 1 < len(qf_left):
+                winner_name = render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix=f"sf_left_{i}")
+                if winner_name:
                     sf_left.append(get_winner_player(qf_left[i], qf_left[i + 1], winner_name))
 
-        with col2:
-            st.markdown("### 🟥 Right Side")
+    with col2:
+        st.markdown("### 🟥 Right Side")
 
-            st.markdown("#### 🔹 Round of 16")
-            r16_right = []
-            for i in range(0, len(right), 2):
-                winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
+        st.markdown("#### 🔹 Round of 16")
+        r16_right = []
+        for i in range(0, len(right), 2):
+            winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
+            if winner_name:
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
-            st.markdown("#### 🥉 Quarterfinals")
-            qf_right = []
-            for i in range(0, len(r16_right), 2):
-                if i + 1 < len(r16_right):
-                    winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
+        st.markdown("#### 🥉 Quarterfinals")
+        qf_right = []
+        for i in range(0, len(r16_right), 2):
+            if i + 1 < len(r16_right):
+                winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
+                if winner_name:
                     qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
 
-            st.markdown("#### 🥈 Semifinal")
-            sf_right = []
-            for i in range(0, len(qf_right), 2):
-                if i + 1 < len(qf_right):
-                    winner_name = render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix=f"sf_right_{i}")
+        st.markdown("#### 🥈 Semifinal")
+        sf_right = []
+        for i in range(0, len(qf_right), 2):
+            if i + 1 < len(qf_right):
+                winner_name = render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix=f"sf_right_{i}")
+                if winner_name:
                     sf_right.append(get_winner_player(qf_right[i], qf_right[i + 1], winner_name))
 
-        if sf_left and sf_right:
-            st.markdown("### 🏁 Final Match")
-            champ_choice = st.radio("🏆 Select the Champion",
-                                    [label(sf_left[0]), label(sf_right[0])],
-                                    key="final_match_radio")
-            champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
-        else:
-            champion = None
+    if sf_left and sf_right:
+        st.markdown("### 🏁 Final Match")
+        champ_choice = st.radio("🏆 Select the Champion",
+                                [label(sf_left[0]), label(sf_right[0])],
+                                key="final_match_radio")
+        champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
+    else:
+        champion = None
 
-        if st.button("✅ Save Full Bracket"):
-            save_bracket_progression_to_supabase({
-                "r16_left": json.dumps([p["name"] for p in r16_left]),
-                "r16_right": json.dumps([p["name"] for p in r16_right]),
-                "qf_left": json.dumps([p["name"] for p in qf_left]),
-                "qf_right": json.dumps([p["name"] for p in qf_right]),
-                "sf_left": json.dumps([p["name"] for p in sf_left]),
-                "sf_right": json.dumps([p["name"] for p in sf_right]),
-                "finalist_left": sf_left[0]["name"] if sf_left else "",
-                "finalist_right": sf_right[0]["name"] if sf_right else "",
-                "champion": champion["name"] if champion else ""
-            })
-            st.success("✅ Bracket progression saved!")
+    if st.button("✅ Save Full Bracket"):
+        save_bracket_progression_to_supabase({
+            "r16_left": json.dumps([p["name"] for p in r16_left]),
+            "r16_right": json.dumps([p["name"] for p in r16_right]),
+            "qf_left": json.dumps([p["name"] for p in qf_left]),
+            "qf_right": json.dumps([p["name"] for p in qf_right]),
+            "sf_left": json.dumps([p["name"] for p in sf_left]),
+            "sf_right": json.dumps([p["name"] for p in sf_right]),
+            "finalist_left": sf_left[0]["name"] if sf_left else "",
+            "finalist_right": sf_right[0]["name"] if sf_right else "",
+            "champion": champion["name"] if champion else ""
+        })
+        st.success("✅ Bracket progression saved!")
+
 
     else:
         if not progression:
