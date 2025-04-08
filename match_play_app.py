@@ -832,13 +832,13 @@ with tabs[2]:
             for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|"):
                     if name in key:
-                        if result["winner"] == name:
+                        if result.get("winner") == name:
                             total_points += 1
-                            total_margin += result["margin"]
-                        elif result["winner"] == "Tie":
+                            total_margin += result.get("margin", 0)  # Use .get() to safely access margin
+                        elif result.get("winner") == "Tie":
                             total_points += 0.5
                         else:
-                            total_margin -= result["margin"]
+                            total_margin -= result.get("margin", 0)  # Use .get() to safely access margin
 
             # Store the player's updated stats
             updated_players.append({
