@@ -775,17 +775,18 @@ with tabs[3]:
                     
                     # Persist final results to Supabase for all users to see:
                     final_results = {
-                        "r16_left": json.dumps([p["name"] for p in st.session_state.get("r16_left", [])]),
-                        "r16_right": json.dumps([p["name"] for p in st.session_state.get("r16_right", [])]),
-                        "qf_left": json.dumps([p["name"] for p in st.session_state.get("qf_left", [])]),
-                        "qf_right": json.dumps([p["name"] for p in st.session_state.get("qf_right", [])]),
-                        "sf_left": json.dumps([p["name"] for p in st.session_state.get("sf_left", [])]),
-                        "sf_right": json.dumps([p["name"] for p in st.session_state.get("sf_right", [])]),
+                        "r16_left": json.dumps([...]),
+                        "r16_right": json.dumps([...]),
+                        "qf_left": json.dumps([...]),
+                        "qf_right": json.dumps([...]),
+                        "sf_left": json.dumps([...]),
+                        "sf_right": json.dumps([...]),
                         "champion": champion["name"],
                         "finalist_left": finalist_left["name"],
                         "finalist_right": finalist_right["name"],
-                        "timestamp": datetime.utcnow().isoformat()
+                        "created_at": datetime.utcnow().isoformat()
                     }
+
                     supabase.table("final_results").insert(final_results).execute()
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
