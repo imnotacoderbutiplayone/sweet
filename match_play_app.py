@@ -771,20 +771,22 @@ with tabs[3]:
                     st.session_state.finalist_right_name = finalist_right["name"]
                     st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
                     
-                    # Persist final results to Supabase for all users to see:
+                    # Build final results using native Python types (do NOT pre-serialize for JSONB columns)
                     final_results = {
-                        "r16_left": json.dumps([p["name"] for p in st.session_state.get("r16_left", [])]),
-                        "r16_right": json.dumps([p["name"] for p in st.session_state.get("r16_right", [])]),
-                        "qf_left": json.dumps([p["name"] for p in st.session_state.get("qf_left", [])]),
-                        "qf_right": json.dumps([p["name"] for p in st.session_state.get("qf_right", [])]),
-                        "sf_left": json.dumps([p["name"] for p in st.session_state.get("sf_left", [])]),
-                        "sf_right": json.dumps([p["name"] for p in st.session_state.get("sf_right", [])]),
+                        "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
+                        "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
+                        "qf_left": [p["name"] for p in st.session_state.get("qf_left", [])],
+                        "qf_right": [p["name"] for p in st.session_state.get("qf_right", [])],
+                        "sf_left": [p["name"] for p in st.session_state.get("sf_left", [])],
+                        "sf_right": [p["name"] for p in st.session_state.get("sf_right", [])],
                         "champion": champion["name"],
                         "finalist_left": finalist_left["name"],
                         "finalist_right": finalist_right["name"],
                         "created_at": datetime.utcnow().isoformat()
                     }
-                    supabase.table("final_results").insert(final_results).execute()
+                    # Insert the final results; note that we wrap it in a list for the Supabase client.
+                    response = supabase.table("final_results").insert([final_results]).execute()
+                    st.write("Final results persisted:", response)
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
 
