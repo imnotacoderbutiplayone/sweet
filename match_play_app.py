@@ -658,6 +658,9 @@ with tabs[3]:
                 else:
                     st.markdown(f"🔒 {match_label} _(Admin only)_")
 
+            if len(sf_left) == 1:
+                finalist_left = sf_left[0]
+
         # === RIGHT SIDE ===
         with col2:
             st.markdown("### 🟥 Right Side")
@@ -699,80 +702,54 @@ with tabs[3]:
                 else:
                     st.markdown(f"🔒 {match_label} _(Admin only)_")
 
+            if len(sf_right) == 1:
+                finalist_right = sf_right[0]
+
         # === FINAL MATCH ===
         st.markdown("### 🏁 Final Match")
-
-        if (
-            st.session_state.authenticated
-            and isinstance(sf_left, list) and len(sf_left) == 1
-            and isinstance(sf_right, list) and len(sf_right) == 1
-        ):
-            finalist_left = sf_left[0]
-            finalist_right = sf_right[0]
-
+        if st.session_state.authenticated and isinstance(finalist_left, dict) and isinstance(finalist_right, dict):
             champ_label = st.radio(
-                "🏆 Champion:",
-                [label(finalist_left), label(finalist_right)],
-                key="Champ", index=None
+                "🏆 Champion:", [label(finalist_left), label(finalist_right)], key="Champ", index=None
             )
-
             if champ_label:
                 champion = finalist_left if champ_label == label(finalist_left) else finalist_right
                 st.success(f"🎉 Champion: {champion['name']} ({champion['handicap']})")
 
+                # Store results in session state
                 st.session_state["champion_name"] = champion["name"]
                 st.session_state["finalist_left_name"] = finalist_left["name"]
                 st.session_state["finalist_right_name"] = finalist_right["name"]
 
-                # Show bracket summary
-                with st.expander("📈 View Full Bracket Results", expanded=True):
-                    def fmt(players):
-                        return [f"{p['name']} ({p['handicap']})" for p in players]
-
-                    st.markdown("**Left Side Progression**")
-                    st.write("Round of 16:", fmt(r16_left))
-                    st.write("Quarterfinals:", fmt(qf_left))
-                    st.write("Semifinalist:", fmt(sf_left))
-
-                    st.markdown("**Right Side Progression**")
-                    st.write("Round of 16:", fmt(r16_right))
-                    st.write("Quarterfinals:", fmt(qf_right))
-                    st.write("Semifinalist:", fmt(sf_right))
-
-                    st.markdown("**Finals**")
-                    st.write(f"{label(finalist_left)} vs {label(finalist_right)}")
-                    st.write(f"**🏆 Champion: {champion['name']}**")
-
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
 
-            # === SUBMIT FINAL RESULTS ===
-if (
-    st.session_state.authenticated and champion
-    and "champion_name" in st.session_state
-    and "finalist_left_name" in st.session_state
-    and "finalist_right_name" in st.session_state
-):
-    if st.button("🚀 Submit Final Results to Leaderboard"):
-        try:
-            # Clear previous results if needed
-            supabase.table("results").delete().neq("id", 0).execute()
+        # === SUBMIT FINAL RESULTS TO DATABASE ===
+        if (
+            st.session_state.authenticated
+            and champion
+            and "champion_name" in st.session_state
+            and "finalist_left_name" in st.session_state
+            and "finalist_right_name" in st.session_state
+        ):
+            if st.button("🚀 Submit Final Results to Leaderboard"):
+                try:
+                    # Clear any previous results (for redo purposes)
+                    supabase.table("results").delete().neq("id", 0).execute()
 
-            # Submit new result
-            supabase.table("results").insert({
-                "champion": st.session_state["champion_name"],
-                "finalist_left": st.session_state["finalist_left_name"],
-                "finalist_right": st.session_state["finalist_right_name"],
-                "timestamp": datetime.utcnow().isoformat()
-            }).execute()
+                    # Save new final results
+                    supabase.table("results").insert({
+                        "champion": st.session_state["champion_name"],
+                        "finalist_left": st.session_state["finalist_left_name"],
+                        "finalist_right": st.session_state["finalist_right_name"],
+                        "timestamp": datetime.utcnow().isoformat()
+                    }).execute()
 
-            st.session_state["results_submitted"] = True
-            st.success("✅ Final results submitted successfully!")
+                    st.session_state["results_submitted"] = True
+                    st.success("✅ Final results submitted to leaderboard!")
 
-        except Exception as e:
-            st.error("❌ Failed to submit results to leaderboard.")
-            st.code(str(e))
-
+                except Exception as e:
+                    st.error("❌ Error submitting final results")
+                    st.code(str(e))
 
 
 # Tab 3: Standings
