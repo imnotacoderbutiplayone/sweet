@@ -795,9 +795,7 @@ with tabs[3]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Use the session state version which was just updated in Group Stage
-    match_results = st.session_state.get("match_results", {})
-
+    match_results = load_match_results()  # Always get fresh data
     pod_results = {}
 
     for pod_name, players in pods.items():
@@ -837,8 +835,7 @@ with tabs[2]:
             with st.expander(f"📦 {pod_name} Standings", expanded=True):
                 st.dataframe(df, use_container_width=True)
     else:
-        st.info("📭 No match results have been entered yet.")
-
+        st.info("📋 No match results have been entered yet.")
 
 
 
