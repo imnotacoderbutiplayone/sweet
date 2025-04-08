@@ -29,6 +29,15 @@ def save_bracket_data(df):
         st.code(str(e))
         return None
 
+# --- Helper: Parse JSON field ---
+def parse_json_field(json_data):
+    """Parse the JSON string into a Python object."""
+    try:
+        return json.loads(json_data) if json_data else []
+    except Exception as e:
+        st.error(f"❌ Error parsing JSON field: {e}")
+        return []
+
 #-- player by name helper ---
 def get_players_by_names(source_players, names):
     """
