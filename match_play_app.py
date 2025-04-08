@@ -423,17 +423,17 @@ def load_match_results():
         st.write(response)  # This will print the response object to the Streamlit app
 
         # Check if the data attribute exists and is not empty
-        if 'data' not in response or not response.data:
+        if 'data' not in response or not response['data']:
             st.error("❌ No match results found in the response.")
             return {}
 
         # Process the response data
         match_dict = defaultdict(dict)
-        for r in response.data:
+        for r in response['data']:  # Notice how we're accessing 'data' here
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
             match_dict[match_key] = {
                 "winner": r["winner"],
-                "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
+                "margin": r["margin"]
             }
 
         return dict(match_dict)  # Return the fresh match results
