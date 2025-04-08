@@ -113,6 +113,93 @@ def compute_pod_standings_from_results(pods, match_results):
 
     return pod_scores
 
+# --- Fetch the most recent match results from Supabase ---
+def load_most_recent_match_results():
+    try:
+        # Fetch the latest match results directly from Supabase
+        response = supabase.table("tournament_matches") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+
+        if response.data:
+            return response.data[0]  # Return the most recent match result
+        else:
+            st.warning("No match results found.")
+            return None
+
+    except Exception as e:
+        st.error(f"❌ Error loading match results: {e}")
+        return None
+
+
+# --- Fetch the entire match result log ---
+def load_match_result_log():
+    try:
+        # Fetch all match results, ordered by created_at
+        response = supabase.table("tournament_matches") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .execute()
+
+        if response.data:
+            return response.data  # Return all match results
+        else:
+            st.warning("No match results found.")
+            return []
+
+    except Exception as e:
+        st.error(f"❌ Error loading match results: {e}")
+        return []
+
+
+# --- Display the most recent match result ---
+def display_most_recent_result():
+    most_recent_result = load_most_recent_match_results()
+
+    if most_recent_result:
+        st.subheader("📌 Most Recent Match Result")
+        match_info = most_recent_result
+        winner = match_info["winner"]
+        margin_value = match_info["margin"]
+        # Convert margin back to string if needed
+        margin_str = next((k for k, v in margin_lookup.items() if v == margin_value), "Unknown margin")
+        st.write(f"Player 1: {match_info['player1']}")
+        st.write(f"Player 2: {match_info['player2']}")
+        st.write(f"Winner: {winner}")
+        st.write(f"Margin: {margin_str}")
+    else:
+        st.write("No results available.")
+
+
+# --- Display the entire match result log ---
+def display_match_result_log():
+    match_results = load_match_result_log()
+
+    if match_results:
+        st.subheader("📋 Match Results Log")
+        log_data = []
+
+        # Iterate through the match results and prepare a displayable list
+        for result in match_results:
+            winner = result["winner"]
+            margin_value = result["margin"]
+            margin_str = next((k for k, v in margin_lookup.items() if v == margin_value), "Unknown margin")
+            log_data.append({
+                "Player 1": result["player1"],
+                "Player 2": result["player2"],
+                "Winner": winner,
+                "Margin": margin_str,
+                "Timestamp": result["created_at"]
+            })
+
+        # Display the match log in a DataFrame format
+        log_df = pd.DataFrame(log_data)
+        log_df = log_df.sort_values(by="Timestamp", ascending=False)  # Sort by timestamp (newest first)
+        st.dataframe(log_df, use_container_width=True)
+    else:
+        st.write("No match result log available.")
 
 #-- load round players ---
 def load_round_players(round_key, progression_data, source_players=None):
@@ -1278,7 +1365,7 @@ with tabs[6]:
             try:
                 # Load match results from Supabase
                 response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
-                
+
                 # Process the response data and store it in session state
                 match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                     "winner": r["winner"],
@@ -1337,6 +1424,27 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
+    # --- Display Most Recent Match Result ---
+    st.subheader("📌 Most Recent Match Result")
+
+    try:
+        most_recent_result = load_most_recent_match_results()
+
+        if most_recent_result:
+            winner = most_recent_result["winner"]
+            margin_value = most_recent_result["margin"]
+            margin_str = next((k for k, v in margin_lookup.items() if v == margin_value), "Unknown margin")
+            st.write(f"Player 1: {most_recent_result['player1']}")
+            st.write(f"Player 2: {most_recent_result['player2']}")
+            st.write(f"Winner: {winner}")
+            st.write(f"Margin: {margin_str}")
+        else:
+            st.write("No results available.")
+
+    except Exception as e:
+        st.error(f"❌ Error loading most recent match result: {e}")
+
 
 
 
