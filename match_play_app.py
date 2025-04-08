@@ -49,9 +49,12 @@ def save_match_result(pod, player1, player2, winner, margin_text):
 
     try:
         response = supabase.table("match_results_new").insert(data).execute()
+        if response.status_code != 200:
+            st.error(f"❌ Failed to save match result: {response.error_message}")
+            st.code(response.json())
         return response
     except Exception as e:
-        st.error("❌ Error saving match result to Supabase")
+        st.error(f"❌ Error saving match result to Supabase: {e}")
         st.code(str(e))
         return None
 
