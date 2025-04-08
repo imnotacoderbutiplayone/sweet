@@ -107,12 +107,17 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
-        return response
+        response = supabase.table("tournament_matches").insert(data).execute()
+        if response.status_code == 201:
+            return response
+        else:
+            st.error(f"❌ Failed to save match result: {response.status_code}")
+            st.write(response.text)
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
-        return None
+    return None
+
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
