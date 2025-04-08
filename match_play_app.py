@@ -894,7 +894,7 @@ with tabs[5]:
                 champion_final = None
                 champ_label = None
 
-                if finalist_left and finalist_right:
+                if finalist_left is not None and finalist_right is not None:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
                         "🏆 Predict the Champion:",
