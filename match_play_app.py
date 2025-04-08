@@ -1201,7 +1201,7 @@ with tabs[6]:
             df = pd.DataFrame(data)
             df = df.sort_values(by=["Pod", "Player 1"])
 
-            # Display match results
+            # Display match results for both admin and non-admin views
             st.dataframe(df, use_container_width=True)
 
             # Optional: Allow the user to download the match results as CSV
@@ -1211,6 +1211,7 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
 
 
 
