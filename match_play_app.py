@@ -416,11 +416,14 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        # Always fetch the latest match results from Supabase
+        # Fetch the latest match results directly from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Check if there is any data in the response
-        if not response.data:
+        # Debugging: print the entire response object to inspect its structure
+        st.write(response)  # This will print the response object to the Streamlit app
+
+        # Check if the data attribute exists and is not empty
+        if 'data' not in response or not response.data:
             st.error("❌ No match results found in the response.")
             return {}
 
