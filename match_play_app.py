@@ -417,19 +417,20 @@ def simulate_matches(players, pod_name, source="", editable=False):
 def load_match_results():
     try:
         # Fetch the latest match results directly from Supabase
-        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("tournament_matches").select("*").execute()
 
-        # Debugging: print the entire response object to inspect its structure
+        # Debugging: Print the full response to inspect the structure
+        st.write("Full Supabase Response:")
         st.write(response)  # This will print the response object to the Streamlit app
-
-        # Check if the data attribute exists and is not empty
-        if 'data' not in response or not response['data']:
+        
+        # Check if 'data' key exists and is not empty
+        if not response.data:
             st.error("❌ No match results found in the response.")
             return {}
 
         # Process the response data
         match_dict = defaultdict(dict)
-        for r in response['data']:  # Notice how we're accessing 'data' here
+        for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
             match_dict[match_key] = {
                 "winner": r["winner"],
