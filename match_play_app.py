@@ -77,7 +77,16 @@ def load_round_players(round_key, progression_data, source_players=None):
 
     try:
         names = parse_json_field(progression_data.get(round_key, "[]"))
-        return get_players_by_names(source_players, names)
+        # Validate the player data
+        players = get_players_by_names(source_players, names)
+        
+        # Ensure that all player data is valid
+        for player in players:
+            if "name" not in player or "handicap" not in player:
+                st.error(f"❌ Invalid player data for {player}")
+                return []
+        
+        return players
     except Exception as e:
         st.warning(f"⚠️ Failed to load round '{round_key}': {e}")
         return []
@@ -119,6 +128,7 @@ def get_winner_player(player1, player2, winner_name):
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
 # --- Render Match ----
+# --- Render Match ----
 def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     """
     Renders the match between two players.
@@ -130,6 +140,9 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     Returns the winner of the match.
     """
     # Check if both players have valid data
+    if not player1 or not player2:
+        st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
+        return None
     if "name" not in player1 or "handicap" not in player1:
         st.error(f"❌ Invalid player data for {player1}")
         return None
@@ -169,6 +182,18 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
             )
         else:
             margin = "Tie"
+        
+        # Display result button
+        if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
+            # Here you would save the result to Supabase
+            save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
+            st.success(f"Result saved: {selected_winner} wins {margin}")
+            return selected_winner
+    else:
+        # If readonly is True, just display the result
+        st.write(f"Match result: {winner}")
+        return winner
+
         
         # Display result button
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
