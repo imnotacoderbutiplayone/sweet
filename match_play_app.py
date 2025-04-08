@@ -101,13 +101,16 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         margin_key = f"{key_prefix}_margin"
 
         # Radio button to choose the winner (or tie)
+        options = [player1['name'], player2['name'], "Tie"]
+        default_index = options.index(winner) if winner in options else 2  # Default to "Tie" if winner is invalid
+
         selected_winner = st.radio(
             "Select winner",
-            options=[player1['name'], player2['name'], "Tie"],
-            index=[player1['name'], player2['name'], "Tie"].index(winner),
+            options=options,
+            index=default_index,
             key=winner_key
         )
-        
+
         # Select margin if there is a winner
         if selected_winner != "Tie":
             margin = st.selectbox(
