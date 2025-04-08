@@ -240,19 +240,14 @@ def build_bracket_df_from_pod_scores(pod_scores, tiebreak_selections):
 #--- Simulate Matches ----
 
 def simulate_matches(players, pod_name, source="", editable=False):
-
-def simulate_matches(players, pod_name, source=""):
-    # Initialize result dictionary for players
     results = defaultdict(lambda: {"points": 0, "margin": 0})
 
-    # Debug: Check if players are passed correctly
     if not players:
         st.error(f"❌ No players found in pod {pod_name}.")
         return []
 
     num_players = len(players)
 
-    # Ensure players are structured correctly
     if not all(isinstance(player, dict) and 'name' in player and 'handicap' in player for player in players):
         st.error(f"❌ Invalid player data in pod {pod_name}.")
         return []
@@ -260,8 +255,6 @@ def simulate_matches(players, pod_name, source=""):
     for i in range(num_players):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
-
-            # Create consistent, unique match key
             player_names = sorted([p1['name'], p2['name']])
             raw_key = f"{source}_{pod_name}|{player_names[0]} vs {player_names[1]}"
             base_key = sanitize_key(raw_key)
@@ -269,20 +262,17 @@ def simulate_matches(players, pod_name, source=""):
             entry_key = f"{base_key}_checkbox"
             winner_key = f"{base_key}_winner"
             margin_key = f"{base_key}_margin"
-
             match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
-            h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
-            h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
+
+            h1 = f"{p1['handicap']:.1f}" if p1['handicap'] else "N/A"
+            h2 = f"{p2['handicap']:.1f}" if p2['handicap'] else "N/A"
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
-            # If authenticated, allow result entry
             if editable:
                 entered = st.checkbox("Enter result for this match", key=entry_key)
             else:
                 entered = False
 
-
-            # Handle match result input and calculation
             if entered:
                 prev_result = st.session_state.match_results.get(match_key, {})
                 prev_winner = prev_result.get("winner", "Tie")
@@ -329,11 +319,11 @@ def simulate_matches(players, pod_name, source=""):
             else:
                 st.info("🔒 Only admin can enter match results.")
 
-    # Update player stats with points and margin
     for player in players:
         player.update(results[player['name']])
-    
+
     return players
+
 
 
 # --- Load all match results from Supabase ---
@@ -621,7 +611,6 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    # Ensure match_results are always pulled live from Supabase
     match_results = load_match_results()
     st.session_state.match_results = match_results
 
@@ -632,9 +621,6 @@ with tabs[1]:
             updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
-    def pod_has_results(pod_name):
-        return any(key.startswith(f"{pod_name}|") for key in match_results)
-
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
@@ -644,8 +630,6 @@ with tabs[1]:
             st.session_state.tiebreaks_resolved = False
 
         unresolved = False
-
-        # Compute standings directly from match_results
         pod_scores = compute_pod_standings_from_results(pods, match_results)
 
         for pod_name, df in pod_scores.items():
@@ -655,13 +639,10 @@ with tabs[1]:
 
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
-            # First place tiebreak
+            # Resolve tiebreakers for first place
             top_score = sorted_players.iloc[0]["points"]
             top_margin = sorted_players.iloc[0]["margin"]
-            tied_first = sorted_players[
-                (sorted_players["points"] == top_score) &
-                (sorted_players["margin"] == top_margin)
-            ]
+            tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
 
             if len(tied_first) > 1:
                 st.warning(f"🔁 Tie for 1st in {pod_name}")
@@ -683,10 +664,7 @@ with tabs[1]:
 
             second_score = remaining.iloc[0]["points"]
             second_margin = remaining.iloc[0]["margin"]
-            tied_second = remaining[
-                (remaining["points"] == second_score) &
-                (remaining["margin"] == second_margin)
-            ]
+            tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
 
             if len(tied_second) > 1:
                 st.warning(f"🔁 Tie for 2nd in {pod_name}")
