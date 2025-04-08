@@ -746,6 +746,33 @@ with tabs[3]:
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
 
+            # === SUBMIT FINAL RESULTS ===
+if (
+    st.session_state.authenticated and champion
+    and "champion_name" in st.session_state
+    and "finalist_left_name" in st.session_state
+    and "finalist_right_name" in st.session_state
+):
+    if st.button("🚀 Submit Final Results to Leaderboard"):
+        try:
+            # Clear previous results if needed
+            supabase.table("results").delete().neq("id", 0).execute()
+
+            # Submit new result
+            supabase.table("results").insert({
+                "champion": st.session_state["champion_name"],
+                "finalist_left": st.session_state["finalist_left_name"],
+                "finalist_right": st.session_state["finalist_right_name"],
+                "timestamp": datetime.utcnow().isoformat()
+            }).execute()
+
+            st.session_state["results_submitted"] = True
+            st.success("✅ Final results submitted successfully!")
+
+        except Exception as e:
+            st.error("❌ Failed to submit results to leaderboard.")
+            st.code(str(e))
+
 
 
 # Tab 3: Standings
