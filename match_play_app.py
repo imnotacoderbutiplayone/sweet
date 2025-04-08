@@ -101,6 +101,15 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         st.code(str(e))
         return None
 
+#-- winner data ---
+def get_winner_player(player1, player2, winner_name):
+    """Return the full player dict matching the winner_name, or fallback."""
+    for p in [player1, player2]:
+        if p["name"] == winner_name:
+            return p
+    return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
+
+
 # --- Render Match ----
 def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     """
@@ -744,64 +753,64 @@ with tabs[3]:
 
     col1, col2 = st.columns(2)
 
-    # Admin mode: Enter results and save
+    def get_winner_player(player1, player2, winner_name):
+        for p in [player1, player2]:
+            if p["name"] == winner_name:
+                return p
+        return {"name": winner_name, "handicap": "N/A"}
+
+    # Admin mode
     if st.session_state.authenticated:
         st.info("🔐 Admin mode: Enter results and save")
 
-        # --------------------
-        # LEFT SIDE
-        # --------------------
         with col1:
             st.markdown("### 🟦 Left Side")
 
-            # Round of 16
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
-                r16_left.append(render_match(left[i], left[i + 1], "", readonly=False, key_prefix="r16_left"))
+                winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
+                r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
-            # Quarterfinals
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
                 if i + 1 < len(r16_left):
-                    qf_left.append(render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix="qf_left"))
+                    winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
+                    qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
                 else:
                     st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
 
-            # Semifinal
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
             for i in range(0, len(qf_left), 2):
-                sf_left.append(render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix="sf_left"))
+                if i + 1 < len(qf_left):
+                    winner_name = render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix=f"sf_left_{i}")
+                    sf_left.append(get_winner_player(qf_left[i], qf_left[i + 1], winner_name))
 
-        # --------------------
-        # RIGHT SIDE
-        # --------------------
         with col2:
             st.markdown("### 🟥 Right Side")
 
-            # Round of 16
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
-                r16_right.append(render_match(right[i], right[i + 1], "", readonly=False, key_prefix="r16_right"))
+                winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
+                r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
-            # Quarterfinals
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
             for i in range(0, len(r16_right), 2):
-                qf_right.append(render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix="qf_right"))
+                if i + 1 < len(r16_right):
+                    winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
+                    qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
 
-            # Semifinal
             st.markdown("#### 🥈 Semifinal")
             sf_right = []
             for i in range(0, len(qf_right), 2):
-                sf_right.append(render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix="sf_right"))
+                if i + 1 < len(qf_right):
+                    winner_name = render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix=f"sf_right_{i}")
+                    sf_right.append(get_winner_player(qf_right[i], qf_right[i + 1], winner_name))
 
-        # --------------------
-        # FINAL MATCH
-        # --------------------
         if sf_left and sf_right:
             st.markdown("### 🏁 Final Match")
             champ_choice = st.radio("🏆 Select the Champion",
@@ -826,28 +835,23 @@ with tabs[3]:
             st.success("✅ Bracket progression saved!")
 
     else:
-        # Viewing mode (readonly)
         if not progression:
             st.warning("Bracket progression not set yet.")
         else:
             with col1:
                 st.markdown("### 🟦 Left Side")
-
-                # Round of 16
                 st.markdown("#### 🔹 Round of 16")
                 r16_left = load_round_players("r16_left", progression, pods)
                 for i in range(0, len(left), 2):
                     winner = r16_left[i // 2]["name"]
                     render_match(left[i], left[i + 1], winner, readonly=True)
 
-                # Quarterfinals
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_left = load_round_players("qf_left", progression, pods)
                 for i in range(0, len(r16_left), 2):
                     winner = qf_left[i // 2]["name"]
                     render_match(r16_left[i], r16_left[i + 1], winner, readonly=True)
 
-                # Semifinal
                 st.markdown("#### 🥈 Semifinal")
                 sf_left = load_round_players("sf_left", progression, pods)
                 for i in range(0, len(qf_left), 2):
@@ -856,22 +860,18 @@ with tabs[3]:
 
             with col2:
                 st.markdown("### 🟥 Right Side")
-
-                # Round of 16
                 st.markdown("#### 🔹 Round of 16")
                 r16_right = load_round_players("r16_right", progression, pods)
                 for i in range(0, len(right), 2):
                     winner = r16_right[i // 2]["name"]
                     render_match(right[i], right[i + 1], winner, readonly=True)
 
-                # Quarterfinals
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_right = load_round_players("qf_right", progression, pods)
                 for i in range(0, len(r16_right), 2):
                     winner = qf_right[i // 2]["name"]
                     render_match(r16_right[i], r16_right[i + 1], winner, readonly=True)
 
-                # Semifinal
                 st.markdown("#### 🥈 Semifinal")
                 sf_right = load_round_players("sf_right", progression, pods)
                 for i in range(0, len(qf_right), 2):
@@ -884,6 +884,7 @@ with tabs[3]:
                 st.success(f"🥇 Champion: **{champ_name}**")
             else:
                 st.info("Final match not confirmed.")
+
 
 
 # --- Export ---
