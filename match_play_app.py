@@ -101,7 +101,6 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Save match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -113,18 +112,18 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
-        
-        # Check if there is an error in the response
-        if response.error:
-            st.error(f"❌ Error saving match result to Supabase: {response.error}")
-            return None
+        response = supabase.table("tournament_matches").insert(data).execute()
+
+        # Check if the response is successful
+        if response.status_code == 201:  # 201 means success
+            return response
         else:
-            return response.data  # Return the inserted data or a success indicator
+            st.error(f"❌ Error saving match result to Supabase: {response}")
+            return None
     except Exception as e:
-        st.error("❌ Error saving match result to Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error saving match result to Supabase: {str(e)}")
         return None
+
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
