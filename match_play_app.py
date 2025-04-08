@@ -1368,14 +1368,14 @@ with tabs[6]:
         if response.status_code != 200:
             st.error(f"❌ Error: Supabase returned status code {response.status_code}")
             st.code(response.json())  # Show raw response in case of an error
-            return
+            st.stop()  # Stop further execution if there's an error
 
         # Debugging: Display the raw data fetched from Supabase
         st.write("Fetched Data from Supabase:", response.data)
 
         if not response.data:
             st.warning("No data returned from Supabase.")
-            return
+            st.stop()  # Stop further execution if there's no data
 
         # Process the response data
         match_results = {
