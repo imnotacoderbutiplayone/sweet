@@ -892,6 +892,8 @@ with tabs[5]:
                 finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
 
                 champion_final = None
+                champ_label = None
+
                 if finalist_left and finalist_right:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
@@ -902,7 +904,21 @@ with tabs[5]:
                     if champ_label:
                         champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
 
-                # 🔘 Only show button if everything is selected
+                debug = {
+                    "R16 Left": [p['name'] for p in pred_r16_left],
+                    "QF Left": [p['name'] for p in pred_qf_left],
+                    "SF Left": [p['name'] for p in pred_sf_left],
+                    "Finalist Left": finalist_left['name'] if finalist_left else None,
+                    "R16 Right": [p['name'] for p in pred_r16_right],
+                    "QF Right": [p['name'] for p in pred_qf_right],
+                    "SF Right": [p['name'] for p in pred_sf_right],
+                    "Finalist Right": finalist_right['name'] if finalist_right else None,
+                    "Champion Label": champ_label,
+                    "Champion Final": champion_final["name"] if champion_final else None
+                }
+
+                st.write("🧪 Debug:", debug)
+
                 if finalist_left and finalist_right and champion_final:
                     if st.button("🚀 Submit My Bracket Prediction"):
                         try:
@@ -925,20 +941,6 @@ with tabs[5]:
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
 
-        # Show prediction log
-        st.subheader("📜 Prediction Ledger")
-        try:
-            ledger = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
-            df = pd.DataFrame(ledger.data)
-            if not df.empty:
-                df = df[["timestamp", "name", "champion", "finalist_left", "finalist_right"]]
-                df.rename(columns={"name": "Name", "champion": "Champion"}, inplace=True)
-                st.dataframe(df, use_container_width=True)
-            else:
-                st.info("No predictions submitted yet.")
-        except Exception as e:
-            st.warning("Could not load prediction ledger.")
-            st.code(str(e))
 
 
 
