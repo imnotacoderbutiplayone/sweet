@@ -817,12 +817,12 @@ with tabs[5]:
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
         full_name = st.text_input("Enter your full name to submit a prediction:")
+        stripped_name = full_name.strip()
 
-        if full_name.strip():
-            stripped_name = full_name.strip()
+        if stripped_name:
             existing = supabase.table("predictions").select("name").eq("name", stripped_name).execute()
 
-            if existing.data:
+            if existing.data and len(existing.data) > 0:
                 st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
             else:
                 st.markdown("### 🟦 Left Side Predictions")
@@ -833,7 +833,7 @@ with tabs[5]:
                     pick = st.radio(
                         f"Round of 16: {label(p1)} vs {label(p2)}",
                         [label(p1), label(p2)],
-                        key=f"PL16_{i}_{full_name}"
+                        key=f"PL16_{i}_{stripped_name}"
                     )
                     pred_r16_left.append(p1 if pick == label(p1) else p2)
 
@@ -843,7 +843,7 @@ with tabs[5]:
                         pick = st.radio(
                             f"Quarterfinal: {label(p1)} vs {label(p2)}",
                             [label(p1), label(p2)],
-                            key=f"PLQF_{i}_{full_name}"
+                            key=f"PLQF_{i}_{stripped_name}"
                         )
                         pred_qf_left.append(p1 if pick == label(p1) else p2)
 
@@ -853,7 +853,7 @@ with tabs[5]:
                         pick = st.radio(
                             f"Semifinal: {label(p1)} vs {label(p2)}",
                             [label(p1), label(p2)],
-                            key=f"PLSF_{i}_{full_name}"
+                            key=f"PLSF_{i}_{stripped_name}"
                         )
                         pred_sf_left.append(p1 if pick == label(p1) else p2)
 
@@ -867,7 +867,7 @@ with tabs[5]:
                     pick = st.radio(
                         f"Round of 16: {label(p1)} vs {label(p2)}",
                         [label(p1), label(p2)],
-                        key=f"PR16_{i}_{full_name}"
+                        key=f"PR16_{i}_{stripped_name}"
                     )
                     pred_r16_right.append(p1 if pick == label(p1) else p2)
 
@@ -877,7 +877,7 @@ with tabs[5]:
                         pick = st.radio(
                             f"Quarterfinal: {label(p1)} vs {label(p2)}",
                             [label(p1), label(p2)],
-                            key=f"PRQF_{i}_{full_name}"
+                            key=f"PRQF_{i}_{stripped_name}"
                         )
                         pred_qf_right.append(p1 if pick == label(p1) else p2)
 
@@ -887,7 +887,7 @@ with tabs[5]:
                         pick = st.radio(
                             f"Semifinal: {label(p1)} vs {label(p2)}",
                             [label(p1), label(p2)],
-                            key=f"PRSF_{i}_{full_name}"
+                            key=f"PRSF_{i}_{stripped_name}"
                         )
                         pred_sf_right.append(p1 if pick == label(p1) else p2)
 
@@ -901,7 +901,7 @@ with tabs[5]:
                     champ_label = st.radio(
                         "🏆 Predict the Champion:",
                         [label(finalist_left), label(finalist_right)],
-                        key=f"PickChamp_{full_name}"
+                        key=f"PickChamp_{stripped_name}"
                     )
                     if champ_label:
                         champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
@@ -943,8 +943,7 @@ with tabs[5]:
                             st.code(str(e))
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
-        else:
-            st.info("Please enter your name to begin.")
+
 
 
 
