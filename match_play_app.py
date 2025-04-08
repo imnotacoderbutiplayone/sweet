@@ -783,10 +783,18 @@ with tabs[2]:
 if "match_results" not in st.session_state:
     st.session_state.match_results = {}
 
-# Function to check if all matches are completed
+# --- Function to check if all matches are completed ---
 def all_matches_completed():
     """Check if all match results have been entered."""
     return all(result.get("winner") is not None for result in st.session_state.match_results.values())
+
+# --- Function to check if all tiebreakers are resolved ---
+def all_tiebreakers_resolved():
+    """Check if all tiebreakers are resolved."""
+    return all(
+        key in st.session_state.tiebreak_selections and st.session_state.tiebreak_selections[key]
+        for key in st.session_state.tiebreak_selections
+    )
 
 # --- Bracket ---
 with tabs[3]:
