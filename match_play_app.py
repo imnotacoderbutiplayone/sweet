@@ -97,6 +97,9 @@ def sanitize_key(text):
 
 # --- Save match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
+    """
+    Save match result to Supabase
+    """
     data = {
         "pod": pod,
         "player1": player1,
@@ -122,6 +125,7 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         return None
 
 
+
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
     """Return the full player dict matching the winner_name, or fallback."""
@@ -131,27 +135,21 @@ def get_winner_player(player1, player2, winner_name):
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
 # --- Render Match ----
-# --- Render Match ----
-def render_match(player1, player2, winner, readonly=False, key_prefix=""):
+# --- Render Match Function (Updated for Group Stage) ---
+def render_match(player1, player2, winner, margin, readonly=False, key_prefix=""):
     """
     Renders the match between two players.
     - player1, player2: dictionaries containing player info (e.g., name, handicap)
     - winner: the current winner (or "Tie")
+    - margin: the margin of victory
     - readonly: if True, makes the match readonly (admin-only input)
     - key_prefix: ensures that each checkbox/radio button has a unique key
 
-    Returns the winner of the match.
+    Returns the winner of the match and margin.
     """
-    # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
-        return None
-    if "name" not in player1 or "handicap" not in player1:
-        st.error(f"❌ Invalid player data for {player1}")
-        return None
-    if "name" not in player2 or "handicap" not in player2:
-        st.error(f"❌ Invalid player data for {player2}")
-        return None
+        return None, None
 
     # Display match information
     st.write(f"### Match: {player1['name']} vs {player2['name']}")
@@ -200,7 +198,6 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         st.write(f"Match result: {winner}")
         st.write(f"Margin: {margin}")
         return winner, margin
-
 
 # --- Compute standings dynamically from match results ---
 def compute_pod_standings_from_results(pods, match_results):
@@ -659,17 +656,37 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    # Load match results
+    # Load match results from Supabase
     match_results = load_match_results()
     st.session_state.match_results = match_results
 
     pod_results = {}
 
+    # Render matches for each pod
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
-            pod_results[pod_name] = pd.DataFrame(updated_players)
+            # Render each match and allow the admin to pick winners and margins
+            for i in range(0, len(players), 2):  # Pair players for each match
+                if i + 1 < len(players):  # Ensure there are two players to compare
+                    player1 = players[i]
+                    player2 = players[i + 1]
 
+                    # Get current winner and margin if it exists
+                    match_key = f"{pod_name}|{player1['name']} vs {player2['name']}"
+                    current_result = match_results.get(match_key, {"winner": "Tie", "margin": "Tie"})
+
+                    winner, margin = render_match(player1, player2, current_result["winner"], current_result["margin"], readonly=False, key_prefix=match_key)
+
+                    # Store the results after selecting
+                    if winner != "Tie":
+                        match_results[match_key] = {"winner": winner, "margin": margin}
+                    else:
+                        match_results[match_key] = {"winner": "Tie", "margin": margin}
+
+            # Update pod standings after each match
+            pod_results[pod_name] = pd.DataFrame(players)
+    
+    # If authenticated, proceed with tiebreakers
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
@@ -681,6 +698,7 @@ with tabs[1]:
         unresolved = False
         pod_scores = compute_pod_standings_from_results(pods, match_results)
 
+        # Resolve ties for 1st and 2nd place
         for pod_name, df in pod_scores.items():
             if df.empty or "points" not in df.columns:
                 st.info(f"📭 No match results entered yet for {pod_name}.")
@@ -726,6 +744,7 @@ with tabs[1]:
             else:
                 st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
 
+        # Check if all tiebreakers are resolved
         if unresolved:
             st.error("⛔ Please resolve all tiebreakers before finalizing.")
             st.session_state.tiebreaks_resolved = False
@@ -733,6 +752,7 @@ with tabs[1]:
             st.success("✅ All tiebreakers selected.")
             st.session_state.tiebreaks_resolved = True
 
+        # Finalize bracket after resolving tiebreakers
         if st.session_state.get("tiebreaks_resolved", False):
             if st.button("🏁 Finalize Bracket and Seed Field"):
                 bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
@@ -745,7 +765,6 @@ with tabs[1]:
                 st.write("📊 Final Bracket", bracket_df)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
-
 
 
 # --- Standings ---
