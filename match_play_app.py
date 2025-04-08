@@ -816,6 +816,14 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
+                # Debugging: Ensure players are valid
+                if not isinstance(left[i], dict) or 'name' not in left[i]:
+                    st.error(f"Error: Invalid player data for {left[i]}")
+                    continue
+                if not isinstance(left[i + 1], dict) or 'name' not in left[i + 1]:
+                    st.error(f"Error: Invalid player data for {left[i + 1]}")
+                    continue
+
                 winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
@@ -841,6 +849,14 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
+                # Debugging: Ensure players are valid
+                if not isinstance(right[i], dict) or 'name' not in right[i]:
+                    st.error(f"Error: Invalid player data for {right[i]}")
+                    continue
+                if not isinstance(right[i + 1], dict) or 'name' not in right[i + 1]:
+                    st.error(f"Error: Invalid player data for {right[i + 1]}")
+                    continue
+
                 winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
