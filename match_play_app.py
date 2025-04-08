@@ -617,12 +617,16 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    pod_results = {}
+    # Ensure match results are loaded
+    if "match_results" not in st.session_state:
+        st.session_state.match_results = load_match_results()
 
-    for pod_name, players in pods.items():
+    # Compute standings from actual match results
+    pod_results = compute_pod_standings_from_results(pods, st.session_state.match_results)
+
+    for pod_name, df in pod_results.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players, pod_name, source="group_stage")
-            pod_results[pod_name] = pd.DataFrame(updated_players)
+            st.dataframe(df[["name", "handicap", "points", "margin"]])
 
     def pod_has_results(pod_name):
         return any(key.startswith(f"{pod_name}|") for key in st.session_state.match_results)
@@ -734,7 +738,6 @@ with tabs[1]:
                 st.write("📊 Final Bracket", st.session_state.bracket_data)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
-
 
 
 # --- Standings ---
