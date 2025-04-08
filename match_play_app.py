@@ -754,14 +754,48 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    bracket_df = load_bracket_data()  # Load bracket data
-    if bracket_df.empty:
-        st.warning("Please finalize seeding in the Group Stage tab.")
+    # Load match results and standings dynamically from live data
+    match_results = load_match_results()  # Ensure match results are live
+    pod_scores = compute_pod_standings_from_results(pods, match_results)
+
+    # Check if seeding is complete
+    if not pod_scores:
+        st.warning("Please complete the Group Stage and resolve any tiebreakers.")
         st.stop()
 
-    # Split bracket into left and right sides (Round of 16)
-    left = bracket_df.iloc[0:8].to_dict("records")
-    right = bracket_df.iloc[8:16].to_dict("records")
+    # Create bracket from pod standings (top 8 players)
+    winners = []
+    second_place = []
+
+    for pod_name, df in pod_scores.items():
+        if df.empty or "points" not in df.columns:
+            continue
+        
+        # Sort players based on points and margin
+        df_sorted = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+
+        # First place (Winner)
+        tied_first = df_sorted[
+            (df_sorted["points"] == df_sorted.iloc[0]["points"]) &
+            (df_sorted["margin"] == df_sorted.iloc[0]["margin"])
+        ]
+        winner_name = tied_first.iloc[0]["name"]
+        winners.append(winner_name)
+
+        # Second place
+        remaining = df_sorted[df_sorted["name"] != winner_name].reset_index(drop=True)
+        second_place.append(remaining.iloc[0]["name"])
+
+    # Combine winners and second-place finishers into a final bracket
+    final_seeds = winners + second_place
+
+    if len(final_seeds) < 16:
+        st.warning("Not enough players in the bracket. Please check your match results.")
+        st.stop()
+
+    # Split bracket into left and right sides
+    left = final_seeds[:8]
+    right = final_seeds[8:]
 
     progression = load_bracket_progression_from_supabase()
 
@@ -898,6 +932,7 @@ with tabs[3]:
                 st.success(f"🥇 Champion: **{champ_name}**")
             else:
                 st.info("Final match not confirmed.")
+
 
 
 
