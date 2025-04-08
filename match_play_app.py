@@ -146,6 +146,29 @@ def load_bracket_data():
         return pd.DataFrame()
 
 
+# Bracket Progress
+def save_bracket_progression_to_supabase(data):
+    try:
+        response = supabase.table("bracket_progression").insert(data).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Error saving bracket progression to Supabase")
+        st.code(str(e))
+
+
+def load_bracket_progression_from_supabase():
+    try:
+        response = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
+        if response.data:
+            return response.data[0]
+        else:
+            return None
+    except Exception as e:
+        st.error("❌ Error loading bracket progression from Supabase")
+        st.code(str(e))
+        return None
+
+
 # Load match results (optional extension later)
 if "match_results" not in st.session_state:
     st.session_state.match_results = load_match_results() or {}
@@ -601,217 +624,122 @@ with tabs[1]:
 # --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
-    
-    if st.session_state.bracket_data.empty:
+
+    bracket_df = load_bracket_data()
+    if bracket_df.empty:
         st.warning("Please calculate bracket seeding from the Group Stage tab first.")
-    else:
-        bracket_df = st.session_state.bracket_data
-        left = bracket_df.iloc[0:8].reset_index(drop=True)
-        right = bracket_df.iloc[8:16].reset_index(drop=True)
-        
-        col1, col2 = st.columns(2)
-        
-        # =============================
-        # LEFT SIDE – Admin Confirmation
-        # =============================
-        with col1:
-            st.markdown("### 🟦 Left Side")
-            # ---- Round of 16 (Left) ----
-            st.markdown("#### 🏁 Round of 16")
-            if "r16_left" not in st.session_state:
-                r16_left_choices = {}
-                for i in range(0, len(left), 2):
-                    p1, p2 = left.iloc[i], left.iloc[i + 1]
-                    match_label = f"{label(p1)} vs {label(p2)}"
-                    if st.session_state.authenticated:
-                        choice = st.radio(match_label, [label(p1), label(p2)], key=f"R16L_{i}")
-                        r16_left_choices[i] = p1 if choice == label(p1) else p2
-                    else:
-                        st.markdown(f"🔒 {match_label} _(Admin only)_")
-                if st.button("Confirm Round of 16 (Left Side)"):
-                    st.session_state.r16_left = [r16_left_choices[i] for i in sorted(r16_left_choices)]
-                    st.success("Round of 16 winners (Left) confirmed!")
+        st.stop()
+
+    bracket_df = bracket_df.reset_index(drop=True)
+    left = bracket_df.iloc[0:8]
+    right = bracket_df.iloc[8:16]
+
+    progression = load_bracket_progression_from_supabase()
+
+    def show_match_results(title, players, matchups, editable=False, round_key_prefix=""):
+        st.markdown(f"### {title}")
+        results = []
+        for i in range(0, len(players), 2):
+            if i+1 >= len(players):
+                continue
+            p1 = players[i]
+            p2 = players[i+1]
+            label1, label2 = label(p1), label(p2)
+            match_label = f"{label1} vs {label2}"
+
+            if editable:
+                choice = st.radio(match_label, [label1, label2], key=f"{round_key_prefix}_{i}")
+                winner = p1 if choice == label1 else p2
+                results.append(winner)
             else:
-                st.info("Round of 16 winners (Left) have been confirmed:")
-                for p in st.session_state.r16_left:
-                    st.write(label(p))
-            
-            # ---- Quarterfinals (Left) ----
-            st.markdown("#### 🥈 Quarterfinals")
-            if "qf_left" not in st.session_state:
-                if "r16_left" in st.session_state:
-                    r16_left = st.session_state.r16_left
-                    qf_left_choices = {}
-                    for i in range(0, len(r16_left), 2):
-                        if i + 1 < len(r16_left):
-                            p1 = r16_left[i]
-                            p2 = r16_left[i + 1]
-                            match_label = f"QF: {label(p1)} vs {label(p2)}"
-                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"QFL_{i}")
-                            qf_left_choices[i] = p1 if choice == label(p1) else p2
-                    if st.button("Confirm Quarterfinals (Left Side)"):
-                        st.session_state.qf_left = [qf_left_choices[i] for i in sorted(qf_left_choices)]
-                        st.success("Quarterfinal winners (Left) confirmed!")
-                else:
-                    st.warning("Please confirm Round of 16 first.")
-            else:
-                st.info("Quarterfinal winners (Left) have been confirmed:")
-                for p in st.session_state.qf_left:
-                    st.write(label(p))
-            
-            # ---- Semifinals (Left) ----
-            st.markdown("#### 🥇 Semifinals")
-            if "sf_left" not in st.session_state:
-                if "qf_left" in st.session_state:
-                    qf_left = st.session_state.qf_left
-                    sf_left_choices = {}
-                    for i in range(0, len(qf_left), 2):
-                        if i + 1 < len(qf_left):
-                            p1 = qf_left[i]
-                            p2 = qf_left[i + 1]
-                            match_label = f"SF: {label(p1)} vs {label(p2)}"
-                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"SFL_{i}")
-                            sf_left_choices[i] = p1 if choice == label(p1) else p2
-                    if st.button("Confirm Semifinals (Left Side)"):
-                        st.session_state.sf_left = [sf_left_choices[i] for i in sorted(sf_left_choices)]
-                        st.success("Semifinal winners (Left) confirmed!")
-                else:
-                    st.warning("Please confirm Quarterfinals first.")
-            else:
-                st.info("Semifinal winners (Left) have been confirmed:")
-                for p in st.session_state.sf_left:
-                    st.write(label(p))
-        
-        # ==============================
-        # RIGHT SIDE – Admin Confirmation
-        # ==============================
-        with col2:
-            st.markdown("### 🟥 Right Side")
-            # ---- Round of 16 (Right) ----
-            st.markdown("#### 🏁 Round of 16")
-            if "r16_right" not in st.session_state:
-                r16_right_choices = {}
-                for i in range(0, len(right), 2):
-                    p1, p2 = right.iloc[i], right.iloc[i + 1]
-                    match_label = f"{label(p1)} vs {label(p2)}"
-                    if st.session_state.authenticated:
-                        choice = st.radio(match_label, [label(p1), label(p2)], key=f"R16R_{i}")
-                        r16_right_choices[i] = p1 if choice == label(p1) else p2
-                    else:
-                        st.markdown(f"🔒 {match_label} _(Admin only)_")
-                if st.button("Confirm Round of 16 (Right Side)"):
-                    st.session_state.r16_right = [r16_right_choices[i] for i in sorted(r16_right_choices)]
-                    st.success("Round of 16 winners (Right) confirmed!")
-            else:
-                st.info("Round of 16 winners (Right) have been confirmed:")
-                for p in st.session_state.r16_right:
-                    st.write(label(p))
-            
-            # ---- Quarterfinals (Right) ----
-            st.markdown("#### 🥈 Quarterfinals")
-            if "qf_right" not in st.session_state:
-                if "r16_right" in st.session_state:
-                    r16_right = st.session_state.r16_right
-                    qf_right_choices = {}
-                    for i in range(0, len(r16_right), 2):
-                        if i + 1 < len(r16_right):
-                            p1 = r16_right[i]
-                            p2 = r16_right[i + 1]
-                            match_label = f"QF: {label(p1)} vs {label(p2)}"
-                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"QFR_{i}")
-                            qf_right_choices[i] = p1 if choice == label(p1) else p2
-                    if st.button("Confirm Quarterfinals (Right Side)"):
-                        st.session_state.qf_right = [qf_right_choices[i] for i in sorted(qf_right_choices)]
-                        st.success("Quarterfinal winners (Right) confirmed!")
-                else:
-                    st.warning("Please confirm Round of 16 first.")
-            else:
-                st.info("Quarterfinal winners (Right) have been confirmed:")
-                for p in st.session_state.qf_right:
-                    st.write(label(p))
-            
-            # ---- Semifinals (Right) ----
-            st.markdown("#### 🥇 Semifinals")
-            if "sf_right" not in st.session_state:
-                if "qf_right" in st.session_state:
-                    qf_right = st.session_state.qf_right
-                    sf_right_choices = {}
-                    for i in range(0, len(qf_right), 2):
-                        if i + 1 < len(qf_right):
-                            p1 = qf_right[i]
-                            p2 = qf_right[i + 1]
-                            match_label = f"SF: {label(p1)} vs {label(p2)}"
-                            choice = st.radio(match_label, [label(p1), label(p2)], key=f"SFR_{i}")
-                            sf_right_choices[i] = p1 if choice == label(p1) else p2
-                    if st.button("Confirm Semifinals (Right Side)"):
-                        st.session_state.sf_right = [sf_right_choices[i] for i in sorted(sf_right_choices)]
-                        st.success("Semifinal winners (Right) confirmed!")
-                else:
-                    st.warning("Please confirm Quarterfinals first.")
-            else:
-                st.info("Semifinal winners (Right) have been confirmed:")
-                for p in st.session_state.sf_right:
-                    st.write(label(p))
-        
-        # ============================
-        # FINAL MATCH – Champion Confirmation
-        # ============================
-        st.markdown("### 🏁 Final Match")
-        if st.session_state.authenticated and "sf_left" in st.session_state and "sf_right" in st.session_state:
-            finalist_left = st.session_state.sf_left[0] if st.session_state.sf_left else None
-            finalist_right = st.session_state.sf_right[0] if st.session_state.sf_right else None
-            if finalist_left is not None and finalist_right is not None:
-                final_choice = st.radio("Select the Final Champion:",
-                                        [label(finalist_left), label(finalist_right)],
-                                        key="FinalMatch")
-                if st.button("Confirm Final Match"):
-                    champion = finalist_left if final_choice == label(finalist_left) else finalist_right
-                    st.session_state.champion_name = champion["name"]
-                    st.session_state.finalist_left_name = finalist_left["name"]
-                    st.session_state.finalist_right_name = finalist_right["name"]
-                    st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
-                    
-                    # Persist final results to the final_results table (for leaderboard purposes)
-                    final_results = {
-                        "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
-                        "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
-                        "qf_left": [p["name"] for p in st.session_state.get("qf_left", [])],
-                        "qf_right": [p["name"] for p in st.session_state.get("qf_right", [])],
-                        "sf_left": [p["name"] for p in st.session_state.get("sf_left", [])],
-                        "sf_right": [p["name"] for p in st.session_state.get("sf_right", [])],
-                        "champion": champion["name"],
-                        "finalist_left": finalist_left["name"],
-                        "finalist_right": finalist_right["name"]
-                    }
-                    try:
-                        response = supabase.table("final_results").insert([final_results]).execute()
-                        st.write("Final results persisted:", response)
-                    except Exception as e:
-                        st.error("Error inserting final results:")
-                        st.error(e)
-                    
-                    # *** Persist the full updated bracket ***
-                    # Build a persistent bracket from all confirmed rounds.
-                    # (This example concatenates round-of-16 winners from both sides.
-                    #   Adjust the logic as needed for your bracket structure.)
-                    if "r16_left" in st.session_state and "r16_right" in st.session_state:
-                        full_bracket = st.session_state.r16_left + st.session_state.r16_right
-                        bracket_list = []
-                        for idx, player in enumerate(full_bracket):
-                            bracket_list.append({
-                                "seed": idx + 1,
-                                "name": player["name"],
-                                "handicap": player["handicap"]
-                            })
-                        bracket_df = pd.DataFrame(bracket_list)
-                        try:
-                            save_bracket_data(bracket_df)
-                            st.success("Bracket data saved persistently!")
-                        except Exception as e:
-                            st.error("Error saving bracket data:")
-                            st.error(e)
+                name_list = [m["name"] for m in matchups] if matchups else []
+                winner = p1 if p1["name"] in name_list else p2
+                st.markdown(f"✔️ **{winner['name']}** defeated {p2['name'] if winner == p1 else p1['name']}")
+                results.append(winner)
+        return results
+
+    # Editable by admin only
+    if st.session_state.authenticated:
+        st.info("🛠 Admin mode enabled: enter results below")
+
+        # R16 Left
+        r16_left_winners = show_match_results("Round of 16 – Left", left.to_dict("records"), None, editable=True, round_key_prefix="r16_left")
+        # R16 Right
+        r16_right_winners = show_match_results("Round of 16 – Right", right.to_dict("records"), None, editable=True, round_key_prefix="r16_right")
+
+        # QF Left
+        qf_left_winners = show_match_results("Quarterfinals – Left", r16_left_winners, None, editable=True, round_key_prefix="qf_left")
+        # QF Right
+        qf_right_winners = show_match_results("Quarterfinals – Right", r16_right_winners, None, editable=True, round_key_prefix="qf_right")
+
+        # SF Left
+        sf_left_winners = show_match_results("Semifinals – Left", qf_left_winners, None, editable=True, round_key_prefix="sf_left")
+        # SF Right
+        sf_right_winners = show_match_results("Semifinals – Right", qf_right_winners, None, editable=True, round_key_prefix="sf_right")
+
+        # Final
+        if sf_left_winners and sf_right_winners:
+            champ_choice = st.radio("🏁 Final Match – Select Champion", [label(sf_left_winners[0]), label(sf_right_winners[0])])
+            champion = sf_left_winners[0] if champ_choice == label(sf_left_winners[0]) else sf_right_winners[0]
         else:
-            st.markdown("🔒 Final match — _(Admin only)_")
+            champion = None
+
+        if st.button("✅ Save Bracket Progression"):
+            save_bracket_progression_to_supabase({
+                "r16_left": json.dumps([p["name"] for p in r16_left_winners]),
+                "r16_right": json.dumps([p["name"] for p in r16_right_winners]),
+                "qf_left": json.dumps([p["name"] for p in qf_left_winners]),
+                "qf_right": json.dumps([p["name"] for p in qf_right_winners]),
+                "sf_left": json.dumps([p["name"] for p in sf_left_winners]),
+                "sf_right": json.dumps([p["name"] for p in sf_right_winners]),
+                "finalist_left": sf_left_winners[0]["name"] if sf_left_winners else "",
+                "finalist_right": sf_right_winners[0]["name"] if sf_right_winners else "",
+                "champion": champion["name"] if champion else ""
+            })
+            st.success("🎉 Bracket progression saved!")
+
+    else:
+        # Viewer mode (not admin)
+        if not progression:
+            st.warning("Bracket progression has not been finalized yet.")
+        else:
+            # Render results read-only from Supabase
+            def match_by_names(p1, p2, winners):
+                return p1 if p1["name"] in winners else p2
+
+            left_players = left.to_dict("records")
+            right_players = right.to_dict("records")
+
+            r16_left_names = parse_json_field(progression.get("r16_left", []))
+            r16_right_names = parse_json_field(progression.get("r16_right", []))
+            qf_left_names = parse_json_field(progression.get("qf_left", []))
+            qf_right_names = parse_json_field(progression.get("qf_right", []))
+            sf_left_names = parse_json_field(progression.get("sf_left", []))
+            sf_right_names = parse_json_field(progression.get("sf_right", []))
+            champ_name = progression.get("champion", "")
+
+            show_match_results("Round of 16 – Left", left_players, [{"name": n} for n in r16_left_names])
+            show_match_results("Round of 16 – Right", right_players, [{"name": n} for n in r16_right_names])
+
+            # Build winners round-by-round for display
+            def players_by_names(player_pool, names):
+                return [p for p in player_pool if p["name"] in names]
+
+            qf_left = players_by_names(left_players, r16_left_names)
+            qf_right = players_by_names(right_players, r16_right_names)
+            sf_left = players_by_names(qf_left, qf_left_names)
+            sf_right = players_by_names(qf_right, qf_right_names)
+
+            show_match_results("Quarterfinals – Left", qf_left, [{"name": n} for n in qf_left_names])
+            show_match_results("Quarterfinals – Right", qf_right, [{"name": n} for n in qf_right_names])
+            show_match_results("Semifinals – Left", sf_left, [{"name": n} for n in sf_left_names])
+            show_match_results("Semifinals – Right", sf_right, [{"name": n} for n in sf_right_names])
+
+            st.markdown("### 🏆 Final Champion")
+            if champ_name:
+                st.success(f"🥇 Champion: **{champ_name}**")
+            else:
+                st.info("Champion not confirmed yet.")
 
 
 # Tab 3: Standings
