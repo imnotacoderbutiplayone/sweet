@@ -771,8 +771,7 @@ with tabs[3]:
                     st.session_state.finalist_right_name = finalist_right["name"]
                     st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
                     
-                    # Build final results using native Python types for JSONB columns.
-                    # We are not sending "created_at" so that PostgreSQL uses its default.
+                    # Persist final results to the final_results table (for leaderboard purposes)
                     final_results = {
                         "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
                         "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
@@ -784,18 +783,35 @@ with tabs[3]:
                         "finalist_left": finalist_left["name"],
                         "finalist_right": finalist_right["name"]
                     }
-                    
                     try:
-                        # Wrap the dictionary in a list for insert.
                         response = supabase.table("final_results").insert([final_results]).execute()
                         st.write("Final results persisted:", response)
                     except Exception as e:
-                        # Print out the error details for debugging.
                         st.error("Error inserting final results:")
                         st.error(e)
+                    
+                    # *** Persist the full updated bracket ***
+                    # Build a persistent bracket from all confirmed rounds.
+                    # (This example concatenates round-of-16 winners from both sides.
+                    #   Adjust the logic as needed for your bracket structure.)
+                    if "r16_left" in st.session_state and "r16_right" in st.session_state:
+                        full_bracket = st.session_state.r16_left + st.session_state.r16_right
+                        bracket_list = []
+                        for idx, player in enumerate(full_bracket):
+                            bracket_list.append({
+                                "seed": idx + 1,
+                                "name": player["name"],
+                                "handicap": player["handicap"]
+                            })
+                        bracket_df = pd.DataFrame(bracket_list)
+                        try:
+                            save_bracket_data(bracket_df)
+                            st.success("Bracket data saved persistently!")
+                        except Exception as e:
+                            st.error("Error saving bracket data:")
+                            st.error(e)
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
-
 
 
 # Tab 3: Standings
