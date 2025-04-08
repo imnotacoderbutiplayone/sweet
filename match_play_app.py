@@ -908,11 +908,11 @@ with tabs[5]:
                     "R16 Left": [p['name'] for p in pred_r16_left],
                     "QF Left": [p['name'] for p in pred_qf_left],
                     "SF Left": [p['name'] for p in pred_sf_left],
-                    "Finalist Left": finalist_left['name'] if finalist_left else None,
+                    "Finalist Left": finalist_left['name'] if finalist_left is not None else None,
                     "R16 Right": [p['name'] for p in pred_r16_right],
                     "QF Right": [p['name'] for p in pred_qf_right],
                     "SF Right": [p['name'] for p in pred_sf_right],
-                    "Finalist Right": finalist_right['name'] if finalist_right else None,
+                    "Finalist Right": finalist_right['name'] if finalist_right is not None else None,
                     "Champion Label": champ_label,
                     "Champion Final": champion_final["name"] if champion_final else None
                 }
