@@ -415,10 +415,14 @@ def label(player):
 # --- Load bracket data ---
 def load_bracket_data():
     try:
+        # Fetch bracket data from Supabase
         response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
 
         if response.data and len(response.data) > 0:
-            return pd.read_json(response.data[0]["json_data"], orient="split")
+            bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
+            if bracket_df.empty:
+                st.warning("Bracket data is empty.")
+            return bracket_df
         else:
             st.info("ℹ️ No bracket data found in Supabase.")
             return pd.DataFrame()
@@ -427,6 +431,7 @@ def load_bracket_data():
         st.error("❌ Supabase error loading bracket data")
         st.code(str(e))
         return pd.DataFrame()
+
 
 # --- Bracket Progress ---
 def save_bracket_progression_to_supabase(data):
@@ -780,35 +785,8 @@ with tabs[2]:
 
 
 # --- Bracket ---
-with tabs[3]:
+with tabs[3]:  # Bracket Tab
     st.subheader("🏆 Bracket")
-
-    # Initialize tiebreak_selections if not already in session_state
-    if "tiebreak_selections" not in st.session_state:
-        st.session_state.tiebreak_selections = {}
-
-    # Function to check if all tiebreakers have been resolved
-    def all_tiebreakers_resolved():
-        try:
-            # Check if all keys are in tiebreak_selections
-            return all(key in st.session_state.tiebreak_selections for key in st.session_state.tiebreak_selections)
-        except Exception as e:
-            st.error(f"Error checking tiebreaker resolutions: {e}")
-            return False
-
-    # Function to check if all matches are completed
-    def all_matches_completed():
-        # Check if all match results have been entered
-        return all(key in st.session_state.match_results for key in st.session_state.match_results)
-
-    # Only show bracket if all matches have been completed and tiebreakers resolved
-    if not all_matches_completed():
-        st.warning("Please complete all match results before finalizing the bracket.")
-        st.stop()
-
-    if not all_tiebreakers_resolved():
-        st.warning("Please resolve all tiebreakers before proceeding.")
-        st.stop()
 
     # Load match results and standings dynamically from live data
     match_results = load_match_results()  # Ensure match results are live
@@ -954,56 +932,6 @@ with tabs[3]:
             })
             st.success("✅ Bracket progression saved!")
 
-    else:
-        if not progression:
-            st.warning("Bracket progression not set yet.")
-        else:
-            with col1:
-                st.markdown("### 🟦 Left Side")
-                st.markdown("#### 🔹 Round of 16")
-                r16_left = load_round_players("r16_left", progression, pods) or []
-                for i in range(0, len(left), 2):
-                    winner = get_winner_safe(r16_left, i // 2)
-                    render_match(left[i], left[i + 1], winner, readonly=True)
-
-                st.markdown("#### 🥉 Quarterfinals")
-                qf_left = load_round_players("qf_left", progression, pods) or []
-                for i in range(0, len(r16_left), 2):
-                    winner = get_winner_safe(qf_left, i // 2)
-                    render_match(r16_left[i], r16_left[i + 1], winner, readonly=True)
-
-                st.markdown("#### 🥈 Semifinal")
-                sf_left = load_round_players("sf_left", progression, pods) or []
-                for i in range(0, len(qf_left), 2):
-                    winner = get_winner_safe(sf_left, i // 2)
-                    render_match(qf_left[i], qf_left[i + 1], winner, readonly=True)
-
-            with col2:
-                st.markdown("### 🟥 Right Side")
-                st.markdown("#### 🔹 Round of 16")
-                r16_right = load_round_players("r16_right", progression, pods) or []
-                for i in range(0, len(right), 2):
-                    winner = get_winner_safe(r16_right, i // 2)
-                    render_match(right[i], right[i + 1], winner, readonly=True)
-
-                st.markdown("#### 🥉 Quarterfinals")
-                qf_right = load_round_players("qf_right", progression, pods) or []
-                for i in range(0, len(r16_right), 2):
-                    winner = get_winner_safe(qf_right, i // 2)
-                    render_match(r16_right[i], r16_right[i + 1], winner, readonly=True)
-
-                st.markdown("#### 🥈 Semifinal")
-                sf_right = load_round_players("sf_right", progression, pods) or []
-                for i in range(0, len(qf_right), 2):
-                    winner = get_winner_safe(sf_right, i // 2)
-                    render_match(qf_right[i], qf_right[i + 1], winner, readonly=True)
-
-            champ_name = progression.get("champion", "")
-            if champ_name:
-                st.markdown("### 🏆 Final Match")
-                st.success(f"🥇 Champion: **{champ_name}**")
-            else:
-                st.info("Final match not confirmed.")
 
 
 # --- Export ---
