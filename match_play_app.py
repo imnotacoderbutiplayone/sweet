@@ -879,6 +879,7 @@ with tabs[5]:
 
                 finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
 
+                champion_final = None
                 if finalist_left and finalist_right:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
@@ -886,30 +887,30 @@ with tabs[5]:
                         [label(finalist_left), label(finalist_right)],
                         key=f"PickChamp_{full_name}"
                     )
+                    champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
 
-                    if champ_label:
-                        champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
+                submit_disabled = not (finalist_left and finalist_right and champion_final)
 
-                        if st.button("🚀 Submit My Bracket Prediction"):
-                            try:
-                                prediction_entry = {
-                                    "name": full_name,
-                                    "timestamp": datetime.utcnow().isoformat(),
-                                    "champion": champion_final["name"],
-                                    "finalist_left": finalist_left["name"],
-                                    "finalist_right": finalist_right["name"],
-                                    "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
-                                    "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
-                                    "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
-                                    "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
-                                }
+                if st.button("🚀 Submit My Bracket Prediction", disabled=submit_disabled):
+                    try:
+                        prediction_entry = {
+                            "name": full_name,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "champion": champion_final["name"],
+                            "finalist_left": finalist_left["name"],
+                            "finalist_right": finalist_right["name"],
+                            "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
+                            "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
+                            "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
+                            "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
+                        }
 
-                                supabase.table("predictions").insert(prediction_entry).execute()
-                                st.success("✅ Your bracket prediction has been submitted!")
+                        supabase.table("predictions").insert(prediction_entry).execute()
+                        st.success("✅ Your bracket prediction has been submitted!")
 
-                            except Exception as e:
-                                st.error("❌ Error saving your prediction.")
-                                st.code(str(e))
+                    except Exception as e:
+                        st.error("❌ Error saving your prediction.")
+                        st.code(str(e))
 
 
 
