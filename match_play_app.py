@@ -150,7 +150,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# Define the margin lookup dictionary to map string descriptions to numeric values
+# Margin lookup for text-to-number conversion
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
@@ -163,13 +163,13 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     else:
         margin_value = 0
     
-    # Prepare data for insertion
+    # Prepare data for insertion (store numeric margin value)
     data = {
         "pod": pod,
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin_value,  # Store the numeric margin value
+        "margin": margin_value,  # Store the numeric margin value, not the string
         "created_at": datetime.utcnow().isoformat()
     }
 
@@ -180,15 +180,15 @@ def save_match_result(pod, player1, player2, winner, margin_str):
         # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Check the response for errors
-        if response.error:
-            st.error(f"❌ Error saving match result: {response.error}")
-            print(response.error)  # Log error for debugging
+        # Check if the response is successful by looking at the status code
+        if response.status_code == 201:  # HTTP 201 means created successfully
+            st.success(f"Match result saved: {winner} wins {margin_str}")
+            return response.data  # Return the inserted data
+        else:
+            st.error(f"❌ Error saving match result: {response.status_code}")
+            print(response.data)  # Log the response data for debugging
             return None
 
-        # Successful insertion
-        st.success(f"Match result saved: {winner} wins {margin_str}")
-        return response.data  # Return the inserted data
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
         print(f"Error: {str(e)}")  # Log exception for debugging
