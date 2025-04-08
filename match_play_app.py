@@ -417,30 +417,21 @@ def simulate_matches(players, pod_name, source="", editable=False):
 def load_match_results():
     try:
         # Fetch the latest match results directly from Supabase
-        response = supabase.table("tournament_matches").select("*").execute()
+        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Debugging: Print the full response to inspect the structure
-        st.write("Full Supabase Response:")
-        st.write(response)  # This will print the response object to the Streamlit app
-        
-        # Check if 'data' key exists and is not empty
+        # Debug: Print the raw response for troubleshooting
+        print("Supabase response:", response)
+
         if not response.data:
-            st.error("❌ No match results found in the response.")
+            st.warning("📭 No match results found in the Supabase response.")
             return {}
 
-        # Process the response data
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
-            
-            # Safely access 'winner' and 'margin' with fallback values
-            winner = r.get("winner", "Tie")  # Default to 'Tie' if not found
-            margin = r.get("margin", "Tie")  # Default to 'Tie' if not found
-            
-            # If the margin is not valid (e.g., null or empty), we can set it to 'Tie'
             match_dict[match_key] = {
-                "winner": winner,
-                "margin": margin
+                "winner": r["winner"],
+                "margin": r["margin"]
             }
 
         return dict(match_dict)  # Return the fresh match results
@@ -448,7 +439,6 @@ def load_match_results():
     except Exception as e:
         st.error(f"❌ Error loading match results from Supabase: {e}")
         return {}
-
 
 
 # --- Load all predictions from Supabase ---
