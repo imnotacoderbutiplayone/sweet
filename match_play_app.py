@@ -102,6 +102,7 @@ def sanitize_key(text):
     return f"{cleaned}_{hashed}"
 
 #-- save match results ---
+# Save match result to Supabase
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -415,7 +416,7 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        # Always fetch the latest results from Supabase
+        # Fetch the latest match results directly from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
         match_dict = defaultdict(dict)
@@ -426,13 +427,12 @@ def load_match_results():
                 "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
 
-        return dict(match_dict)
+        return dict(match_dict)  # Return the fresh match results
 
     except Exception as e:
-        st.error("❌ Supabase error loading match results")
+        st.error("❌ Error loading match results from Supabase")
         st.code(str(e))
         return {}
-
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
@@ -798,7 +798,7 @@ with tabs[1]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Always load match results from the database
+    # Always load match results from Supabase to get the most recent results
     match_results = load_match_results()
 
     pod_results = {}
@@ -845,7 +845,6 @@ with tabs[2]:
                 st.dataframe(df, use_container_width=True)
     else:
         st.info("📭 No match results have been entered yet.")
-
 
 # --- Admin View Rendering Bracket ---
 # --- Bracket ---
