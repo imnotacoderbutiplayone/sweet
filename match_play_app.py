@@ -649,9 +649,16 @@ with tabs[1]:
                     match_key = f"{pod_name}|{player1['name']} vs {player2['name']}"
                     current_result = match_results.get(match_key, {"winner": "Tie", "margin": "Tie"})
 
-                    # Fallback in case 'winner' or 'margin' are missing
+                    # Ensure valid winner and margin (fallback to 'Tie' if not valid)
                     winner = current_result.get("winner", "Tie")
                     margin = current_result.get("margin", "Tie")
+
+                    # Ensure winner and margin are strings and valid values
+                    if not isinstance(winner, str) or winner not in ["Tie", player1['name'], player2['name']]:
+                        winner = "Tie"  # Fallback to "Tie" if winner is invalid
+
+                    if not isinstance(margin, str) or margin not in ["Tie", "1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4"]:
+                        margin = "Tie"  # Fallback to "Tie" if margin is invalid
 
                     # Render the match, allowing for winner and margin selection
                     winner, margin = render_match(player1, player2, winner, margin, readonly=False, key_prefix=match_key)
@@ -741,6 +748,7 @@ with tabs[1]:
                 st.write("📊 Final Bracket", bracket_df)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
+
 
 
 
