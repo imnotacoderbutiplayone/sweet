@@ -617,19 +617,19 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    # Ensure match results are loaded
-    if "match_results" not in st.session_state:
-        st.session_state.match_results = load_match_results()
+    # Ensure match_results are always pulled live from Supabase
+    match_results = load_match_results()
+    st.session_state.match_results = match_results
 
-    # Compute standings from actual match results
-    pod_results = compute_pod_standings_from_results(pods, st.session_state.match_results)
+    pod_results = {}
 
-    for pod_name, df in pod_results.items():
+    for pod_name, players in pods.items():
         with st.expander(pod_name):
-            st.dataframe(df[["name", "handicap", "points", "margin"]])
+            updated_players = simulate_matches(players, pod_name, source="group_stage")
+            pod_results[pod_name] = pd.DataFrame(updated_players)
 
     def pod_has_results(pod_name):
-        return any(key.startswith(f"{pod_name}|") for key in st.session_state.match_results)
+        return any(key.startswith(f"{pod_name}|") for key in match_results)
 
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
@@ -641,20 +641,17 @@ with tabs[1]:
 
         unresolved = False
 
-        for pod_name, df in pod_results.items():
-            if "points" not in df.columns:
-                st.info(f"📭 No match results entered yet for {pod_name}.")
-                continue
+        # Compute standings directly from match_results
+        pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-            df["points"] = df.get("points", 0)
-            df["margin"] = df.get("margin", 0)
-
-            if not df["points"].any() and not df["margin"].any():
+        for pod_name, df in pod_scores.items():
+            if df.empty or "points" not in df.columns:
                 st.info(f"📭 No match results entered yet for {pod_name}.")
                 continue
 
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
+            # First place tiebreak
             top_score = sorted_players.iloc[0]["points"]
             top_margin = sorted_players.iloc[0]["margin"]
             tied_first = sorted_players[
@@ -707,30 +704,7 @@ with tabs[1]:
 
         if st.session_state.get("tiebreaks_resolved", False):
             if st.button("🏁 Finalize Bracket and Seed Field"):
-                winners, second_place = [], []
-
-                for pod_name, df in pod_results.items():
-                    if not pod_has_results(pod_name):
-                        continue
-
-                    first_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
-                    second_name = st.session_state.tiebreak_selections.get(f"{pod_name}_2nd")
-
-                    if not first_name or not second_name:
-                        continue
-
-                    first_row = df[df["name"] == first_name].iloc[0].to_dict()
-                    second_row = df[df["name"] == second_name].iloc[0].to_dict()
-
-                    winners.append({"pod": pod_name, **first_row})
-                    second_place.append(second_row)
-
-                top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
-                final_players = winners + top_3
-
-                bracket_df = pd.DataFrame(final_players)
-                bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
-
+                bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
                 st.session_state.bracket_data = bracket_df
                 save_bracket_data(bracket_df)
 
