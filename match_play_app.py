@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
+from collections import defaultdict
+import io
+import json
+import os
 from datetime import datetime
 from supabase import create_client
-import json
-import re
 import hashlib
+import re
 
 # --- Connect to Supabase ---
 @st.cache_resource
@@ -15,31 +18,18 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# --- Admin Authentication (Simple Password-Based) ---
-admin_password = st.secrets["admin_password"]
+# --- Save bracket data to Supabase ---
+def save_bracket_data(df):
+    try:
+        json_data = df.to_json(orient="split")
+        response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Failed to save bracket data to Supabase")
+        st.code(str(e))
+        return None
 
-# Initialize Session States
-if 'authenticated' not in st.session_state:
-    st.session_state.authenticated = False
-
-# Admin login
-if not st.session_state.authenticated:
-    st.sidebar.header("🔐 Admin Login")
-    pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
-    if st.sidebar.button("Login"):
-        if pwd_input == admin_password:
-            st.session_state.authenticated = True
-            st.sidebar.success("✅ Logged in as admin.")
-            st.rerun()
-        else:
-            st.sidebar.error("❌ Incorrect Admin Password.")
-else:
-    st.sidebar.success("✅ Admin logged in.")
-    if st.sidebar.button("Logout"):
-        st.session_state.authenticated = False
-        st.rerun()
-
-# --- Save Match Result (Only for Admins) ---
+# --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
 
@@ -53,54 +43,70 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        # Only allow admins to save results
-        if st.session_state.authenticated:
-            response = supabase.table("match_results").insert(data).execute()
-            return response
-        else:
-            st.error("❌ You must be logged in as admin to save match results.")
+        response = supabase.table("match_results").insert(data).execute()
+        return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
 
-# --- Load Match Results ---
+# --- Load all match results from Supabase ---
 def load_match_results():
     try:
         response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
-        match_dict = {}
+
+        match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
             match_dict[match_key] = {
                 "winner": r["winner"],
-                "margin": r["margin"]
+                "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
-        return match_dict
+
+        return dict(match_dict)
+
     except Exception as e:
-        st.error("❌ Error loading match results")
+        st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
 
-# --- Render Match Results ---
-def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
-    label1 = f"{p1['name']} ({p1['handicap']})"
-    label2 = f"{p2['name']} ({p2['handicap']})"
-    match_label = f"🏌️ {label1} vs {label2}"
+# --- Load all predictions from Supabase ---
+def load_predictions_from_supabase():
+    try:
+        response = supabase.table("predictions").select("*").order("timestamp", desc=True).execute()
+        return response.data
+    except Exception as e:
+        st.error("❌ Failed to load predictions from Supabase")
+        st.code(str(e))
+        return []
 
-    if readonly:
-        if winner_name == p1['name']:
-            result_text = f"✔️ **{label1}** defeated **{label2}**"
-        elif winner_name == p2['name']:
-            result_text = f"✔️ **{label2}** defeated **{label1}**"
-        else:
-            result_text = f"❓ No winner recorded"
-        st.markdown(result_text)
+# --- Send Prediction to Database ---
+def save_prediction_to_supabase(name, finalist_left, finalist_right, champion):
+    try:
+        data = {
+            "name": name,
+            "finalist_left": finalist_left,
+            "finalist_right": finalist_right,
+            "champion": champion,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        response = supabase.table("predictions").insert(data).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Failed to save prediction to Supabase")
+        st.code(str(e))
         return None
-    else:
-        choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
-        return p1 if choice == label1 else p2
 
-# --- Load Bracket Data ---
+# --- Streamlit App Config and File Paths ---
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+BRACKET_FILE = "bracket_data.json"
+RESULTS_FILE = "match_results.json"
+
+# --- Helper: Label players ---
+def label(player):
+    return f"{player['name']} ({player['handicap']})"
+
+# --- Load bracket data ---
 def load_bracket_data():
     try:
         response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
@@ -115,17 +121,6 @@ def load_bracket_data():
         st.error("❌ Supabase error loading bracket data")
         st.code(str(e))
         return pd.DataFrame()
-
-# --- Save Bracket Data ---
-def save_bracket_data(df):
-    try:
-        json_data = df.to_json(orient="split")
-        response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
-        return response
-    except Exception as e:
-        st.error("❌ Failed to save bracket data to Supabase")
-        st.code(str(e))
-        return None
 
 # --- Bracket Progress ---
 def save_bracket_progression_to_supabase(data):
@@ -148,68 +143,909 @@ def load_bracket_progression_from_supabase():
         st.code(str(e))
         return None
 
-# --- Streamlit Page Setup ---
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+# --- Bracket Margin Lookup ---
+margin_lookup = {
+    "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
+    "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
+}
 
-# Tab setup for viewing and interacting with the tournament
+# Correct Pod assignments from PDF
+pods = {
+    "Pod 1": [
+        {"name": "Wade Bowlin", "handicap": 5.4},
+        {"name": "Chip Nemesi", "handicap": 8.2},
+        {"name": "Anand Saranathan", "handicap": None},
+        {"name": "Tim Coyne", "handicap": 14.0},
+    ],
+    "Pod 2": [
+        {"name": "Tim Stubenrouch", "handicap": 6.8},
+        {"name": "David Gornet", "handicap": 12.4},
+        {"name": "Ken Wood", "handicap": 21.3},
+        {"name": "William Dicks", "handicap": 20.3},
+    ],
+    "Pod 3": [
+        {"name": "Austen Flatt", "handicap": 5.5},
+        {"name": "Robert Polk", "handicap": 11.8},
+        {"name": "Pravin Patel", "handicap": 16.5},
+        {"name": "Benjamin Dickinson", "handicap": 16.3},
+    ],
+    "Pod 4": [
+        {"name": "Anup Aggrawal", "handicap": 11.4},
+        {"name": "Pratish Lad", "handicap": 11.5},
+        {"name": "Kevin Sutton", "handicap": 12.5},
+        {"name": "Raj Patel", "handicap": 11.8},
+    ],
+    "Pod 5": [
+        {"name": "Russell Clingman", "handicap": 12.7},
+        {"name": "Tom Duffy", "handicap": 15.7},
+        {"name": "Charles Ferdin", "handicap": 25.2},
+        {"name": "Danny Delgado", "handicap": 16.6},
+    ],
+    "Pod 6": [
+        {"name": "Paul Till", "handicap": 1.3},
+        {"name": "Daniel Nowak", "handicap": 9.0},
+        {"name": "Avo Mavilian", "handicap": 19.4},
+        {"name": "Jason Case", "handicap": 12.6},
+    ],
+    "Pod 7": [
+        {"name": "Keith Borgfeldt", "handicap": 9.8},
+        {"name": "Danny Rice", "handicap": 11.1},
+        {"name": "Keith Patel", "handicap": 17.7},
+        {"name": "Sanjay Lad", "handicap": 15.2},
+    ],
+    "Pod 8": [
+        {"name": "Michael Trevino", "handicap": 9.9},
+        {"name": "Brad Sinclair", "handicap": 13.0},
+        {"name": "Bill Ostrowski", "handicap": 16.0},
+        {"name": "Aldo Rodriguez", "handicap": 13.6},
+    ],
+    "Pod 9": [
+        {"name": "Rob Calvo", "handicap": 2.7},
+        {"name": "Randy Tate", "handicap": 7.1},
+        {"name": "Michael Kuznar", "handicap": 17.1},
+        {"name": "Mel Davis", "handicap": 8.5},
+    ],
+    "Pod 10": [
+        {"name": "Craig McGaughy", "handicap": 7.2},
+        {"name": "Brian Burr", "handicap": 7.3},
+        {"name": "Andy Grote", "handicap": 13.3},
+        {"name": "Larry Hawkins", "handicap": 12.5},
+    ],
+    "Pod 11": [
+        {"name": "Andrew Escamilla", "handicap": -0.8},
+        {"name": "Jay Jones", "handicap": 5.4},
+        {"name": "Kevin Sareen", "handicap": 16.6},
+        {"name": "Alexander Roman", "handicap": 5.4},
+    ],
+    "Pod 12": [
+        {"name": "Will Main", "handicap": 2.2},
+        {"name": "Todd Riddle", "handicap": 7.5},
+        {"name": "Kolbe Curtice", "handicap": 12.9},
+        {"name": "Sunil Patel", "handicap": 11.6},
+    ],
+    "Pod 13": [
+        {"name": "Tony Delgado", "handicap": 3.1},
+        {"name": "Pawan Nerusu", "handicap": 9.9},
+        {"name": "Marcus Peet", "handicap": 22.5},
+        {"name": "Ed Gifford", "handicap": 10.3},
+    ],
+}
+
+# --- Streamlit App Auth ---
+if "match_results" not in st.session_state:
+    st.session_state.match_results = load_match_results() or {}
+
+# --- Admin Authentication (Simple Password-Based) ---
+admin_password = st.secrets["admin_password"]
+general_password = st.secrets["general_password"]
+
+# Initialize Session States
+if 'app_authenticated' not in st.session_state:
+    st.session_state.app_authenticated = False
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
+# ---- General Access Password ----
+if not st.session_state.app_authenticated:
+    st.title("🔐 Golf Tournament - Restricted Access")
+    pwd = st.text_input("Enter Tournament Password:", type="password")
+    if st.button("Enter"):
+        if pwd == general_password:
+            st.session_state.app_authenticated = True
+            st.success("Welcome! Refreshing...")
+            st.rerun()
+        else:
+            st.error("Incorrect tournament password.")
+    st.stop()
+
+# --- Sidebar Admin Login ---
+st.sidebar.header("🔐 Admin Login")
+
+if not st.session_state.authenticated:
+    pwd_input = st.sidebar.text_input("Enter Admin Password", type="password")
+    if st.sidebar.button("Login"):
+        if pwd_input == admin_password:
+            st.session_state.authenticated = True
+            st.sidebar.success("✅ Logged in as admin.")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ Incorrect Admin Password.")
+else:
+    st.sidebar.success("✅ Admin logged in.")
+    if st.sidebar.button("Logout"):
+        st.session_state.authenticated = False
+        st.rerun()
+
+# --- Streamlit App Configuration ---
 tabs = st.tabs([
-    "📁 Tournament Overview",
-    "📊 Match Results",
-    "🏆 Bracket",
-    "📤 Export Bracket",
-    "🔮 Predict Bracket",
+    "📁 Pods Overview", 
+    "📊 Group Stage", 
+    "📋 Standings", 
+    "🏆 Bracket", 
+    "📤 Export", 
+    "🔮 Predict Bracket", 
     "🗃️ Results Log",
     "🏅 Leaderboard"
 ])
 
-# Tournament Overview Tab (Public Access)
-with tabs[0]:
-    st.subheader("📁 Tournament Overview")
-    st.write("Welcome to the public tournament view! Here you can view the tournament bracket and match results.")
-
-# Match Results Tab (Public Access)
-with tabs[1]:
-    st.subheader("📊 Match Results")
-    match_results = load_match_results()
-    if match_results:
-        for match_key, result in match_results.items():
-            st.write(f"{match_key} - Winner: {result['winner']} - Margin: {result['margin']}")
-    else:
-        st.write("No match results available.")
-
-# Bracket Tab (Admin Access)
-with tabs[2]:
-    st.subheader("🏆 Bracket")
+# Load shared bracket data
+if "bracket_data" not in st.session_state:
     bracket_df = load_bracket_data()
+    st.session_state.bracket_data = bracket_df
+if "user_predictions" not in st.session_state:
+    st.session_state.user_predictions = {}
+
+# --- Main Tournament Tabs ---
+with tabs[0]:
+    st.subheader("📁 All Pods and Player Handicaps")
+
+    # Displaying pod data...
+    pod_names = list(pods.keys())
+    num_cols = 3  # You can adjust this to control the number of columns
+    cols = st.columns(num_cols)
+
+    # CSS style for headers and alternating rows
+    def style_table(df):
+        styled = df.style.set_table_styles([
+            {'selector': 'th',
+             'props': [('background-color', '#4CAF50'),
+                       ('color', 'white'),
+                       ('font-size', '16px')]},
+            {'selector': 'td',
+             'props': [('font-size', '14px')]}
+        ]).set_properties(**{
+            'text-align': 'left',
+            'padding': '6px'
+        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
+        return styled.hide(axis='index')  # Hide the index explicitly here
+
+    for i, pod_name in enumerate(pod_names):
+        col = cols[i % num_cols]
+        with col:
+            st.markdown(f"##### {pod_name}")
+            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
+            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
+            styled_df = style_table(df)
+            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+
+
+# --- Group Stage ---
+with tabs[1]:
+    st.subheader("📊 Group Stage - Match Results")
+
+    pod_results = {}
+    
+    # Process each pod and simulate the matches for the group stage
+    for pod_name, players in pods.items():
+        with st.expander(pod_name):
+            updated_players = simulate_matches(players, pod_name, source="group_stage")
+            pod_results[pod_name] = pd.DataFrame(updated_players)
+
+    # --- Helper: Check if any match results exist for this pod ---
+    def pod_has_results(pod_name):
+        return any(key.startswith(f"{pod_name}|") for key in st.session_state.match_results)
+
+    # --- Tiebreak Selection + Bracket Finalization ---
+    if st.session_state.authenticated:
+        st.header("\U0001F9EE Step 1: Review & Resolve Tiebreakers")
+
+        if "tiebreak_selections" not in st.session_state:
+            st.session_state.tiebreak_selections = {}
+        if "tiebreaks_resolved" not in st.session_state:
+            st.session_state.tiebreaks_resolved = False
+
+        pod_winners_temp, pod_second_temp = [], []
+        unresolved = False
+
+        for pod_name, df in pod_results.items():
+            # Skip pods with no match results
+            if "points" not in df.columns:
+                st.info(f"📭 No match results entered yet for {pod_name}.")
+                continue
+
+            df["points"] = df.get("points", 0)
+            df["margin"] = df.get("margin", 0)
+
+            if not df["points"].any() and not df["margin"].any():
+                st.info(f"📭 No match results entered yet for {pod_name}.")
+                continue
+
+            sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+
+            # --- First Place ---
+            top_score = sorted_players.iloc[0]["points"]
+            top_margin = sorted_players.iloc[0]["margin"]
+            tied_first = sorted_players[
+                (sorted_players["points"] == top_score) &
+                (sorted_players["margin"] == top_margin)
+            ]
+
+            if len(tied_first) > 1:
+                st.warning(f"🔁 Tie for 1st in {pod_name}")
+                options = tied_first["name"].tolist()
+                selected = st.radio(
+                    f"Select 1st place in {pod_name}:",
+                    options,
+                    key=f"{pod_name}_1st"
+                )
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
+                else:
+                    unresolved = True
+            else:
+                st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
+
+            # --- Second Place ---
+            winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
+            remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
+
+            if remaining.empty:
+                st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
+                continue
+
+            second_score = remaining.iloc[0]["points"]
+            second_margin = remaining.iloc[0]["margin"]
+            tied_second = remaining[
+                (remaining["points"] == second_score) &
+                (remaining["margin"] == second_margin)
+            ]
+
+            if len(tied_second) > 1:
+                st.warning(f"🔁 Tie for 2nd in {pod_name}")
+                options = tied_second["name"].tolist()
+                selected = st.radio(
+                    f"Select 2nd place in {pod_name}:",
+                    options,
+                    key=f"{pod_name}_2nd"
+                )
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
+                else:
+                    unresolved = True
+            else:
+                st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
+
+        # --- Completion Check ---
+        if unresolved:
+            st.error("⛔ Please resolve all tiebreakers before finalizing.")
+            st.session_state.tiebreaks_resolved = False
+        else:
+            st.success("✅ All tiebreakers selected.")
+            st.session_state.tiebreaks_resolved = True
+
+        # --- Finalize Bracket Button ---
+        if st.session_state.get("tiebreaks_resolved", False):
+            if st.button("🏁 Finalize Bracket and Seed Field"):
+                winners, second_place = [], []
+
+                for pod_name, df in pod_results.items():
+                    if not pod_has_results(pod_name):
+                        continue
+
+                    first_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
+                    second_name = st.session_state.tiebreak_selections.get(f"{pod_name}_2nd")
+
+                    if not first_name or not second_name:
+                        continue
+
+                    first_row = df[df["name"] == first_name].iloc[0].to_dict()
+                    second_row = df[df["name"] == second_name].iloc[0].to_dict()
+
+                    winners.append({"pod": pod_name, **first_row})
+                    second_place.append(second_row)
+
+                top_3 = sorted(second_place, key=lambda x: (x["points"], x["margin"]), reverse=True)[:3]
+                final_players = winners + top_3
+
+                bracket_df = pd.DataFrame(final_players)
+                bracket_df.index = [f"Seed {i+1}" for i in range(len(bracket_df))]
+
+                st.session_state.bracket_data = bracket_df
+                save_bracket_data(bracket_df)
+
+                st.success("✅ Bracket finalized and seeded.")
+                st.write("📊 Final Bracket", st.session_state.bracket_data)
+    else:
+        st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
+
+
+# --- Standings ---
+with tabs[2]:
+    st.subheader("📋 Standings")
+
+    # Load match results from session state
+    if "match_results" not in st.session_state:
+        st.session_state.match_results = load_match_results()
+
+    pod_results = {}
+
+    # Process each pod and calculate the points and margins for each player
+    for pod_name, players in pods.items():
+        updated_players = []
+        for player in players:
+            name = player['name']
+            total_points = 0
+            total_margin = 0
+
+            # Iterate through all match results and calculate points and margins
+            for key, result in st.session_state.match_results.items():
+                if key.startswith(f"{pod_name}|"):
+                    if name in key:
+                        if result["winner"] == name:
+                            total_points += 1
+                            total_margin += result["margin"]
+                        elif result["winner"] == "Tie":
+                            total_points += 0.5
+                        else:
+                            total_margin -= result["margin"]
+
+            # Store the player's updated stats
+            updated_players.append({
+                "name": name,
+                "handicap": player["handicap"],
+                "Points": total_points,
+                "Margin": total_margin
+            })
+
+        # Sort players within the pod by points and margin
+        df = pd.DataFrame(updated_players)
+        if not df.empty:
+            df = df.sort_values(by=["Points", "Margin"], ascending=False)
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
+            pod_results[pod_name] = df
+
+    # Display standings for each pod
+    if pod_results:
+        for pod_name, df in pod_results.items():
+            with st.expander(f"📦 {pod_name} Standings", expanded=True):
+                st.dataframe(df, use_container_width=True)
+    else:
+        st.info("📭 No match results have been entered yet.")
+
+
+# --- Bracket ---
+with tabs[3]:
+    st.subheader("🏆 Bracket")
+
+    bracket_df = load_bracket_data()  # Load bracket data
+    if bracket_df.empty:
+        st.warning("Please finalize seeding in the Group Stage tab.")
+        st.stop()
+
+    # Split bracket into left and right sides (Round of 16)
+    left = bracket_df.iloc[0:8].to_dict("records")
+    right = bracket_df.iloc[8:16].to_dict("records")
+
+    progression = load_bracket_progression_from_supabase()
+
+    col1, col2 = st.columns(2)
+
+    # Admin mode: Enter results and save
     if st.session_state.authenticated:
         st.info("🔐 Admin mode: Enter results and save")
-        # Admin interface to enter match results and update bracket
-        st.write(bracket_df)
-        # Add code to modify and save bracket data
+
+        # --------------------
+        # LEFT SIDE
+        # --------------------
+        with col1:
+            st.markdown("### 🟦 Left Side")
+
+            # Round of 16
+            st.markdown("#### 🔹 Round of 16")
+            r16_left = []
+            for i in range(0, len(left), 2):
+                r16_left.append(render_match(left[i], left[i + 1], "", readonly=False, key_prefix="r16_left"))
+
+            # Quarterfinals
+            st.markdown("#### 🥉 Quarterfinals")
+            qf_left = []
+            for i in range(0, len(r16_left), 2):
+                qf_left.append(render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix="qf_left"))
+
+            # Semifinal
+            st.markdown("#### 🥈 Semifinal")
+            sf_left = []
+            for i in range(0, len(qf_left), 2):
+                sf_left.append(render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix="sf_left"))
+
+        # --------------------
+        # RIGHT SIDE
+        # --------------------
+        with col2:
+            st.markdown("### 🟥 Right Side")
+
+            # Round of 16
+            st.markdown("#### 🔹 Round of 16")
+            r16_right = []
+            for i in range(0, len(right), 2):
+                r16_right.append(render_match(right[i], right[i + 1], "", readonly=False, key_prefix="r16_right"))
+
+            # Quarterfinals
+            st.markdown("#### 🥉 Quarterfinals")
+            qf_right = []
+            for i in range(0, len(r16_right), 2):
+                qf_right.append(render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix="qf_right"))
+
+            # Semifinal
+            st.markdown("#### 🥈 Semifinal")
+            sf_right = []
+            for i in range(0, len(qf_right), 2):
+                sf_right.append(render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix="sf_right"))
+
+        # --------------------
+        # FINAL MATCH
+        # --------------------
+        if sf_left and sf_right:
+            st.markdown("### 🏁 Final Match")
+            champ_choice = st.radio("🏆 Select the Champion",
+                                    [label(sf_left[0]), label(sf_right[0])],
+                                    key="final_match_radio")
+            champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
+        else:
+            champion = None
+
+        if st.button("✅ Save Full Bracket"):
+            save_bracket_progression_to_supabase({
+                "r16_left": json.dumps([p["name"] for p in r16_left]),
+                "r16_right": json.dumps([p["name"] for p in r16_right]),
+                "qf_left": json.dumps([p["name"] for p in qf_left]),
+                "qf_right": json.dumps([p["name"] for p in qf_right]),
+                "sf_left": json.dumps([p["name"] for p in sf_left]),
+                "sf_right": json.dumps([p["name"] for p in sf_right]),
+                "finalist_left": sf_left[0]["name"] if sf_left else "",
+                "finalist_right": sf_right[0]["name"] if sf_right else "",
+                "champion": champion["name"] if champion else ""
+            })
+            st.success("✅ Bracket progression saved!")
+
     else:
-        st.write(bracket_df)
+        # Viewing mode (readonly)
+        if not progression:
+            st.warning("Bracket progression not set yet.")
+        else:
+            with col1:
+                st.markdown("### 🟦 Left Side")
 
-# Export Bracket Tab (Public Access)
-with tabs[3]:
-    st.subheader("📤 Export Bracket")
-    if not bracket_df.empty:
-        csv = bracket_df.to_csv().encode("utf-8")
-        st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv")
+                # Round of 16
+                st.markdown("#### 🔹 Round of 16")
+                r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
+                for i in range(0, len(left), 2):
+                    winner = r16_left[i // 2]["name"]
+                    render_match(left[i], left[i + 1], winner, readonly=True)
 
-# Predict Bracket Tab (Public Access)
+                # Quarterfinals
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
+                for i in range(0, len(r16_left), 2):
+                    winner = qf_left[i // 2]["name"]
+                    render_match(r16_left[i], r16_left[i + 1], winner, readonly=True)
+
+                # Semifinal
+                st.markdown("#### 🥈 Semifinal")
+                sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
+                for i in range(0, len(qf_left), 2):
+                    winner = sf_left[i // 2]["name"]
+                    render_match(qf_left[i], qf_left[i + 1], winner, readonly=True)
+
+            with col2:
+                st.markdown("### 🟥 Right Side")
+
+                # Round of 16
+                st.markdown("#### 🔹 Round of 16")
+                r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
+                for i in range(0, len(right), 2):
+                    winner = r16_right[i // 2]["name"]
+                    render_match(right[i], right[i + 1], winner, readonly=True)
+
+                # Quarterfinals
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
+                for i in range(0, len(r16_right), 2):
+                    winner = qf_right[i // 2]["name"]
+                    render_match(r16_right[i], r16_right[i + 1], winner, readonly=True)
+
+                # Semifinal
+                st.markdown("#### 🥈 Semifinal")
+                sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
+                for i in range(0, len(qf_right), 2):
+                    winner = sf_right[i // 2]["name"]
+                    render_match(qf_right[i], qf_right[i + 1], winner, readonly=True)
+
+            champ_name = progression.get("champion", "")
+            if champ_name:
+                st.markdown("### 🏆 Final Match")
+                st.success(f"🥇 Champion: **{champ_name}**")
+            else:
+                st.info("Final match not confirmed.")
+
+
+# --- Export ---
 with tabs[4]:
-    st.subheader("🔮 Predict Bracket")
-    st.write("Here you can predict the outcomes of the tournament. Your predictions will be saved.")
+    st.subheader("📤 Export")
 
-# Results Log Tab (Admin Access)
-with tabs[5]:
-    st.subheader("🗃️ Match Results Log")
-    if st.session_state.authenticated:
-        st.write("Log of all match results will be shown here for admins.")
+    # --- Export Bracket Data ---
+    if not st.session_state.bracket_data.empty:
+        csv = st.session_state.bracket_data.to_csv().encode("utf-8")
+        st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv")
     else:
-        st.write("No match results available yet.")
+        st.warning("No bracket data available for export.")
 
-# Leaderboard Tab (Public Access)
+    # --- Export Match Results ---
+    if "match_results" in st.session_state and st.session_state.match_results:
+        # Convert match results to a DataFrame
+        match_results_data = []
+        for key, result in st.session_state.match_results.items():
+            if "|" not in key:
+                continue  # Skip malformed or legacy keys
+
+            pod_name, match_str = key.split("|", 1)
+            try:
+                player1, player2 = match_str.split(" vs ")
+            except ValueError:
+                continue  # Skip malformed match strings
+
+            winner = result.get("winner", "Tie")
+            margin = result.get("margin", 0)
+            margin_text = next(
+                (k for k, v in margin_lookup.items() if v == margin),
+                "Tie" if winner == "Tie" else "1 up"
+            )
+
+            match_results_data.append({
+                "Pod": pod_name,
+                "Player 1": player1.strip(),
+                "Player 2": player2.strip(),
+                "Winner": winner,
+                "Margin": margin_text
+            })
+
+        # Convert to DataFrame
+        df_match_results = pd.DataFrame(match_results_data)
+        df_match_results = df_match_results.sort_values(by=["Pod", "Player 1"])
+
+        # Allow the user to download the match results CSV
+        csv_match_results = df_match_results.to_csv(index=False).encode("utf-8")
+        st.download_button("📥 Download Match Results CSV", csv_match_results, "match_results.csv", "text/csv")
+    else:
+        st.warning("No match results available for export.")
+
+
+# --- Predict Bracket ---
+with tabs[5]:
+    st.subheader("🔮 Predict Bracket")
+
+    # --- Clear the full_name input if a prediction was just submitted ---
+    if st.session_state.get("prediction_submitted", False):
+        if "full_name" in st.session_state:
+            del st.session_state["full_name"]
+        st.session_state.prediction_submitted = False
+
+    if st.session_state.bracket_data.empty or len(st.session_state.bracket_data) < 16:
+        st.warning("Bracket prediction will be available once the field of 16 is set.")
+    else:
+        bracket_df = st.session_state.bracket_data
+        left = bracket_df.iloc[0:8].reset_index(drop=True)
+        right = bracket_df.iloc[8:16].reset_index(drop=True)
+
+        full_name = st.text_input("Enter your full name to submit a prediction:", key="full_name")
+
+        if full_name.strip():
+            user_name = full_name.strip().lower()
+
+            # Load all predictions and normalize names
+            try:
+                existing = supabase.table("predictions").select("name").execute()
+                submitted_names = [row["name"].strip().lower() for row in existing.data]
+            except Exception as e:
+                st.error("❌ Failed to check existing predictions")
+                st.code(str(e))
+                st.stop()
+
+            if user_name in submitted_names:
+                st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
+            else:
+                st.markdown("### 🟦 Left Side Predictions")
+                pred_r16_left, pred_qf_left, pred_sf_left = [], [], []
+
+                # Round of 16 predictions
+                for i in range(0, 8, 2):
+                    p1, p2 = left.iloc[i], left.iloc[i + 1]
+                    pick = st.radio(
+                        f"Round of 16: {label(p1)} vs {label(p2)}",
+                        [label(p1), label(p2)],
+                        key=f"PL16_{i}_{full_name}"
+                    )
+                    pred_r16_left.append(p1 if pick == label(p1) else p2)
+
+                # Quarterfinal predictions
+                for i in range(0, len(pred_r16_left), 2):
+                    if i + 1 < len(pred_r16_left):
+                        p1, p2 = pred_r16_left[i], pred_r16_left[i + 1]
+                        pick = st.radio(
+                            f"Quarterfinal: {label(p1)} vs {label(p2)}",
+                            [label(p1), label(p2)],
+                            key=f"PLQF_{i}_{full_name}"
+                        )
+                        pred_qf_left.append(p1 if pick == label(p1) else p2)
+
+                # Semifinal predictions
+                for i in range(0, len(pred_qf_left), 2):
+                    if i + 1 < len(pred_qf_left):
+                        p1, p2 = pred_qf_left[i], pred_qf_left[i + 1]
+                        pick = st.radio(
+                            f"Semifinal: {label(p1)} vs {label(p2)}",
+                            [label(p1), label(p2)],
+                            key=f"PLSF_{i}_{full_name}"
+                        )
+                        pred_sf_left.append(p1 if pick == label(p1) else p2)
+
+                finalist_left = pred_sf_left[0] if len(pred_sf_left) == 1 else None
+
+                st.markdown("### 🟥 Right Side Predictions")
+                pred_r16_right, pred_qf_right, pred_sf_right = [], [], []
+
+                # Round of 16 predictions for right side
+                for i in range(0, 8, 2):
+                    p1, p2 = right.iloc[i], right.iloc[i + 1]
+                    pick = st.radio(
+                        f"Round of 16: {label(p1)} vs {label(p2)}",
+                        [label(p1), label(p2)],
+                        key=f"PR16_{i}_{full_name}"
+                    )
+                    pred_r16_right.append(p1 if pick == label(p1) else p2)
+
+                # Quarterfinal predictions for right side
+                for i in range(0, len(pred_r16_right), 2):
+                    if i + 1 < len(pred_r16_right):
+                        p1, p2 = pred_r16_right[i], pred_r16_right[i + 1]
+                        pick = st.radio(
+                            f"Quarterfinal: {label(p1)} vs {label(p2)}",
+                            [label(p1), label(p2)],
+                            key=f"PRQF_{i}_{full_name}"
+                        )
+                        pred_qf_right.append(p1 if pick == label(p1) else p2)
+
+                # Semifinal predictions for right side
+                for i in range(0, len(pred_qf_right), 2):
+                    if i + 1 < len(pred_qf_right):
+                        p1, p2 = pred_qf_right[i], pred_qf_right[i + 1]
+                        pick = st.radio(
+                            f"Semifinal: {label(p1)} vs {label(p2)}",
+                            [label(p1), label(p2)],
+                            key=f"PRSF_{i}_{full_name}"
+                        )
+                        pred_sf_right.append(p1 if pick == label(p1) else p2)
+
+                finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
+
+                # Final match predictions
+                champion_final = None
+                if finalist_left is not None and finalist_right is not None:
+                    st.markdown("### 🏁 Final Match")
+                    champ_label = st.radio(
+                        "🏆 Predict the Champion:",
+                        [label(finalist_left), label(finalist_right)],
+                        key=f"PickChamp_{full_name}"
+                    )
+                    if champ_label:
+                        champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
+
+                # Only show the submit button if all selections are made
+                if finalist_left is not None and finalist_right is not None and champion_final is not None:
+                    if st.button("🚀 Submit My Bracket Prediction"):
+                        try:
+                            # Save the prediction to the database
+                            prediction_entry = {
+                                "name": full_name.strip(),
+                                "timestamp": datetime.utcnow().isoformat(),
+                                "champion": champion_final["name"],
+                                "finalist_left": finalist_left["name"],
+                                "finalist_right": finalist_right["name"],
+                                "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
+                                "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
+                                "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
+                                "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
+                            }
+                            supabase.table("predictions").insert(prediction_entry).execute()
+                            st.success("✅ Your bracket prediction has been submitted!")
+                            # Set a flag to clear the full_name input on next run
+                            st.session_state.prediction_submitted = True
+                            st.rerun()
+                        except Exception as e:
+                            st.error("❌ Error saving your prediction.")
+                            st.code(str(e))
+                else:
+                    st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
+
+
+# --- Results Log ---
 with tabs[6]:
-    st.subheader("🏅 Leaderboard")
-    st.write("Leaderboard will be shown here based on bracket predictions.")
+    st.subheader("🗃️ Match Results Log")
+
+    try:
+        # Load match results from Supabase
+        match_results = st.session_state.get("match_results", {})
+
+        if not match_results:
+            st.info("No match results have been entered yet.")
+        else:
+            # Convert the match results into a DataFrame
+            data = []
+            for key, result in match_results.items():
+                if "|" not in key:
+                    continue  # Skip malformed or legacy keys
+
+                pod_name, match_str = key.split("|", 1)
+                try:
+                    player1, player2 = match_str.split(" vs ")
+                except ValueError:
+                    continue  # Skip malformed match strings
+
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
+
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
+
+            # Create DataFrame to display the match results
+            df = pd.DataFrame(data)
+            df = df.sort_values(by=["Pod", "Player 1"])
+
+            # Display match results
+            st.dataframe(df, use_container_width=True)
+
+            # Optional: Allow the user to download the match results as CSV
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+
+    except Exception as e:
+        st.error("❌ Error loading match results.")
+        st.code(str(e))
+
+
+# --- Leaderboard ---
+with tabs[7]:
+    st.subheader("🏅 Prediction Leaderboard")
+
+    try:
+        # Load predictions from Supabase
+        predictions_response = supabase.table("predictions").select("*").execute()
+        predictions = predictions_response.data
+
+        if not predictions:
+            st.info("No predictions submitted yet.")
+        else:
+            # Load the latest final results
+            final_results_response = supabase.table("final_results") \
+                                             .select("*") \
+                                             .order("created_at", desc=True) \
+                                             .limit(1) \
+                                             .execute()
+            final_results_data = final_results_response.data
+
+            if not final_results_data:
+                st.warning("Final results not confirmed yet. Leaderboard will update once finalized.")
+            else:
+                final_result = final_results_data[0]
+
+                # Parse the actual results
+                actual_results = {
+                    "r16_left": parse_json_field(final_result.get("r16_left", "[]")),
+                    "r16_right": parse_json_field(final_result.get("r16_right", "[]")),
+                    "qf_left": parse_json_field(final_result.get("qf_left", "[]")),
+                    "qf_right": parse_json_field(final_result.get("qf_right", "[]")),
+                    "sf_left": parse_json_field(final_result.get("sf_left", "[]")),
+                    "sf_right": parse_json_field(final_result.get("sf_right", "[]")),
+                    "champion": final_result.get("champion", "").strip()
+                }
+
+                leaderboard = []
+
+                # Calculate scores for each prediction
+                for row in predictions:
+                    name = row.get("name", "Unknown")
+                    score = 0
+                    ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
+
+                    # Compare round of 16 predictions
+                    pred_r16_left = parse_json_field(row.get("r16_left", "[]"))
+                    pred_r16_right = parse_json_field(row.get("r16_right", "[]"))
+
+                    for actual, predicted in zip(actual_results["r16_left"], pred_r16_left):
+                        if actual == predicted:
+                            score += 1
+                    for actual, predicted in zip(actual_results["r16_right"], pred_r16_right):
+                        if actual == predicted:
+                            score += 1
+
+                    # Compare quarterfinal predictions
+                    pred_qf_left = parse_json_field(row.get("qf_left", "[]"))
+                    pred_qf_right = parse_json_field(row.get("qf_right", "[]"))
+
+                    for actual, predicted in zip(actual_results["qf_left"], pred_qf_left):
+                        if actual == predicted:
+                            score += 3
+                    for actual, predicted in zip(actual_results["qf_right"], pred_qf_right):
+                        if actual == predicted:
+                            score += 3
+
+                    # Compare semifinal predictions
+                    pred_sf_left = parse_json_field(row.get("sf_left", "[]"))
+                    pred_sf_right = parse_json_field(row.get("sf_right", "[]"))
+
+                    for actual, predicted in zip(actual_results["sf_left"], pred_sf_left):
+                        if actual == predicted:
+                            score += 5
+                    for actual, predicted in zip(actual_results["sf_right"], pred_sf_right):
+                        if actual == predicted:
+                            score += 5
+
+                    # Compare champion prediction
+                    if row.get("champion", "").strip() == actual_results["champion"]:
+                        score += 10
+
+                    leaderboard.append({
+                        "Name": name,
+                        "Score": score,
+                        "Submitted At": ts
+                    })
+
+                # Create a dataframe for leaderboard
+                leaderboard_df = pd.DataFrame(leaderboard)
+                leaderboard_df = leaderboard_df.sort_values(
+                    by=["Score", "Submitted At"],
+                    ascending=[False, True]
+                ).reset_index(drop=True)
+
+                # Add rank column
+                leaderboard_df.insert(0, "Rank", leaderboard_df.index + 1)
+
+                # Highlight podium places
+                def highlight_podium(row):
+                    color = ""
+                    if row["Rank"] == 1:
+                        color = "background-color: gold; font-weight: bold"
+                    elif row["Rank"] == 2:
+                        color = "background-color: silver; font-weight: bold"
+                    elif row["Rank"] == 3:
+                        color = "background-color: #cd7f32; font-weight: bold"  # bronze
+                    return [color] * len(row)
+
+                # Apply styles to the leaderboard
+                styled_df = leaderboard_df.style.apply(highlight_podium, axis=1)
+
+                # Display leaderboard
+                st.dataframe(styled_df, use_container_width=True)
+    except Exception as e:
+        st.error("❌ Error loading leaderboard.")
+        st.code(str(e))
