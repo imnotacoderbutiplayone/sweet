@@ -694,7 +694,9 @@ with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
     # Load match results
+    with st.spinner('Loading match results...'):
     match_results = load_match_results()
+
     st.session_state.match_results = match_results
 
     pod_results = {}
