@@ -348,6 +348,43 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
+def label(player):
+    return f"{player['name']} ({player['handicap']})"
+
+def parse_json_field(field_val):
+    if isinstance(field_val, list):
+        return field_val
+    elif isinstance(field_val, str):
+        try:
+            return json.loads(field_val)
+        except Exception:
+            return []
+    else:
+        return []
+
+def get_players_by_names(all_players, names):
+    name_set = set(names)
+    return [p for p in all_players if p["name"] in name_set]
+
+def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
+    label1 = label(p1)
+    label2 = label(p2)
+    match_label = f"🏌️ {label1} vs {label2}"
+
+    if readonly:
+        if winner_name == p1["name"]:
+            result_text = f"✔️ **{label1}** defeated **{p2['name']}**"
+        elif winner_name == p2["name"]:
+            result_text = f"✔️ **{label2}** defeated **{p1['name']}**"
+        else:
+            result_text = f"❓ No winner recorded"
+        st.markdown(result_text)
+        return None
+    else:
+        choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
+        return p1 if choice == label1 else p2
+    
+
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -623,123 +660,120 @@ with tabs[1]:
 
 # --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
-    st.subheader("🏆 Bracket")
-
+    st.subheader("🏆 Bracket View (Supabase Driven)")
+    
     bracket_df = load_bracket_data()
     if bracket_df.empty:
-        st.warning("Please calculate bracket seeding from the Group Stage tab first.")
+        st.warning("Please finalize seeding in the Group Stage tab.")
         st.stop()
 
-    bracket_df = bracket_df.reset_index(drop=True)
-    left = bracket_df.iloc[0:8]
-    right = bracket_df.iloc[8:16]
-
+    left = bracket_df.iloc[0:8].to_dict("records")
+    right = bracket_df.iloc[8:16].to_dict("records")
     progression = load_bracket_progression_from_supabase()
 
-    def show_match_results(title, players, matchups, editable=False, round_key_prefix=""):
-        st.markdown(f"### {title}")
-        results = []
-        for i in range(0, len(players), 2):
-            if i+1 >= len(players):
-                continue
-            p1 = players[i]
-            p2 = players[i+1]
-            label1, label2 = label(p1), label(p2)
-            match_label = f"{label1} vs {label2}"
+    col1, col2 = st.columns(2)
 
-            if editable:
-                choice = st.radio(match_label, [label1, label2], key=f"{round_key_prefix}_{i}")
-                winner = p1 if choice == label1 else p2
-                results.append(winner)
-            else:
-                name_list = [m["name"] for m in matchups] if matchups else []
-                winner = p1 if p1["name"] in name_list else p2
-                st.markdown(f"✔️ **{winner['name']}** defeated {p2['name'] if winner == p1 else p1['name']}")
-                results.append(winner)
-        return results
-
-    # Editable by admin only
     if st.session_state.authenticated:
-        st.info("🛠 Admin mode enabled: enter results below")
+        st.info("🔐 Admin mode: Enter results and save")
 
-        # R16 Left
-        r16_left_winners = show_match_results("Round of 16 – Left", left.to_dict("records"), None, editable=True, round_key_prefix="r16_left")
-        # R16 Right
-        r16_right_winners = show_match_results("Round of 16 – Right", right.to_dict("records"), None, editable=True, round_key_prefix="r16_right")
+        with col1:
+            st.markdown("### 🟦 Left Side")
 
-        # QF Left
-        qf_left_winners = show_match_results("Quarterfinals – Left", r16_left_winners, None, editable=True, round_key_prefix="qf_left")
-        # QF Right
-        qf_right_winners = show_match_results("Quarterfinals – Right", r16_right_winners, None, editable=True, round_key_prefix="qf_right")
+            r16_left = []
+            for i in range(0, len(left), 2):
+                r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
 
-        # SF Left
-        sf_left_winners = show_match_results("Semifinals – Left", qf_left_winners, None, editable=True, round_key_prefix="sf_left")
-        # SF Right
-        sf_right_winners = show_match_results("Semifinals – Right", qf_right_winners, None, editable=True, round_key_prefix="sf_right")
+            qf_left = []
+            for i in range(0, len(r16_left), 2):
+                qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
 
-        # Final
-        if sf_left_winners and sf_right_winners:
-            champ_choice = st.radio("🏁 Final Match – Select Champion", [label(sf_left_winners[0]), label(sf_right_winners[0])])
-            champion = sf_left_winners[0] if champ_choice == label(sf_left_winners[0]) else sf_right_winners[0]
+            sf_left = []
+            for i in range(0, len(qf_left), 2):
+                sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
+
+        with col2:
+            st.markdown("### 🟥 Right Side")
+
+            r16_right = []
+            for i in range(0, len(right), 2):
+                r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
+
+            qf_right = []
+            for i in range(0, len(r16_right), 2):
+                qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
+
+            sf_right = []
+            for i in range(0, len(qf_right), 2):
+                sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
+
+        # Final match
+        if sf_left and sf_right:
+            champ_choice = st.radio("🏁 Final Match – Select Champion",
+                                    [label(sf_left[0]), label(sf_right[0])])
+            champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
         else:
             champion = None
 
-        if st.button("✅ Save Bracket Progression"):
+        if st.button("✅ Save Full Bracket"):
             save_bracket_progression_to_supabase({
-                "r16_left": json.dumps([p["name"] for p in r16_left_winners]),
-                "r16_right": json.dumps([p["name"] for p in r16_right_winners]),
-                "qf_left": json.dumps([p["name"] for p in qf_left_winners]),
-                "qf_right": json.dumps([p["name"] for p in qf_right_winners]),
-                "sf_left": json.dumps([p["name"] for p in sf_left_winners]),
-                "sf_right": json.dumps([p["name"] for p in sf_right_winners]),
-                "finalist_left": sf_left_winners[0]["name"] if sf_left_winners else "",
-                "finalist_right": sf_right_winners[0]["name"] if sf_right_winners else "",
+                "r16_left": json.dumps([p["name"] for p in r16_left]),
+                "r16_right": json.dumps([p["name"] for p in r16_right]),
+                "qf_left": json.dumps([p["name"] for p in qf_left]),
+                "qf_right": json.dumps([p["name"] for p in qf_right]),
+                "sf_left": json.dumps([p["name"] for p in sf_left]),
+                "sf_right": json.dumps([p["name"] for p in sf_right]),
+                "finalist_left": sf_left[0]["name"] if sf_left else "",
+                "finalist_right": sf_right[0]["name"] if sf_right else "",
                 "champion": champion["name"] if champion else ""
             })
-            st.success("🎉 Bracket progression saved!")
+            st.success("✅ Bracket progression saved!")
 
     else:
-        # Viewer mode (not admin)
         if not progression:
-            st.warning("Bracket progression has not been finalized yet.")
+            st.warning("Bracket progression not set yet.")
         else:
-            # Render results read-only from Supabase
-            def match_by_names(p1, p2, winners):
-                return p1 if p1["name"] in winners else p2
+            with col1:
+                st.markdown("### 🟦 Left Side")
+                r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
+                qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
+                sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
 
-            left_players = left.to_dict("records")
-            right_players = right.to_dict("records")
+                for i in range(0, len(left), 2):
+                    winner = r16_left[i//2]["name"]
+                    render_match(left[i], left[i+1], winner, readonly=True)
 
-            r16_left_names = parse_json_field(progression.get("r16_left", []))
-            r16_right_names = parse_json_field(progression.get("r16_right", []))
-            qf_left_names = parse_json_field(progression.get("qf_left", []))
-            qf_right_names = parse_json_field(progression.get("qf_right", []))
-            sf_left_names = parse_json_field(progression.get("sf_left", []))
-            sf_right_names = parse_json_field(progression.get("sf_right", []))
+                for i in range(0, len(r16_left), 2):
+                    winner = qf_left[i//2]["name"]
+                    render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
+
+                for i in range(0, len(qf_left), 2):
+                    winner = sf_left[i//2]["name"]
+                    render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
+
+            with col2:
+                st.markdown("### 🟥 Right Side")
+                r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
+                qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
+                sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
+
+                for i in range(0, len(right), 2):
+                    winner = r16_right[i//2]["name"]
+                    render_match(right[i], right[i+1], winner, readonly=True)
+
+                for i in range(0, len(r16_right), 2):
+                    winner = qf_right[i//2]["name"]
+                    render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
+
+                for i in range(0, len(qf_right), 2):
+                    winner = sf_right[i//2]["name"]
+                    render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
+
             champ_name = progression.get("champion", "")
-
-            show_match_results("Round of 16 – Left", left_players, [{"name": n} for n in r16_left_names])
-            show_match_results("Round of 16 – Right", right_players, [{"name": n} for n in r16_right_names])
-
-            # Build winners round-by-round for display
-            def players_by_names(player_pool, names):
-                return [p for p in player_pool if p["name"] in names]
-
-            qf_left = players_by_names(left_players, r16_left_names)
-            qf_right = players_by_names(right_players, r16_right_names)
-            sf_left = players_by_names(qf_left, qf_left_names)
-            sf_right = players_by_names(qf_right, qf_right_names)
-
-            show_match_results("Quarterfinals – Left", qf_left, [{"name": n} for n in qf_left_names])
-            show_match_results("Quarterfinals – Right", qf_right, [{"name": n} for n in qf_right_names])
-            show_match_results("Semifinals – Left", sf_left, [{"name": n} for n in sf_left_names])
-            show_match_results("Semifinals – Right", sf_right, [{"name": n} for n in sf_right_names])
-
-            st.markdown("### 🏆 Final Champion")
             if champ_name:
+                st.markdown("### 🏆 Final Match")
                 st.success(f"🥇 Champion: **{champ_name}**")
             else:
-                st.info("Champion not confirmed yet.")
+                st.info("Final match not confirmed.")
 
 
 # Tab 3: Standings
