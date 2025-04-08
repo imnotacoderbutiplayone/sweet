@@ -111,6 +111,10 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     try:
         response = supabase.table("tournament_matches").insert(data).execute()  # Save to the database
         st.write("Match Result Saved:", response)  # Debugging line to check the response
+        
+        # Reload match results into session state
+        st.session_state.match_results = load_match_results()  # Re-load match results from Supabase
+
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
@@ -126,6 +130,7 @@ def get_winner_player(player1, player2, winner_name):
             return p
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
+# --- Render Match ----
 # --- Render Match ----
 def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     """
@@ -1182,9 +1187,6 @@ with tabs[6]:  # Results Log tab
         # Reload match results into session state (after saving match result)
         match_results = st.session_state.get("match_results", {})
 
-        # Debugging: print the loaded results
-        st.write("Loaded Match Results:", match_results)  # Debugging line
-
         if not match_results:
             st.info("No match results have been entered yet.")
         else:
@@ -1201,14 +1203,11 @@ with tabs[6]:  # Results Log tab
                     continue  # Skip malformed match strings
 
                 winner = result.get("winner", "Tie")
-                margin = result.get("margin", 0)
+                margin = result.get("margin", "Tie")  # Ensure we handle 'Tie' margin
                 status = result.get("status", "N/A")  # Include status here
                 
                 # Fallback for unknown margin
-                margin_text = next(
-                    (k for k, v in margin_lookup.items() if v == margin),
-                    "Unknown"  # Default if margin not found
-                )
+                margin_text = margin if margin != "Tie" else "Tie"
 
                 data.append({
                     "Pod": pod_name,
@@ -1233,6 +1232,7 @@ with tabs[6]:  # Results Log tab
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
 
 
 # --- Leaderboard ---
