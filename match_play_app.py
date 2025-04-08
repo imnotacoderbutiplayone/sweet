@@ -1172,6 +1172,9 @@ with tabs[6]:
     try:
         # Load match results from Supabase
         match_results = st.session_state.get("match_results", {})
+        
+        # Debugging: print the loaded results
+        st.write("Loaded Match Results:", match_results)  # Debugging line
 
         if not match_results:
             st.info("No match results have been entered yet.")
@@ -1190,9 +1193,11 @@ with tabs[6]:
 
                 winner = result.get("winner", "Tie")
                 margin = result.get("margin", 0)
+                
+                # Fallback for unknown margin
                 margin_text = next(
                     (k for k, v in margin_lookup.items() if v == margin),
-                    "Tie" if winner == "Tie" else "1 up"
+                    "Unknown"  # Default if margin not found
                 )
 
                 data.append({
@@ -1213,7 +1218,7 @@ with tabs[6]:
             # Optional: Allow the user to download the match results as CSV
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
-
+    
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
