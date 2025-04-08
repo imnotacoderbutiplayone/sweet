@@ -794,6 +794,9 @@ with tabs[2]:
     if "match_results" not in st.session_state:
         st.session_state.match_results = load_match_results()
 
+    # Make sure the match results are fresh and up to date
+    match_results = st.session_state.match_results  # Always ensure we're using the most recent match results
+
     # Calculate standings based on the latest match results
     pod_results = {}
 
@@ -806,7 +809,7 @@ with tabs[2]:
             total_margin = 0
 
             # Iterate through all match results and calculate points and margins
-            for key, result in st.session_state.match_results.items():
+            for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|"):
                     if name in key:
                         if result["winner"] == name:
