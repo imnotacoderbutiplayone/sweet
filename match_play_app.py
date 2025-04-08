@@ -1357,14 +1357,15 @@ with tabs[5]:
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
 
-
-# --- Results Log ---
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
         # Load match results from Supabase directly
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+
+        # Debugging: Display the raw data fetched from Supabase
+        st.write("Raw match data from Supabase:", response.data)
 
         # Check if the response contains data
         if response.data:
@@ -1421,6 +1422,7 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
 
 
 
