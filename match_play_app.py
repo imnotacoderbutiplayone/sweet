@@ -1365,6 +1365,9 @@ with tabs[6]:
             try:
                 # Load match results from Supabase
                 response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+                
+                # Debugging: Print the response to see what we got from Supabase
+                print("Response from Supabase:", response)
 
                 # Process the response data and store it in session state
                 match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
@@ -1378,6 +1381,9 @@ with tabs[6]:
                 match_results = {}  # Default to empty if error occurs
         else:
             match_results = st.session_state.match_results
+
+        # Debugging: Check if match_results is populated
+        print("Loaded match results:", match_results)
 
         # If there are no match results
         if not match_results:
@@ -1412,38 +1418,26 @@ with tabs[6]:
 
             # Create DataFrame to display the match results
             df = pd.DataFrame(data)
-            df = df.sort_values(by=["Pod", "Player 1"])
 
-            # Display match results
-            st.dataframe(df, use_container_width=True)
+            # Debugging: Check if the DataFrame is populated correctly
+            print("Match Results DataFrame:", df)
 
-            # Optional: Allow the user to download the match results as CSV
-            csv = df.to_csv(index=False).encode("utf-8")
-            st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+            # Ensure it's not empty
+            if df.empty:
+                st.info("❌ No results to display.")
+            else:
+                df = df.sort_values(by=["Pod", "Player 1"])
+
+                # Display match results
+                st.dataframe(df, use_container_width=True)
+
+                # Optional: Allow the user to download the match results as CSV
+                csv = df.to_csv(index=False).encode("utf-8")
+                st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
-
-    # --- Display Most Recent Match Result ---
-    st.subheader("📌 Most Recent Match Result")
-
-    try:
-        most_recent_result = load_most_recent_match_results()
-
-        if most_recent_result:
-            winner = most_recent_result["winner"]
-            margin_value = most_recent_result["margin"]
-            margin_str = next((k for k, v in margin_lookup.items() if v == margin_value), "Unknown margin")
-            st.write(f"Player 1: {most_recent_result['player1']}")
-            st.write(f"Player 2: {most_recent_result['player2']}")
-            st.write(f"Winner: {winner}")
-            st.write(f"Margin: {margin_str}")
-        else:
-            st.write("No results available.")
-
-    except Exception as e:
-        st.error(f"❌ Error loading most recent match result: {e}")
 
 
 
