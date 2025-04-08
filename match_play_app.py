@@ -1148,33 +1148,28 @@ with tabs[6]:
 
     try:
         # Directly load match results from Supabase
-        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("tournament_matches").select("*").execute()
 
         # Debugging: print out raw response data
-        st.write("Raw Response:", response.data)
-
         if not response.data:
-            st.info("No match results have been entered yet.")
+            st.error("❌ No data returned from Supabase.")
         else:
-            # Debugging: Check the column names
-            if response.data:
-                st.write("Columns in the data:", response.data[0].keys())  # Display the column names
+            st.write("Raw Data:", response.data)  # Debugging: show the response
 
-            # Proceed with processing match results
+            # If the data is returned successfully
             match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
                 "margin": r["margin"]
             } for r in response.data}
 
-            # If there are no match results
             if not match_results:
                 st.info("No match results available.")
             else:
-                # Prepare the data for displaying in a DataFrame
+                # Prepare data for DataFrame
                 data = []
                 for key, result in match_results.items():
                     if "|" not in key:
-                        continue  # Skip malformed or legacy keys
+                        continue
 
                     pod_name, match_str = key.split("|", 1)
                     try:
@@ -1197,19 +1192,19 @@ with tabs[6]:
                         "Margin": margin_text
                     })
 
-                # Convert the results into a DataFrame
+                # Display data in DataFrame
                 df = pd.DataFrame(data)
                 df = df.sort_values(by=["Pod", "Player 1"])
 
-                # Display the match results
+                # Show results
                 st.dataframe(df, use_container_width=True)
 
-                # Optional: Allow the user to download the match results as CSV
+                # Allow download of results as CSV
                 csv = df.to_csv(index=False).encode("utf-8")
                 st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
     except Exception as e:
-        st.error(f"❌ Error loading match results from Supabase: {e}")
+        st.error(f"❌ Error loading match results: {e}")
         st.code(str(e))
 
 
