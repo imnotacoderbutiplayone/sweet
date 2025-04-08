@@ -334,9 +334,7 @@ def compute_pod_standings_from_results(pods, match_results):
                     # Convert margin string to a numeric value
                     if margin_str != "Tie":
                         # Check if margin_str exists in the lookup dictionary
-                        margin_value = margin_lookup.get(margin_str)
-                        if margin_value is None:
-                            margin_value = 0  # Default to 0 if not in the margin_lookup
+                        margin_value = margin_lookup.get(margin_str, 0)  # Default to 0 if not in the lookup
                     else:
                         margin_value = 0  # "Tie" or undefined, set margin to 0
 
