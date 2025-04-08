@@ -625,9 +625,7 @@ with tabs[3]:
                     p1, p2 = left.iloc[i], left.iloc[i + 1]
                     match_label = f"{label(p1)} vs {label(p2)}"
                     if st.session_state.authenticated:
-                        # Show radio buttons for each match.
                         choice = st.radio(match_label, [label(p1), label(p2)], key=f"R16L_{i}")
-                        # Temporarily store the winner for this match.
                         r16_left_choices[i] = p1 if choice == label(p1) else p2
                     else:
                         st.markdown(f"🔒 {match_label} _(Admin only)_")
@@ -758,13 +756,15 @@ with tabs[3]:
                     st.write(label(p))
         
         # ============================
-        # FINAL MATCH – Champion Confirm
+        # FINAL MATCH – Champion Confirmation
         # ============================
         st.markdown("### 🏁 Final Match")
         if st.session_state.authenticated and "sf_left" in st.session_state and "sf_right" in st.session_state:
+            # Retrieve the confirmed winners from the semifinals
             finalist_left = st.session_state.sf_left[0] if st.session_state.sf_left else None
             finalist_right = st.session_state.sf_right[0] if st.session_state.sf_right else None
-            if finalist_left and finalist_right:
+            # Use explicit None-checks to avoid ambiguous boolean evaluation.
+            if finalist_left is not None and finalist_right is not None:
                 final_choice = st.radio("Select the Final Champion:",
                                         [label(finalist_left), label(finalist_right)],
                                         key="FinalMatch")
