@@ -887,36 +887,29 @@ with tabs[5]:
                         [label(finalist_left), label(finalist_right)],
                         key=f"PickChamp_{full_name}"
                     )
-                    if champ_label:
-                        champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
+                    champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
 
-                ready_to_submit = (
-                    full_name and champion_final and
-                    len(pred_r16_left) == 4 and len(pred_r16_right) == 4 and
-                    len(pred_qf_left) == 2 and len(pred_qf_right) == 2 and
-                    finalist_left and finalist_right
-                )
+                    # Submit only if champion is selected
+                    if champ_label and st.button("🚀 Submit My Bracket Prediction"):
+                        try:
+                            prediction_entry = {
+                                "name": full_name,
+                                "timestamp": datetime.utcnow().isoformat(),
+                                "champion": champion_final["name"],
+                                "finalist_left": finalist_left["name"],
+                                "finalist_right": finalist_right["name"],
+                                "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
+                                "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
+                                "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
+                                "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
+                            }
 
-                if ready_to_submit and st.button("🚀 Submit My Bracket Prediction"):
-                    try:
-                        prediction_entry = {
-                            "name": full_name,
-                            "timestamp": datetime.utcnow().isoformat(),
-                            "champion": champion_final["name"],
-                            "finalist_left": finalist_left["name"],
-                            "finalist_right": finalist_right["name"],
-                            "r16_left": json.dumps([p["name"] for p in pred_r16_left]),
-                            "r16_right": json.dumps([p["name"] for p in pred_r16_right]),
-                            "qf_left": json.dumps([p["name"] for p in pred_qf_left]),
-                            "qf_right": json.dumps([p["name"] for p in pred_qf_right]),
-                        }
+                            supabase.table("predictions").insert(prediction_entry).execute()
+                            st.success("✅ Your bracket prediction has been submitted!")
 
-                        supabase.table("predictions").insert(prediction_entry).execute()
-                        st.success("✅ Your bracket prediction has been submitted!")
-
-                    except Exception as e:
-                        st.error("❌ Error saving your prediction.")
-                        st.code(str(e))
+                        except Exception as e:
+                            st.error("❌ Error saving your prediction.")
+                            st.code(str(e))
 
         st.subheader("📜 Prediction Ledger")
         try:
