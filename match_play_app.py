@@ -887,7 +887,10 @@ with tabs[5]:
                         [label(finalist_left), label(finalist_right)],
                         key=f"PickChamp_{full_name}"
                     )
-                    champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
+                    if champ_label == label(finalist_left):
+                        champion_final = finalist_left
+                    elif champ_label == label(finalist_right):
+                        champion_final = finalist_right
 
                 if champion_final and st.button("🚀 Submit My Bracket Prediction"):
                     try:
