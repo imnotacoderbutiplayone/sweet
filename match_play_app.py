@@ -307,7 +307,7 @@ def resolve_tiebreakers(pod_scores):
 
     return unresolved
 
-# Define margin lookup dictionary for string-to-number mapping
+# Define the margin lookup dictionary to map string descriptions to numeric values
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
     "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
@@ -328,15 +328,12 @@ def compute_pod_standings_from_results(pods, match_results):
                     winner = result.get("winner")
                     margin_str = result.get("margin", "Tie")  # Default to "Tie" if no margin
 
-                    # Debugging: Print margin for inspection
-                    print(f"Result for {key}: winner={winner}, margin_str={margin_str}, type={type(margin_str)}")
-
-                    # If margin is a string like "1 up", "2 and 1", etc., look it up
-                    if isinstance(margin_str, str) and margin_str != "Tie":
+                    # Ensure margin is numeric
+                    if isinstance(margin_str, str):
+                        # If margin_str is a string like "1 up", "2 and 1", etc., look it up
                         margin_value = margin_lookup.get(margin_str, 0)  # Default to 0 if not found in lookup
-                        print(f"Found margin_value from lookup: {margin_value}")
                     else:
-                        margin_value = 0  # "Tie" or non-string values, treat margin as 0
+                        margin_value = margin_str  # If it's already numeric, use it directly
 
                     # Update points and margin based on the winner
                     if winner == name:
