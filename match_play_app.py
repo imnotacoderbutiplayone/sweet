@@ -790,8 +790,6 @@ with tabs[2]:
 
 # --- Admin View Rendering Bracket ---
 # --- Bracket ---
-# --- Admin View Rendering Bracket ---
-# --- Bracket ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
@@ -872,21 +870,20 @@ with tabs[3]:
         else:
             champion = None
 
-         Commenting out the "Finalize Bracket" and "Export Matches" buttons
-         Save the bracket progression once the admin finalizes
-         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
-             save_bracket_progression_to_supabase({
-                 "r16_left": json.dumps([p["name"] for p in r16_left]),
-                 "r16_right": json.dumps([p["name"] for p in r16_right]),
-                 "qf_left": json.dumps([p["name"] for p in qf_left]),
-                 "qf_right": json.dumps([p["name"] for p in qf_right]),
-                 "sf_left": json.dumps([p["name"] for p in sf_left]),
-                 "sf_right": json.dumps([p["name"] for p in sf_right]),
-                 "finalist_left": sf_left[0]["name"] if sf_left else "",
-                 "finalist_right": sf_right[0]["name"] if sf_right else "",
-                 "champion": champion["name"] if champion else ""
-             })
-             st.success("✅ Bracket progression saved!")
+        # Save the bracket progression once the admin finalizes
+        if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
+            save_bracket_progression_to_supabase({
+                "r16_left": json.dumps([p["name"] for p in r16_left]),
+                "r16_right": json.dumps([p["name"] for p in r16_right]),
+                "qf_left": json.dumps([p["name"] for p in qf_left]),
+                "qf_right": json.dumps([p["name"] for p in qf_right]),
+                "sf_left": json.dumps([p["name"] for p in sf_left]),
+                "sf_right": json.dumps([p["name"] for p in sf_right]),
+                "finalist_left": sf_left[0]["name"] if sf_left else "",
+                "finalist_right": sf_right[0]["name"] if sf_right else "",
+                "champion": champion["name"] if champion else ""
+            })
+            st.success("✅ Bracket progression saved!")
     else:
         st.warning("Bracket progression not set yet.")
 
