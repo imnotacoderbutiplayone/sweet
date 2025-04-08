@@ -1150,11 +1150,17 @@ with tabs[6]:
         # Directly load match results from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # If the response data is empty, show a message
+        # Debugging: print out raw response data
+        st.write("Raw Response:", response.data)
+
         if not response.data:
             st.info("No match results have been entered yet.")
         else:
-            # Convert the response data into match results format
+            # Debugging: Check the column names
+            if response.data:
+                st.write("Columns in the data:", response.data[0].keys())  # Display the column names
+
+            # Proceed with processing match results
             match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
                 "margin": r["margin"]
