@@ -789,7 +789,6 @@ with tabs[2]:
 
 
 # --- Admin View Rendering Bracket ---
-# --- Bracket ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
@@ -886,6 +885,86 @@ with tabs[3]:
             st.success("✅ Bracket progression saved!")
     else:
         st.warning("Bracket progression not set yet.")
+        
+# --- Non-Admin View Rendering Bracket ---
+with tabs[3]:
+    st.subheader("🏆 Bracket")
+
+    # Check if the bracket is finalized
+    if "finalized_bracket" not in st.session_state:
+        st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
+        st.stop()
+
+    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
+
+    # Split bracket into left and right sides
+    left = bracket_df.iloc[0:8].to_dict("records")
+    right = bracket_df.iloc[8:16].to_dict("records")
+
+    col1, col2 = st.columns(2)
+
+    def get_winner_safe(round_list, index):
+        try:
+            return round_list[index]["name"]
+        except (IndexError, TypeError, KeyError):
+            return ""
+
+    # Render the bracket for non-admin users
+    with col1:
+        st.markdown("### 🟦 Left Side")
+
+        st.markdown("#### 🔹 Round of 16")
+        r16_left = []
+        for i in range(0, len(left), 2):
+            winner_name = get_winner_safe(left, i)
+            r16_left.append(winner_name)
+
+        st.markdown("#### 🥉 Quarterfinals")
+        qf_left = []
+        for i in range(0, len(r16_left), 2):
+            if i + 1 < len(r16_left):
+                winner_name = get_winner_safe(r16_left, i)
+                qf_left.append(winner_name)
+
+        st.markdown("#### 🥈 Semifinal")
+        sf_left = []
+        for i in range(0, len(qf_left), 2):
+            if i + 1 < len(qf_left):
+                winner_name = get_winner_safe(qf_left, i)
+                sf_left.append(winner_name)
+
+    with col2:
+        st.markdown("### 🟥 Right Side")
+
+        st.markdown("#### 🔹 Round of 16")
+        r16_right = []
+        for i in range(0, len(right), 2):
+            winner_name = get_winner_safe(right, i)
+            r16_right.append(winner_name)
+
+        st.markdown("#### 🥉 Quarterfinals")
+        qf_right = []
+        for i in range(0, len(r16_right), 2):
+            if i + 1 < len(r16_right):
+                winner_name = get_winner_safe(r16_right, i)
+                qf_right.append(winner_name)
+
+        st.markdown("#### 🥈 Semifinal")
+        sf_right = []
+        for i in range(0, len(qf_right), 2):
+            if i + 1 < len(qf_right):
+                winner_name = get_winner_safe(qf_right, i)
+                sf_right.append(winner_name)
+
+    if sf_left and sf_right:
+        st.markdown("### 🏁 Final Match")
+        champ_choice = st.radio("🏆 Select the Champion",
+                                [label(sf_left[0]), label(sf_right[0])],
+                                key="final_match_radio")
+        champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
+    else:
+        champion = None
+
 
 
 # --- Export ---
