@@ -138,6 +138,10 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
 
     Returns the winner of the match.
     """
+    # Debugging: Print out player data
+    st.write(f"Player 1 Data: {player1}")
+    st.write(f"Player 2 Data: {player2}")
+    
     # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
@@ -192,6 +196,7 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         # If readonly is True, just display the result
         st.write(f"Match result: {winner}")
         return winner
+
 
 # --- Compute standings dynamically from match results ---
 def compute_pod_standings_from_results(pods, match_results):
