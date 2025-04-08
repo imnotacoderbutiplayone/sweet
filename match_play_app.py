@@ -760,10 +760,8 @@ with tabs[3]:
         # ============================
         st.markdown("### 🏁 Final Match")
         if st.session_state.authenticated and "sf_left" in st.session_state and "sf_right" in st.session_state:
-            # Retrieve the confirmed winners from the semifinals
             finalist_left = st.session_state.sf_left[0] if st.session_state.sf_left else None
             finalist_right = st.session_state.sf_right[0] if st.session_state.sf_right else None
-            # Use explicit None-checks to avoid ambiguous boolean evaluation.
             if finalist_left is not None and finalist_right is not None:
                 final_choice = st.radio("Select the Final Champion:",
                                         [label(finalist_left), label(finalist_right)],
@@ -774,6 +772,21 @@ with tabs[3]:
                     st.session_state.finalist_left_name = finalist_left["name"]
                     st.session_state.finalist_right_name = finalist_right["name"]
                     st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
+                    
+                    # Persist final results to Supabase for all users to see:
+                    final_results = {
+                        "r16_left": json.dumps([p["name"] for p in st.session_state.get("r16_left", [])]),
+                        "r16_right": json.dumps([p["name"] for p in st.session_state.get("r16_right", [])]),
+                        "qf_left": json.dumps([p["name"] for p in st.session_state.get("qf_left", [])]),
+                        "qf_right": json.dumps([p["name"] for p in st.session_state.get("qf_right", [])]),
+                        "sf_left": json.dumps([p["name"] for p in st.session_state.get("sf_left", [])]),
+                        "sf_right": json.dumps([p["name"] for p in st.session_state.get("sf_right", [])]),
+                        "champion": champion["name"],
+                        "finalist_left": finalist_left["name"],
+                        "finalist_right": finalist_right["name"],
+                        "timestamp": datetime.utcnow().isoformat()
+                    }
+                    supabase.table("final_results").insert(final_results).execute()
         else:
             st.markdown("🔒 Final match — _(Admin only)_")
 
@@ -1032,28 +1045,29 @@ with tabs[7]:
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            # Ensure the final results have been confirmed by the admin
-            champion_name = st.session_state.get("champion_name", "").strip()
-            # For the semifinals, we expect each side to have one confirmed winner.
-            sf_left = st.session_state.get("sf_left", [])
-            sf_right = st.session_state.get("sf_right", [])
-            
-            if not champion_name or not sf_left or not sf_right:
-                st.warning("Final results have not been confirmed yet. Leaderboard will update once the winner is finalized.")
+            # Query the latest final results from the Supabase table
+            final_results_data = supabase.table("final_results") \
+                                       .select("*") \
+                                       .order("timestamp", desc=True) \
+                                       .limit(1) \
+                                       .execute().data
+            if not final_results_data or len(final_results_data) == 0:
+                st.warning("Final results have not been confirmed yet. Leaderboard will update once a winner is finalized.")
             else:
-                # Build a dictionary of the actual results extracted from session state.
-                # For round-of-16, quarterfinals, and semifinals we store the winners' names.
+                final_result = final_results_data[0]
+                # Rebuild the actual results dictionary from the stored JSON data:
                 actual_results = {
-                    "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
-                    "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
-                    "qf_left": [p["name"] for p in st.session_state.get("qf_left", [])],
-                    "qf_right": [p["name"] for p in st.session_state.get("qf_right", [])],
-                    "sf_left": [p["name"] for p in st.session_state.get("sf_left", [])],
-                    "sf_right": [p["name"] for p in st.session_state.get("sf_right", [])],
-                    "champion": champion_name
+                    "r16_left": json.loads(final_result.get("r16_left", "[]")),
+                    "r16_right": json.loads(final_result.get("r16_right", "[]")),
+                    "qf_left": json.loads(final_result.get("qf_left", "[]")),
+                    "qf_right": json.loads(final_result.get("qf_right", "[]")),
+                    "sf_left": json.loads(final_result.get("sf_left", "[]")),
+                    "sf_right": json.loads(final_result.get("sf_right", "[]")),
+                    "champion": final_result.get("champion", "")
                 }
-                
+    
                 leaderboard = []
+    
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
@@ -1074,7 +1088,7 @@ with tabs[7]:
                     for actual, predicted in zip(actual_results["r16_right"], pred_r16_right):
                         if actual == predicted:
                             score += 1
-                    
+    
                     # --- Quarterfinals scoring (3 points per correct prediction) ---
                     try:
                         pred_qf_left = json.loads(row.get("qf_left", "[]"))
@@ -1091,7 +1105,7 @@ with tabs[7]:
                     for actual, predicted in zip(actual_results["qf_right"], pred_qf_right):
                         if actual == predicted:
                             score += 3
-                    
+    
                     # --- Semifinals scoring (5 points per correct prediction) ---
                     try:
                         pred_sf_left = json.loads(row.get("sf_left", "[]"))
@@ -1108,16 +1122,16 @@ with tabs[7]:
                     for actual, predicted in zip(actual_results["sf_right"], pred_sf_right):
                         if actual == predicted:
                             score += 5
-                    
+    
                     # --- Final match scoring (10 points for picking the champion) ---
                     if row.get("champion", "").strip() == actual_results["champion"]:
                         score += 10
-                    
+    
                     leaderboard.append({
                         "Name": name,
                         "Score": score
                     })
-                
+    
                 leaderboard_df = pd.DataFrame(leaderboard)
                 leaderboard_df = leaderboard_df.sort_values(by="Score", ascending=False).reset_index(drop=True)
                 st.dataframe(leaderboard_df, use_container_width=True)
