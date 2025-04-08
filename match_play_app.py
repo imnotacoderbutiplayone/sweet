@@ -419,9 +419,9 @@ def load_match_results():
         # Always fetch the latest match results from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Check if the response is successful
-        if response.status_code != 200:
-            st.error(f"❌ Error fetching match results: Status code {response.status_code}")
+        # Check if there is any data in the response
+        if not response.data:
+            st.error("❌ No match results found in the response.")
             return {}
 
         # Process the response data
