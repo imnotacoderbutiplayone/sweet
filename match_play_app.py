@@ -312,6 +312,12 @@ def resolve_tiebreakers(pod_scores):
 def compute_pod_standings_from_results(pods, match_results):
     pod_scores = {}
 
+    # Define the margin lookup as a dictionary (you've provided this)
+    margin_lookup = {
+        "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
+        "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
+    }
+
     for pod_name, players in pods.items():
         results = []
         for player in players:
@@ -321,13 +327,26 @@ def compute_pod_standings_from_results(pods, match_results):
             # Iterate through all match results and calculate points and margins
             for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|") and name in key:
-                    if result.get("winner") == name:
-                        points += 1
-                        margin += result.get("margin", 0)  # Safely get 'margin', default to 0
-                    elif result.get("winner") == "Tie":
-                        points += 0.5
+                    winner = result.get("winner")
+                    # Get the margin string (e.g., "1 up", "2 and 1")
+                    margin_str = result.get("margin", "Tie")  # Default to "Tie" if no margin
+
+                    # Convert margin string to a numeric value
+                    if margin_str != "Tie":
+                        # Check if margin_str exists in the lookup dictionary
+                        margin_value = margin_lookup.get(margin_str)
+                        if margin_value is None:
+                            margin_value = 0  # Default to 0 if not in the margin_lookup
                     else:
-                        margin -= result.get("margin", 0)  # Safely get 'margin', default to 0
+                        margin_value = 0  # "Tie" or undefined, set margin to 0
+
+                    if winner == name:
+                        points += 1
+                        margin += margin_value  # Add margin for winner
+                    elif winner == "Tie":
+                        points += 0.5  # Tie gives half a point
+                    else:
+                        margin -= margin_value  # Subtract margin for loser
 
             results.append({
                 "name": name,
