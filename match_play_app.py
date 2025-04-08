@@ -262,13 +262,13 @@ def compute_pod_standings_from_results(pods, match_results):
 
             for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|") and name in key:
-                    if result["winner"] == name:
+                    if result.get("winner") == name:
                         points += 1
-                        margin += result["margin"]
-                    elif result["winner"] == "Tie":
+                        margin += result.get("margin", 0)  # Safely get 'margin', default to 0
+                    elif result.get("winner") == "Tie":
                         points += 0.5
                     else:
-                        margin -= result["margin"]
+                        margin -= result.get("margin", 0)  # Safely get 'margin', default to 0
 
             results.append({
                 "name": name,
