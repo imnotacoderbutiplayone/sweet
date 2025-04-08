@@ -107,6 +107,7 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         st.write(f"Match result: {winner}")
         return winner
 
+
 #--- Simulate Matches ----
 def simulate_matches(players, pod_name, source=""):
     # Initialize result dictionary for players
