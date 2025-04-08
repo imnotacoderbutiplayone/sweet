@@ -50,6 +50,20 @@ def get_players_by_names(source_players, names):
     # Return the full player records in the same order
     return [name_lookup.get(name, {"name": name, "handicap": "N/A"}) for name in names]
 
+#-- load round players ---
+def load_round_players(round_key, progression_data, source_players=pods):
+    """
+    Load a round from Supabase progression data and return full player dicts.
+    Falls back to empty list if missing or bad data.
+    """
+    try:
+        names = parse_json_field(progression_data.get(round_key, "[]"))
+        return get_players_by_names(source_players, names)
+    except Exception as e:
+        st.warning(f"⚠️ Failed to load round '{round_key}': {e}")
+        return []
+
+
 
 # --- Helper: Sanitize Key function for Streamlit ---
 def sanitize_key(text):
@@ -811,21 +825,21 @@ with tabs[3]:
 
                 # Round of 16
                 st.markdown("#### 🔹 Round of 16")
-                r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
+                r16_left = load_round_players("r16_left", progression, pods)
                 for i in range(0, len(left), 2):
                     winner = r16_left[i // 2]["name"]
                     render_match(left[i], left[i + 1], winner, readonly=True)
 
                 # Quarterfinals
                 st.markdown("#### 🥉 Quarterfinals")
-                qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
+                qf_left = load_round_players("qf_left", progression, pods)
                 for i in range(0, len(r16_left), 2):
                     winner = qf_left[i // 2]["name"]
                     render_match(r16_left[i], r16_left[i + 1], winner, readonly=True)
 
                 # Semifinal
                 st.markdown("#### 🥈 Semifinal")
-                sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
+                sf_left = load_round_players("sf_left", progression, pods)
                 for i in range(0, len(qf_left), 2):
                     winner = sf_left[i // 2]["name"]
                     render_match(qf_left[i], qf_left[i + 1], winner, readonly=True)
@@ -835,21 +849,21 @@ with tabs[3]:
 
                 # Round of 16
                 st.markdown("#### 🔹 Round of 16")
-                r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
+                r16_right = load_round_players("r16_right", progression, pods)
                 for i in range(0, len(right), 2):
                     winner = r16_right[i // 2]["name"]
                     render_match(right[i], right[i + 1], winner, readonly=True)
 
                 # Quarterfinals
                 st.markdown("#### 🥉 Quarterfinals")
-                qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
+                qf_right = load_round_players("qf_right", progression, pods)
                 for i in range(0, len(r16_right), 2):
                     winner = qf_right[i // 2]["name"]
                     render_match(r16_right[i], r16_right[i + 1], winner, readonly=True)
 
                 # Semifinal
                 st.markdown("#### 🥈 Semifinal")
-                sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
+                sf_right = load_round_players("sf_right", progression, pods)
                 for i in range(0, len(qf_right), 2):
                     winner = sf_right[i // 2]["name"]
                     render_match(qf_right[i], qf_right[i + 1], winner, readonly=True)
