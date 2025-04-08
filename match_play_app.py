@@ -1147,11 +1147,26 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Check if the match results are loaded properly into session state
-        st.write("Current match results in session state:", st.session_state.get("match_results", {}))
-        
-        match_results = st.session_state.get("match_results", {})
+        # Try loading the match results from Supabase if not in session state
+        if "match_results" not in st.session_state:
+            try:
+                # Load match results from Supabase
+                response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+                
+                # Process the response data and store it in session state
+                match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
+                    "winner": r["winner"],
+                    "margin": r["margin"]
+                } for r in response.data}
+                st.session_state.match_results = match_results  # Store the results in session state
+            except Exception as e:
+                st.error("❌ Error loading match results from Supabase.")
+                st.code(str(e))
+                match_results = {}  # Default to empty if error occurs
+        else:
+            match_results = st.session_state.match_results
 
+        # If there are no match results
         if not match_results:
             st.info("No match results have been entered yet.")
         else:
@@ -1196,7 +1211,6 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
-
 
 
 
