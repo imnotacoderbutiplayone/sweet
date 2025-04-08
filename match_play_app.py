@@ -196,7 +196,7 @@ if not st.session_state.app_authenticated:
             st.error("Incorrect tournament password.")
     st.stop()
 
-# ---- Sidebar Admin Login ----
+# --- Sidebar Admin Login ---
 st.sidebar.header("🔐 Admin Login")
 
 if not st.session_state.authenticated:
@@ -214,48 +214,44 @@ else:
         st.session_state.authenticated = False
         st.rerun()
 
-    # --- ⚙️ Admin Tools ---
-st.sidebar.markdown("---")
-st.sidebar.subheader("⚙️ Admin Tools")
+    # --- ⚙️ Admin Tools (Visible ONLY to Admin) ---
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("⚙️ Admin Tools")
 
-st.sidebar.warning("This will permanently delete ALL tournament data from Supabase and local files.")
+    st.sidebar.warning("This will permanently delete ALL tournament data from Supabase and local files.")
 
-confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
+    confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
 
-if st.sidebar.button("🧨 Reset Tournament Data"):
-    if confirm_reset.strip().upper() == "RESET":
-        # ---- Optional: delete local JSON files if still in use ----
-        for file in [RESULTS_FILE, BRACKET_FILE]:
-            if os.path.exists(file):
-                os.remove(file)
+    if st.sidebar.button("🧨 Reset Tournament Data"):
+        if confirm_reset.strip().upper() == "RESET":
+            for file in [RESULTS_FILE, BRACKET_FILE]:
+                if os.path.exists(file):
+                    os.remove(file)
 
-        # ---- Supabase Table Wipe ----
-        try:
-            supabase.table("match_results").delete().neq("player1", "").execute()
-            supabase.table("bracket_data").delete().neq("json_data", "").execute()
-            supabase.table("bracket_progression").delete().neq("champion", "").execute()
-            supabase.table("final_results").delete().neq("champion", "").execute()
-            supabase.table("predictions").delete().neq("name", "").execute()
-            st.sidebar.success("✅ Supabase tournament data wiped clean.")
-        except Exception as e:
-            st.sidebar.error("❌ Failed to delete data from Supabase.")
-            st.sidebar.code(str(e))
+            try:
+                supabase.table("match_results").delete().neq("player1", "").execute()
+                supabase.table("bracket_data").delete().neq("json_data", "").execute()
+                supabase.table("bracket_progression").delete().neq("champion", "").execute()
+                supabase.table("final_results").delete().neq("champion", "").execute()
+                supabase.table("predictions").delete().neq("name", "").execute()
+                st.sidebar.success("✅ Supabase tournament data wiped clean.")
+            except Exception as e:
+                st.sidebar.error("❌ Failed to delete data from Supabase.")
+                st.sidebar.code(str(e))
 
-        # ---- Session Cleanup ----
-        st.session_state.match_results = {}
-        st.session_state.bracket_data = pd.DataFrame()
-        st.session_state.tiebreak_selections = {}
-        st.session_state.tiebreaks_resolved = False
-        st.session_state.user_predictions = {}
-        st.session_state.authenticated = False  # optional: force re-login
-        st.session_state.app_authenticated = False
+            st.session_state.match_results = {}
+            st.session_state.bracket_data = pd.DataFrame()
+            st.session_state.tiebreak_selections = {}
+            st.session_state.tiebreaks_resolved = False
+            st.session_state.user_predictions = {}
+            st.session_state.authenticated = False
+            st.session_state.app_authenticated = False
 
-        st.sidebar.success("✅ Local data and session state cleared.")
-        st.sidebar.info("🔁 Refreshing app now...")
-        st.rerun()
-    else:
-        st.sidebar.error("❌ You must type RESET to confirm.")
-
+            st.sidebar.success("✅ Local data and session state cleared.")
+            st.sidebar.info("🔁 Refreshing app now...")
+            st.rerun()
+        else:
+            st.sidebar.error("❌ You must type RESET to confirm.")
 
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
