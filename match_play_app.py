@@ -1147,7 +1147,9 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Load match results from session state
+        # Check if the match results are loaded properly into session state
+        st.write("Current match results in session state:", st.session_state.get("match_results", {}))
+        
         match_results = st.session_state.get("match_results", {})
 
         if not match_results:
