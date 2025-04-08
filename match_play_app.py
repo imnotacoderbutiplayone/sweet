@@ -989,20 +989,19 @@ with tabs[5]:
 
 
 
-# Tab 6: Results Log
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
-    match_results = st.session_state.get("match_results", {})
+    match_results = load_match_results()  # Force fresh load, not just session_state
 
     if not match_results:
-        st.info("No match results have been entered yet.")
+        st.info("📭 No match results have been entered yet.")
     else:
         # Convert dict into a DataFrame
         data = []
         for key, result in match_results.items():
             if "|" not in key:
-                continue  # Skip malformed or legacy keys
+                continue  # Skip malformed keys
 
             pod_name, match_str = key.split("|", 1)
             try:
@@ -1034,21 +1033,6 @@ with tabs[6]:
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
-def parse_json_field(field_val):
-    """
-    If the field value is a string, attempt to JSON-decode it.
-    If it is already a list, return it as is.
-    Otherwise, return an empty list.
-    """
-    if isinstance(field_val, list):
-        return field_val
-    elif isinstance(field_val, str):
-        try:
-            return json.loads(field_val)
-        except Exception:
-            return []
-    else:
-        return []
 
 with tabs[7]:
     st.subheader("🏅 Prediction Leaderboard")
