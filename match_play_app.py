@@ -1355,15 +1355,16 @@ with tabs[5]:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
 
 
-# --- Results Log ---
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Load match results from Supabase directly (no session state)
+        # Try loading the match results from Supabase directly
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Process the response data and create a list of match results
+        # Debug: Check the response
+        st.write("Raw Response from Supabase:", response)
+
         if response.data:
             match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
@@ -1373,7 +1374,6 @@ with tabs[6]:
             # Debug: Display match results (check data format)
             st.write("Match Results from Database:", match_results)
 
-            # If there are no match results
             if not match_results:
                 st.info("No match results have been entered yet.")
             else:
@@ -1415,8 +1415,8 @@ with tabs[6]:
                 csv = df.to_csv(index=False).encode("utf-8")
                 st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
         else:
-            st.info("No match results have been entered yet.")
-
+            st.info("No match results found in the database.")
+    
     except Exception as e:
         st.error("❌ Error loading match results from Supabase.")
         st.code(str(e))
