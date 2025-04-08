@@ -29,6 +29,13 @@ def save_bracket_data(df):
         st.code(str(e))
         return None
 
+# --- Helper: Sanitize Key function for Streamlit ---
+def sanitize_key(text):
+    """Sanitize and hash widget keys to avoid Streamlit duplication."""
+    cleaned = re.sub(r'\W+', '_', text)  # Replace non-alphanumerics with underscores
+    hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
+    return f"{cleaned}_{hashed}"
+
 # --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
