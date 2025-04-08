@@ -38,24 +38,31 @@ def save_bracket_data(df):
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
 
+    # Normalize player order
+    normalized_player1, normalized_player2 = sorted([player1, player2])
+    match_key = f"{normalized_player1}|{normalized_player2}|{pod}"
+
     data = {
         "pod": pod,
-        "player1": player1,
-        "player2": player2,
+        "player1": normalized_player1,
+        "player2": normalized_player2,
         "winner": winner,
         "margin": margin_text,
+        "match_key": match_key,
         "created_at": datetime.utcnow().isoformat()
     }
 
     try:
         response = supabase.table("match_results") \
-            .upsert(data, on_conflict=["pod", "player1", "player2"]) \
+            .upsert(data, on_conflict=["match_key"]) \
             .execute()
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
+
 
 margin_lookup = {
     "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
@@ -71,7 +78,9 @@ def load_match_results():
 
         match_dict = defaultdict(dict)
         for r in response.data:
-            match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
+            # Normalize match key to match write logic
+            p1, p2 = sorted([r['player1'].strip(), r['player2'].strip()])
+            match_key = f"{r['pod']}|{p1} vs {p2}"
             match_dict[match_key] = {
                 "winner": r["winner"],
                 "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
@@ -83,6 +92,7 @@ def load_match_results():
         st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
+
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
