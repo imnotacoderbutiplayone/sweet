@@ -1147,26 +1147,34 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Try loading the match results from Supabase if not in session state
+        # Check if match results are in session state, if not, try to load from Supabase
         if "match_results" not in st.session_state:
+            st.info("No match results found in session state. Attempting to load from Supabase...")
+
             try:
                 # Load match results from Supabase
                 response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
                 
-                # Process the response data and store it in session state
+                # Process and store match results in session state
                 match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                     "winner": r["winner"],
                     "margin": r["margin"]
                 } for r in response.data}
-                st.session_state.match_results = match_results  # Store the results in session state
+
+                # Store match results in session state
+                st.session_state.match_results = match_results
+
             except Exception as e:
-                st.error("❌ Error loading match results from Supabase.")
-                st.code(str(e))
+                st.error(f"❌ Error loading match results from Supabase: {e}")
                 match_results = {}  # Default to empty if error occurs
         else:
             match_results = st.session_state.match_results
 
-        # If there are no match results
+        # Debugging: Print match results to verify data is being loaded
+        st.write("Current match results in session state:")
+        st.write(match_results)  # Print match results for debugging
+
+        # If there are no match results, show a message
         if not match_results:
             st.info("No match results have been entered yet.")
         else:
@@ -1201,7 +1209,7 @@ with tabs[6]:
             df = pd.DataFrame(data)
             df = df.sort_values(by=["Pod", "Player 1"])
 
-            # Display match results for both admin and non-admin views
+            # Display match results
             st.dataframe(df, use_container_width=True)
 
             # Optional: Allow the user to download the match results as CSV
