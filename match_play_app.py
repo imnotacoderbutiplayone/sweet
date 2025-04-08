@@ -1170,10 +1170,6 @@ with tabs[6]:
         else:
             match_results = st.session_state.match_results
 
-        # Debugging: Print match results to verify data is being loaded
-        st.write("Current match results in session state:")
-        st.write(match_results)  # Print match results for debugging
-
         # If there are no match results, show a message
         if not match_results:
             st.info("No match results have been entered yet.")
@@ -1219,8 +1215,6 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
-
-
 
 
 
