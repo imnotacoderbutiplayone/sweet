@@ -48,7 +48,9 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("match_results").insert(data).execute()
+        response = supabase.table("match_results") \
+            .upsert(data, on_conflict=["pod", "player1", "player2"]) \
+            .execute()
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
