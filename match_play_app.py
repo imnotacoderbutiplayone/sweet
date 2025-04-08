@@ -625,8 +625,17 @@ with tabs[1]:
 
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(players, pod_name, source="group_stage")
-            pod_results[pod_name] = pd.DataFrame(updated_players)
+            for i in range(len(players)):
+                for j in range(i + 1, len(players)):
+                    p1 = players[i]
+                    p2 = players[j]
+                    match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
+                    if match_key not in match_results:
+                        match_key = f"{pod_name}|{p2['name']} vs {p1['name']}"
+                    existing = match_results.get(match_key, {"winner": "Tie", "margin": 0})
+                    winner_name = existing.get("winner", "Tie")
+                    render_match(p1, p2, winner=winner_name, readonly=not st.session_state.authenticated, key_prefix=f"{pod_name}_{i}_{j}")
+            pod_results[pod_name] = pd.DataFrame(players)
 
     def pod_has_results(pod_name):
         return any(key.startswith(f"{pod_name}|") for key in match_results)
@@ -712,6 +721,7 @@ with tabs[1]:
                 st.write("📊 Final Bracket", st.session_state.bracket_data)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
+
 
 
 
