@@ -935,6 +935,8 @@ with tabs[5]:
                             }
                             supabase.table("predictions").insert(prediction_entry).execute()
                             st.success("✅ Your bracket prediction has been submitted!")
+                            st.rerun()
+
                         except Exception as e:
                             st.error("❌ Error saving your prediction.")
                             st.code(str(e))
