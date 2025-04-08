@@ -771,7 +771,8 @@ with tabs[3]:
                     st.session_state.finalist_right_name = finalist_right["name"]
                     st.success(f"Final Champion Confirmed: {champion['name']} ({champion['handicap']})")
                     
-                    # Build final results using native Python types (do NOT pre-serialize for JSONB columns)
+                    # Build final results using native Python types for JSONB columns.
+                    # Append a "Z" to the UTC ISO string to indicate timezone (if needed).
                     final_results = {
                         "r16_left": [p["name"] for p in st.session_state.get("r16_left", [])],
                         "r16_right": [p["name"] for p in st.session_state.get("r16_right", [])],
@@ -782,9 +783,9 @@ with tabs[3]:
                         "champion": champion["name"],
                         "finalist_left": finalist_left["name"],
                         "finalist_right": finalist_right["name"],
-                        "created_at": datetime.utcnow().isoformat()
+                        "created_at": datetime.utcnow().isoformat() + "Z"  # ensure UTC timezone
                     }
-                    # Insert the final results; note that we wrap it in a list for the Supabase client.
+                    # Wrap the dictionary in a list for insert.
                     response = supabase.table("final_results").insert([final_results]).execute()
                     st.write("Final results persisted:", response)
         else:
