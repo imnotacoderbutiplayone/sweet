@@ -273,10 +273,11 @@ def simulate_matches(players, pod_name, source=""):
             st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
 
             # If authenticated, allow result entry
-            if st.session_state.authenticated:
+            if editable:
                 entered = st.checkbox("Enter result for this match", key=entry_key)
             else:
                 entered = False
+
 
             # Handle match result input and calculation
             if entered:
