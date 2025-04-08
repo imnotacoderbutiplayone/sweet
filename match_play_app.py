@@ -816,17 +816,12 @@ with tabs[5]:
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-        if full_name.strip():
-            existing = supabase.table("predictions").select("name").eq("name", full_name.strip()).execute()
-
-            if existing.data:
-                st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
-         else:
-        # your prediction logic...
-
+        full_name = st.text_input("Enter your full name to submit a prediction:")
 
         if full_name.strip():
-            existing = supabase.table("predictions").select("name").eq("name", full_name.strip()).execute()
+            stripped_name = full_name.strip()
+            existing = supabase.table("predictions").select("name").eq("name", stripped_name).execute()
+
             if existing.data:
                 st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
             else:
@@ -930,7 +925,7 @@ with tabs[5]:
                     if st.button("🚀 Submit My Bracket Prediction"):
                         try:
                             prediction_entry = {
-                                "name": full_name.strip(),
+                                "name": stripped_name,
                                 "timestamp": datetime.utcnow().isoformat(),
                                 "champion": champion_final["name"],
                                 "finalist_left": finalist_left["name"],
@@ -943,14 +938,13 @@ with tabs[5]:
                             supabase.table("predictions").insert(prediction_entry).execute()
                             st.success("✅ Your bracket prediction has been submitted!")
                             st.rerun()
-
                         except Exception as e:
                             st.error("❌ Error saving your prediction.")
                             st.code(str(e))
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
-
-
+        else:
+            st.info("Please enter your name to begin.")
 
 
 
