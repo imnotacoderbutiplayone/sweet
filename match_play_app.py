@@ -784,16 +784,21 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Load match results and standings dynamically from live data
+    # Check if all match results are completed
+    if not all_matches_completed():
+        st.warning("Please complete all matches in the Group Stage before finalizing the bracket.")
+        st.stop()
+
+    # Check if all tiebreakers are resolved
+    if not all_tiebreakers_resolved():
+        st.warning("Please resolve all tiebreakers before finalizing the bracket.")
+        st.stop()
+
+    # Proceed with bracket display
     match_results = load_match_results()  # Ensure match results are live
     pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-    # Check if seeding is complete
-    if not pod_scores:
-        st.warning("Please complete the Group Stage and resolve any tiebreakers.")
-        st.stop()
-
-    # Create bracket from pod standings (top 8 players)
+    # Generate the bracket data only after match results and tiebreakers are completed
     winners = []
     second_place = []
 
@@ -827,16 +832,19 @@ with tabs[3]:
     left = final_seeds[:8]
     right = final_seeds[8:]
 
+    # Load bracket progression from Supabase
     progression = load_bracket_progression_from_supabase()
 
     col1, col2 = st.columns(2)
 
+    # Render the matchups on both sides
     def get_winner_safe(round_list, index):
         try:
             return round_list[index]["name"]
         except (IndexError, TypeError, KeyError):
             return ""
 
+    # Display the bracket only if all conditions are met
     if st.session_state.authenticated:
         st.info("🔐 Admin mode: Enter results and save")
 
@@ -846,14 +854,6 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
-                # Debugging: Ensure players are valid
-                if not isinstance(left[i], dict) or 'name' not in left[i]:
-                    st.error(f"Error: Invalid player data for {left[i]}")
-                    continue
-                if not isinstance(left[i + 1], dict) or 'name' not in left[i + 1]:
-                    st.error(f"Error: Invalid player data for {left[i + 1]}")
-                    continue
-
                 winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
@@ -863,8 +863,6 @@ with tabs[3]:
                 if i + 1 < len(r16_left):
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
-                else:
-                    st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
 
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
@@ -879,14 +877,6 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
-                # Debugging: Ensure players are valid
-                if not isinstance(right[i], dict) or 'name' not in right[i]:
-                    st.error(f"Error: Invalid player data for {right[i]}")
-                    continue
-                if not isinstance(right[i + 1], dict) or 'name' not in right[i + 1]:
-                    st.error(f"Error: Invalid player data for {right[i + 1]}")
-                    continue
-
                 winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
@@ -978,8 +968,6 @@ with tabs[3]:
                 st.success(f"🥇 Champion: **{champ_name}**")
             else:
                 st.info("Final match not confirmed.")
-
-
 
 
 
