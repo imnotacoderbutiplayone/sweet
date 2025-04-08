@@ -1360,65 +1360,70 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Check if match_results are already loaded in session state
+        # Check if match_results are loaded into session state
         if "match_results" not in st.session_state:
-            st.warning("❌ Match results not loaded.")
+            st.warning("❌ Match results are not loaded into session state.")
+            # Try loading the data if not already in session_state
+            response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+            if response.data:
+                st.session_state.match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
+                    "winner": r["winner"],
+                    "margin": r["margin"]
+                } for r in response.data}
+                st.success(f"Loaded {len(st.session_state.match_results)} match results.")
+            else:
+                st.error("No match results found in Supabase.")
         else:
             match_results = st.session_state.match_results
-            # Log the number of results for debugging
-            st.success(f"Loaded {len(match_results)} match results.")
+            st.success(f"Loaded {len(match_results)} match results from session state.")
+        
+        # Check if match results are empty
+        if not match_results:
+            st.info("No match results have been entered yet.")
+        else:
+            # Convert the match results into a DataFrame for better display
+            data = []
+            for key, result in match_results.items():
+                if "|" not in key:
+                    continue  # Skip malformed or legacy keys
+                
+                pod_name, match_str = key.split("|", 1)
+                try:
+                    player1, player2 = match_str.split(" vs ")
+                except ValueError:
+                    continue  # Skip malformed match strings
+                
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
 
-            if not match_results:
-                st.info("No match results have been entered yet.")
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
+
+            # Create DataFrame to display the match results
+            df = pd.DataFrame(data)
+
+            if df.empty:
+                st.info("❌ No valid results to display.")
             else:
-                # Convert the match results into a DataFrame
-                data = []
-                for key, result in match_results.items():
-                    if "|" not in key:
-                        continue  # Skip malformed or legacy keys
-                    
-                    pod_name, match_str = key.split("|", 1)
-                    try:
-                        player1, player2 = match_str.split(" vs ")
-                    except ValueError:
-                        continue  # Skip malformed match strings
-                    
-                    winner = result.get("winner", "Tie")
-                    margin = result.get("margin", 0)
-                    margin_text = next(
-                        (k for k, v in margin_lookup.items() if v == margin),
-                        "Tie" if winner == "Tie" else "1 up"
-                    )
+                st.dataframe(df, use_container_width=True)
 
-                    # Append data for DataFrame
-                    data.append({
-                        "Pod": pod_name,
-                        "Player 1": player1.strip(),
-                        "Player 2": player2.strip(),
-                        "Winner": winner,
-                        "Margin": margin_text
-                    })
-
-                # Create DataFrame to display the match results
-                df = pd.DataFrame(data)
-
-                # Debugging: Log the DataFrame
-                st.write("DataFrame of match results:", df)
-
-                # If DataFrame is empty, notify the user
-                if df.empty:
-                    st.info("❌ No results to display.")
-                else:
-                    df = df.sort_values(by=["Pod", "Player 1"])
-                    st.dataframe(df, use_container_width=True)
-
-                    # Optional: Allow the user to download the match results as CSV
-                    csv = df.to_csv(index=False).encode("utf-8")
-                    st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+                # Optional: Allow the user to download the match results as CSV
+                csv = df.to_csv(index=False).encode("utf-8")
+                st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
     
     except Exception as e:
         st.error(f"❌ Error loading match results: {e}")
         st.code(str(e))
+
 
 
 
