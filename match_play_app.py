@@ -645,6 +645,7 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
+    # Load match results
     match_results = load_match_results()
     st.session_state.match_results = match_results
 
@@ -721,13 +722,16 @@ with tabs[1]:
         if st.session_state.get("tiebreaks_resolved", False):
             if st.button("🏁 Finalize Bracket and Seed Field"):
                 bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-                st.session_state.bracket_data = bracket_df
+                st.session_state.finalized_bracket = bracket_df
+
+                # Optionally, save to Supabase if you want persistence
                 save_bracket_data(bracket_df)
 
                 st.success("✅ Bracket finalized and seeded.")
-                st.write("📊 Final Bracket", st.session_state.bracket_data)
+                st.write("📊 Final Bracket", bracket_df)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
+
 
 
 # --- Standings ---
@@ -785,53 +789,20 @@ with tabs[2]:
 
 
 # --- Admin View Rendering Bracket ---
-with tabs[3]:  # Bracket Tab
+# --- Bracket ---
+with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Load match results and standings dynamically from live data
-    match_results = load_match_results()  # Ensure match results are live
-    pod_scores = compute_pod_standings_from_results(pods, match_results)
-
-    # Check if seeding is complete
-    if not pod_scores:
-        st.warning("Please complete the Group Stage and resolve any tiebreakers.")
+    # Check if the bracket is finalized
+    if "finalized_bracket" not in st.session_state:
+        st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
         st.stop()
 
-    # Create bracket from pod standings (top 8 players)
-    winners = []
-    second_place = []
-
-    for pod_name, df in pod_scores.items():
-        if df.empty or "points" not in df.columns:
-            continue
-        
-        # Sort players based on points and margin
-        df_sorted = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
-
-        # First place (Winner)
-        tied_first = df_sorted[
-            (df_sorted["points"] == df_sorted.iloc[0]["points"]) &
-            (df_sorted["margin"] == df_sorted.iloc[0]["margin"])
-        ]
-        winner_name = tied_first.iloc[0]["name"]
-        winners.append(winner_name)
-
-        # Second place
-        remaining = df_sorted[df_sorted["name"] != winner_name].reset_index(drop=True)
-        second_place.append(remaining.iloc[0]["name"])
-
-    # Combine winners and second-place finishers into a final bracket
-    final_seeds = winners + second_place
-
-    if len(final_seeds) < 16:
-        st.warning("Not enough players in the bracket. Please check your match results.")
-        st.stop()
+    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
     # Split bracket into left and right sides
-    left = final_seeds[:8]
-    right = final_seeds[8:]
-
-    progression = load_bracket_progression_from_supabase()
+    left = bracket_df.iloc[0:8].to_dict("records")
+    right = bracket_df.iloc[8:16].to_dict("records")
 
     col1, col2 = st.columns(2)
 
@@ -850,14 +821,6 @@ with tabs[3]:  # Bracket Tab
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
-                # Debugging: Ensure players are valid
-                if not isinstance(left[i], dict) or 'name' not in left[i]:
-                    st.error(f"Error: Invalid player data for {left[i]}")
-                    continue
-                if not isinstance(left[i + 1], dict) or 'name' not in left[i + 1]:
-                    st.error(f"Error: Invalid player data for {left[i + 1]}")
-                    continue
-
                 winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
@@ -867,8 +830,6 @@ with tabs[3]:  # Bracket Tab
                 if i + 1 < len(r16_left):
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
-                else:
-                    st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
 
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
@@ -883,14 +844,6 @@ with tabs[3]:  # Bracket Tab
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
-                # Debugging: Ensure players are valid
-                if not isinstance(right[i], dict) or 'name' not in right[i]:
-                    st.error(f"Error: Invalid player data for {right[i]}")
-                    continue
-                if not isinstance(right[i + 1], dict) or 'name' not in right[i + 1]:
-                    st.error(f"Error: Invalid player data for {right[i + 1]}")
-                    continue
-
                 winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
@@ -917,7 +870,7 @@ with tabs[3]:  # Bracket Tab
         else:
             champion = None
 
-        # Unique key for the Finalize Bracket button
+        # Save the bracket progression once the admin finalizes
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
             save_bracket_progression_to_supabase({
                 "r16_left": json.dumps([p["name"] for p in r16_left]),
@@ -931,6 +884,8 @@ with tabs[3]:  # Bracket Tab
                 "champion": champion["name"] if champion else ""
             })
             st.success("✅ Bracket progression saved!")
+    else:
+        st.warning("Bracket progression not set yet.")
 
 
 # --- Export ---
