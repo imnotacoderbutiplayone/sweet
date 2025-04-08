@@ -134,8 +134,8 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     Returns the winner of the match.
     """
     # Debugging: Print out player data
-    st.write(f"Player 1 Data: {player1}")
-    st.write(f"Player 2 Data: {player2}")
+    #st.write(f"Player 1 Data: {player1}")
+    #st.write(f"Player 2 Data: {player2}")
     
     # Check if both players have valid data
     if not player1 or not player2:
