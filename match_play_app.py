@@ -1058,19 +1058,16 @@ def parse_json_field(field_val):
     else:
         return []
 
-# Tab 7: Leaderboard
 with tabs[7]:
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
-        # Retrieve all prediction rows from Supabase.
         predictions_response = supabase.table("predictions").select("*").execute()
         predictions = predictions_response.data
 
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            # Query final_results table ordering by created_at
             final_results_response = supabase.table("final_results") \
                                              .select("*") \
                                              .order("created_at", desc=True) \
@@ -1078,12 +1075,11 @@ with tabs[7]:
                                              .execute()
             final_results_data = final_results_response.data
 
-            if not final_results_data or len(final_results_data) == 0:
-                st.warning("Final results have not been confirmed yet. Leaderboard will update once a winner is finalized.")
+            if not final_results_data:
+                st.warning("Final results not confirmed yet. Leaderboard will update once finalized.")
             else:
                 final_result = final_results_data[0]
 
-                # For the JSONB columns, we use the helper function to ensure they are lists.
                 actual_results = {
                     "r16_left": parse_json_field(final_result.get("r16_left", "[]")),
                     "r16_right": parse_json_field(final_result.get("r16_right", "[]")),
@@ -1094,13 +1090,12 @@ with tabs[7]:
                     "champion": final_result.get("champion", "").strip()
                 }
 
-                # Compute scores for each prediction.
                 leaderboard = []
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
+                    ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
 
-                    # --- Round-of-16 scoring (1 point per correct prediction) ---
                     pred_r16_left = parse_json_field(row.get("r16_left", "[]"))
                     pred_r16_right = parse_json_field(row.get("r16_right", "[]"))
 
@@ -1111,7 +1106,6 @@ with tabs[7]:
                         if actual == predicted:
                             score += 1
 
-                    # --- Quarterfinals scoring (3 points per correct prediction) ---
                     pred_qf_left = parse_json_field(row.get("qf_left", "[]"))
                     pred_qf_right = parse_json_field(row.get("qf_right", "[]"))
 
@@ -1122,7 +1116,6 @@ with tabs[7]:
                         if actual == predicted:
                             score += 3
 
-                    # --- Semifinals scoring (5 points per correct prediction) ---
                     pred_sf_left = parse_json_field(row.get("sf_left", "[]"))
                     pred_sf_right = parse_json_field(row.get("sf_right", "[]"))
 
@@ -1133,18 +1126,36 @@ with tabs[7]:
                         if actual == predicted:
                             score += 5
 
-                    # --- Final match scoring (10 points for picking the champion) ---
                     if row.get("champion", "").strip() == actual_results["champion"]:
                         score += 10
 
                     leaderboard.append({
                         "Name": name,
-                        "Score": score
+                        "Score": score,
+                        "Submitted At": ts
                     })
 
                 leaderboard_df = pd.DataFrame(leaderboard)
-                leaderboard_df = leaderboard_df.sort_values(by="Score", ascending=False).reset_index(drop=True)
-                st.dataframe(leaderboard_df, use_container_width=True)
+                leaderboard_df = leaderboard_df.sort_values(
+                    by=["Score", "Submitted At"],
+                    ascending=[False, True]
+                ).reset_index(drop=True)
+
+                leaderboard_df.insert(0, "Rank", leaderboard_df.index + 1)
+
+                def highlight_podium(row):
+                    color = ""
+                    if row["Rank"] == 1:
+                        color = "background-color: gold; font-weight: bold"
+                    elif row["Rank"] == 2:
+                        color = "background-color: silver; font-weight: bold"
+                    elif row["Rank"] == 3:
+                        color = "background-color: #cd7f32; font-weight: bold"  # bronze
+                    return [color] * len(row)
+
+                styled_df = leaderboard_df.style.apply(highlight_podium, axis=1)
+
+                st.dataframe(styled_df, use_container_width=True)
     except Exception as e:
         st.error("❌ Error loading leaderboard.")
         st.code(str(e))
