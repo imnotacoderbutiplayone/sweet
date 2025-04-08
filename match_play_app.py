@@ -365,7 +365,7 @@ def load_match_results():
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
-            
+
             # Handle None values gracefully and check the status
             match_dict[match_key] = {
                 "winner": r.get("winner", "N/A"),  # Default to 'N/A' if winner is missing
