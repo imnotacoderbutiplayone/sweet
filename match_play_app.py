@@ -95,8 +95,6 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Save one match result to Supabase ---
-def save_match_result(pod, player1, player2, winner, margin_text):
 # Save one match result to Supabase
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
