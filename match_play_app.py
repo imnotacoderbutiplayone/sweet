@@ -722,6 +722,53 @@ with tabs[3]:
 
         elif not st.session_state.authenticated:
             st.markdown("🔒 Final match — _(Admin only)_")
+# === FINAL MATCH ===
+st.markdown("### 🏁 Final Match")
+
+if (
+    st.session_state.authenticated
+    and isinstance(sf_left, list) and len(sf_left) == 1
+    and isinstance(sf_right, list) and len(sf_right) == 1
+):
+    finalist_left = sf_left[0]
+    finalist_right = sf_right[0]
+
+    champ_label = st.radio(
+        "🏆 Champion:",
+        [label(finalist_left), label(finalist_right)],
+        key="Champ", index=None
+    )
+
+    if champ_label:
+        champion = finalist_left if champ_label == label(finalist_left) else finalist_right
+        st.success(f"🎉 Champion: {champion['name']} ({champion['handicap']})")
+
+        st.session_state["champion_name"] = champion["name"]
+        st.session_state["finalist_left_name"] = finalist_left["name"]
+        st.session_state["finalist_right_name"] = finalist_right["name"]
+
+        # Show full bracket summary
+        with st.expander("📈 View Full Bracket Results", expanded=True):
+            def fmt(players):
+                return [f"{p['name']} ({p['handicap']})" for p in players]
+
+            st.markdown("**Left Side Progression**")
+            st.write("Round of 16:", fmt(r16_left))
+            st.write("Quarterfinals:", fmt(qf_left))
+            st.write("Semifinalist:", fmt(sf_left))
+
+            st.markdown("**Right Side Progression**")
+            st.write("Round of 16:", fmt(r16_right))
+            st.write("Quarterfinals:", fmt(qf_right))
+            st.write("Semifinalist:", fmt(sf_right))
+
+            st.markdown("**Finals**")
+            st.write(f"{label(finalist_left)} vs {label(finalist_right)}")
+            st.write(f"**🏆 Champion: {champion['name']}**")
+
+elif not st.session_state.authenticated:
+    st.markdown("🔒 Final match — _(Admin only)_")
+
 
 
 
