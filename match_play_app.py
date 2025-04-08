@@ -790,19 +790,54 @@ with tabs[2]:
 
 # --- Admin View Rendering Bracket ---
 # --- Bracket ---
+# --- Bracket ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Check if the bracket is finalized
-    if "finalized_bracket" not in st.session_state:
-        st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
+    # Load match results and standings dynamically from live data
+    match_results = load_match_results()  # Ensure match results are live
+    pod_scores = compute_pod_standings_from_results(pods, match_results)
+
+    # Check if seeding is complete
+    if not pod_scores:
+        st.warning("Please complete the Group Stage and resolve any tiebreakers.")
         st.stop()
 
-    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
+    # Create bracket from pod standings (top 8 players)
+    winners = []
+    second_place = []
+
+    for pod_name, df in pod_scores.items():
+        if df.empty or "points" not in df.columns:
+            continue
+        
+        # Sort players based on points and margin
+        df_sorted = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+
+        # First place (Winner)
+        tied_first = df_sorted[
+            (df_sorted["points"] == df_sorted.iloc[0]["points"]) &
+            (df_sorted["margin"] == df_sorted.iloc[0]["margin"])
+        ]
+        winner_name = tied_first.iloc[0]["name"]
+        winners.append(winner_name)
+
+        # Second place
+        remaining = df_sorted[df_sorted["name"] != winner_name].reset_index(drop=True)
+        second_place.append(remaining.iloc[0]["name"])
+
+    # Combine winners and second-place finishers into a final bracket
+    final_seeds = winners + second_place
+
+    if len(final_seeds) < 16:
+        st.warning("Not enough players in the bracket. Please check your match results.")
+        st.stop()
 
     # Split bracket into left and right sides
-    left = bracket_df.iloc[0:8].to_dict("records")
-    right = bracket_df.iloc[8:16].to_dict("records")
+    left = final_seeds[:8]
+    right = final_seeds[8:]
+
+    progression = load_bracket_progression_from_supabase()
 
     col1, col2 = st.columns(2)
 
@@ -830,6 +865,8 @@ with tabs[3]:
                 if i + 1 < len(r16_left):
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
+                else:
+                    st.warning(f"⚠️ Skipping unmatched player in QF Left: {r16_left[i]['name']}")
 
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
@@ -870,7 +907,7 @@ with tabs[3]:
         else:
             champion = None
 
-        # Save the bracket progression once the admin finalizes
+        # Unique key for the Finalize Bracket button
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
             save_bracket_progression_to_supabase({
                 "r16_left": json.dumps([p["name"] for p in r16_left]),
@@ -884,8 +921,57 @@ with tabs[3]:
                 "champion": champion["name"] if champion else ""
             })
             st.success("✅ Bracket progression saved!")
+
     else:
-        st.warning("Bracket progression not set yet.")
+        if not progression:
+            st.warning("Bracket progression not set yet.")
+        else:
+            with col1:
+                st.markdown("### 🟦 Left Side")
+                st.markdown("#### 🔹 Round of 16")
+                r16_left = load_round_players("r16_left", progression, pods) or []
+                for i in range(0, len(left), 2):
+                    winner = get_winner_safe(r16_left, i // 2)
+                    render_match(left[i], left[i + 1], winner, readonly=True)
+
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_left = load_round_players("qf_left", progression, pods) or []
+                for i in range(0, len(r16_left), 2):
+                    winner = get_winner_safe(qf_left, i // 2)
+                    render_match(r16_left[i], r16_left[i + 1], winner, readonly=True)
+
+                st.markdown("#### 🥈 Semifinal")
+                sf_left = load_round_players("sf_left", progression, pods) or []
+                for i in range(0, len(qf_left), 2):
+                    winner = get_winner_safe(sf_left, i // 2)
+                    render_match(qf_left[i], qf_left[i + 1], winner, readonly=True)
+
+            with col2:
+                st.markdown("### 🟥 Right Side")
+                st.markdown("#### 🔹 Round of 16")
+                r16_right = load_round_players("r16_right", progression, pods) or []
+                for i in range(0, len(right), 2):
+                    winner = get_winner_safe(r16_right, i // 2)
+                    render_match(right[i], right[i + 1], winner, readonly=True)
+
+                st.markdown("#### 🥉 Quarterfinals")
+                qf_right = load_round_players("qf_right", progression, pods) or []
+                for i in range(0, len(r16_right), 2):
+                    winner = get_winner_safe(qf_right, i // 2)
+                    render_match(r16_right[i], r16_right[i + 1], winner, readonly=True)
+
+                st.markdown("#### 🥈 Semifinal")
+                sf_right = load_round_players("sf_right", progression, pods) or []
+                for i in range(0, len(qf_right), 2):
+                    winner = get_winner_safe(sf_right, i // 2)
+                    render_match(qf_right[i], qf_right[i + 1], winner, readonly=True)
+
+            champ_name = progression.get("champion", "")
+            if champ_name:
+                st.markdown("### 🏆 Final Match")
+                st.success(f"🥇 Champion: **{champ_name}**")
+            else:
+                st.info("Final match not confirmed.")
 
 
 # --- Export ---
