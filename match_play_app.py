@@ -625,16 +625,8 @@ with tabs[1]:
 
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            pod_match_keys = [k for k in match_results if k.startswith(f"{pod_name}|")]
-            if not pod_match_keys:
-                st.info("No results yet for this pod.")
-            else:
-                for match_key in pod_match_keys:
-                    result = match_results[match_key]
-                    player1, player2 = match_key.split("|")[1].split(" vs ")
-                    winner = result["winner"]
-                    margin = result["margin"]
-                    st.markdown(f"**{player1}** vs **{player2}** — 🏆 **{winner}** ({margin} margin)")
+            updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
+            pod_results[pod_name] = pd.DataFrame(updated_players)
 
     def pod_has_results(pod_name):
         return any(key.startswith(f"{pod_name}|") for key in match_results)
