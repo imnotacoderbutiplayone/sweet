@@ -238,6 +238,9 @@ def build_bracket_df_from_pod_scores(pod_scores, tiebreak_selections):
     return bracket_df
 
 #--- Simulate Matches ----
+
+def simulate_matches(players, pod_name, source="", editable=False):
+
 def simulate_matches(players, pod_name, source=""):
     # Initialize result dictionary for players
     results = defaultdict(lambda: {"points": 0, "margin": 0})
