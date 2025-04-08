@@ -636,8 +636,8 @@ with tabs[1]:
 
 # --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
-    st.subheader("🏆 Bracket View ")
-    
+    st.subheader("🏆 Bracket View (Supabase Driven)")
+
     bracket_df = load_bracket_data()
     if bracket_df.empty:
         st.warning("Please finalize seeding in the Group Stage tab.")
@@ -661,17 +661,20 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
-                r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
+                if i + 1 < len(left):
+                    r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
-                qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
+                if i + 1 < len(r16_left):
+                    qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
 
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
             for i in range(0, len(qf_left), 2):
-                sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
+                if i + 1 < len(qf_left):
+                    sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
 
         # --------------------
         # RIGHT SIDE
@@ -682,17 +685,20 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
-                r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
+                if i + 1 < len(right):
+                    r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
             for i in range(0, len(r16_right), 2):
-                qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
+                if i + 1 < len(r16_right):
+                    qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
 
             st.markdown("#### 🥈 Semifinal")
             sf_right = []
             for i in range(0, len(qf_right), 2):
-                sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
+                if i + 1 < len(qf_right):
+                    sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
 
         # --------------------
         # FINAL MATCH
@@ -720,6 +726,9 @@ with tabs[3]:
             })
             st.success("✅ Bracket progression saved!")
 
+    # --------------------
+    # VIEWER MODE
+    # --------------------
     else:
         if not progression:
             st.warning("Bracket progression not set yet.")
@@ -730,20 +739,23 @@ with tabs[3]:
                 st.markdown("#### 🔹 Round of 16")
                 r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
                 for i in range(0, len(left), 2):
-                    winner = r16_left[i//2]["name"]
-                    render_match(left[i], left[i+1], winner, readonly=True)
+                    if i//2 < len(r16_left):
+                        winner = r16_left[i//2]["name"]
+                        render_match(left[i], left[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
                 for i in range(0, len(r16_left), 2):
-                    winner = qf_left[i//2]["name"]
-                    render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
+                    if i//2 < len(qf_left):
+                        winner = qf_left[i//2]["name"]
+                        render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥈 Semifinal")
                 sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
                 for i in range(0, len(qf_left), 2):
-                    winner = sf_left[i//2]["name"]
-                    render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
+                    if i//2 < len(sf_left):
+                        winner = sf_left[i//2]["name"]
+                        render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
 
             with col2:
                 st.markdown("### 🟥 Right Side")
@@ -751,20 +763,23 @@ with tabs[3]:
                 st.markdown("#### 🔹 Round of 16")
                 r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
                 for i in range(0, len(right), 2):
-                    winner = r16_right[i//2]["name"]
-                    render_match(right[i], right[i+1], winner, readonly=True)
+                    if i//2 < len(r16_right):
+                        winner = r16_right[i//2]["name"]
+                        render_match(right[i], right[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
                 for i in range(0, len(r16_right), 2):
-                    winner = qf_right[i//2]["name"]
-                    render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
+                    if i//2 < len(qf_right):
+                        winner = qf_right[i//2]["name"]
+                        render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥈 Semifinal")
                 sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
                 for i in range(0, len(qf_right), 2):
-                    winner = sf_right[i//2]["name"]
-                    render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
+                    if i//2 < len(sf_right):
+                        winner = sf_right[i//2]["name"]
+                        render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
 
             champ_name = progression.get("champion", "")
             if champ_name:
@@ -772,6 +787,7 @@ with tabs[3]:
                 st.success(f"🥇 Champion: **{champ_name}**")
             else:
                 st.info("Final match not confirmed.")
+
 
 
 # Tab 3: Standings
