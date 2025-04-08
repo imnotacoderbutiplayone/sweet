@@ -50,6 +50,100 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         st.code(str(e))
         return None
 
+def simulate_matches(players, pod_name, source=""):
+    # Initialize result dictionary for players
+    results = defaultdict(lambda: {"points": 0, "margin": 0})
+
+    # Debug: Check if players are passed correctly
+    if not players:
+        st.error(f"❌ No players found in pod {pod_name}.")
+        return []
+
+    num_players = len(players)
+
+    # Ensure players are structured correctly
+    if not all(isinstance(player, dict) and 'name' in player and 'handicap' in player for player in players):
+        st.error(f"❌ Invalid player data in pod {pod_name}.")
+        return []
+
+    for i in range(num_players):
+        for j in range(i + 1, num_players):
+            p1, p2 = players[i], players[j]
+
+            # Create consistent, unique match key
+            player_names = sorted([p1['name'], p2['name']])
+            raw_key = f"{source}_{pod_name}|{player_names[0]} vs {player_names[1]}"
+            base_key = sanitize_key(raw_key)
+
+            entry_key = f"{base_key}_checkbox"
+            winner_key = f"{base_key}_winner"
+            margin_key = f"{base_key}_margin"
+
+            match_key = f"{pod_name}|{p1['name']} vs {p2['name']}"
+            h1 = f"{p1['handicap']:.1f}" if p1['handicap'] is not None else "N/A"
+            h2 = f"{p2['handicap']:.1f}" if p2['handicap'] is not None else "N/A"
+            st.write(f"Match: {p1['name']} ({h1}) vs {p2['name']} ({h2})")
+
+            # If authenticated, allow result entry
+            if st.session_state.authenticated:
+                entered = st.checkbox("Enter result for this match", key=entry_key)
+            else:
+                entered = False
+
+            # Handle match result input and calculation
+            if entered:
+                prev_result = st.session_state.match_results.get(match_key, {})
+                prev_winner = prev_result.get("winner", "Tie")
+                margin_val = prev_result.get("margin", 0)
+                prev_margin = next((k for k, v in margin_lookup.items() if v == margin_val), "1 up")
+
+                winner = st.radio(
+                    "Who won?",
+                    [p1['name'], p2['name'], "Tie"],
+                    index=[p1['name'], p2['name'], "Tie"].index(prev_winner),
+                    key=winner_key
+                )
+
+                margin = 0
+                if winner != "Tie":
+                    result_str = st.selectbox(
+                        "Select Match Result (Win Margin)",
+                        options=list(margin_lookup.keys()),
+                        index=list(margin_lookup.keys()).index(prev_margin),
+                        key=margin_key
+                    )
+                    margin = margin_lookup[result_str]
+                else:
+                    result_str = "Tie"
+
+                st.session_state.match_results[match_key] = {
+                    "winner": winner,
+                    "margin": margin
+                }
+
+                save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
+
+                if winner == p1['name']:
+                    results[p1['name']]['points'] += 1
+                    results[p1['name']]['margin'] += margin
+                    results[p2['name']]['margin'] -= margin
+                elif winner == p2['name']:
+                    results[p2['name']]['points'] += 1
+                    results[p2['name']]['margin'] += margin
+                    results[p1['name']]['margin'] -= margin
+                else:
+                    results[p1['name']]['points'] += 0.5
+                    results[p2['name']]['points'] += 0.5
+            else:
+                st.info("🔒 Only admin can enter match results.")
+
+    # Update player stats with points and margin
+    for player in players:
+        player.update(results[player['name']])
+    
+    return players
+
+
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
