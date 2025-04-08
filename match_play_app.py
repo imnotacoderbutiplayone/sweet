@@ -795,9 +795,8 @@ with tabs[3]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Always load fresh match results for accuracy
-    match_results = load_match_results()
-    st.session_state.match_results = match_results
+    # Use the session state version which was just updated in Group Stage
+    match_results = st.session_state.get("match_results", {})
 
     pod_results = {}
 
