@@ -9,14 +9,34 @@ from supabase import create_client
 import hashlib
 import re
 
-# --- Connect to Supabase ---
+# --- Ensure Supabase Client is connected correctly ---
 @st.cache_resource
 def init_supabase():
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    return create_client(url, key)
+    try:
+        # Get Supabase credentials from Streamlit secrets
+        url = st.secrets["supabase"]["url"]
+        key = st.secrets["supabase"]["key"]
+        
+        # Create Supabase client
+        client = create_client(url, key)
 
+        # Test the connection by making a simple query
+        response = client.table("tournament_matches").select("*").limit(1).execute()
+
+        # Print success message in Streamlit
+        st.write("Connected to Supabase successfully!")
+        
+        # If everything is fine, return the Supabase client
+        return client
+    
+    except Exception as e:
+        # Handle errors and display them in Streamlit
+        st.error(f"❌ Failed to connect to Supabase: {e}")
+        return None
+
+# Initialize the Supabase client
 supabase = init_supabase()
+
 
 # --- Save bracket data to Supabase ---
 def save_bracket_data(df):
