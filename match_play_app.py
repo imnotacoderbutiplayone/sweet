@@ -130,13 +130,7 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     - winner: the current winner (or "Tie")
     - readonly: if True, makes the match readonly (admin-only input)
     - key_prefix: ensures that each checkbox/radio button has a unique key
-
-    Returns the winner of the match.
     """
-    # Debugging: Print out player data
-    #st.write(f"Player 1 Data: {player1}")
-    #st.write(f"Player 2 Data: {player2}")
-    
     # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
@@ -179,11 +173,11 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
                 key=margin_key
             )
         else:
-            margin = "Tie"
+            margin = "Tie"  # Ensure margin is "Tie" when winner is "Tie"
         
         # Display result button
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
-            # Here you would save the result to Supabase
+            # Save the result to Supabase
             save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
             st.success(f"Result saved: {selected_winner} wins {margin}")
             return selected_winner
@@ -191,6 +185,7 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         # If readonly is True, just display the result
         st.write(f"Match result: {winner}")
         return winner
+
 
 
 # --- Compute standings dynamically from match results ---
