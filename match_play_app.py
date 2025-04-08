@@ -919,7 +919,7 @@ with tabs[5]:
 
                 st.write("🧪 Debug:", debug)
 
-                if finalist_left and finalist_right and champion_final:
+                if finalist_left is not None and finalist_right is not None and champion_final is not None:
                     if st.button("🚀 Submit My Bracket Prediction"):
                         try:
                             prediction_entry = {
