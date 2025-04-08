@@ -986,7 +986,6 @@ with tabs[3]:
                 st.info("Final match not confirmed.")
 
 
-
 # --- Export ---
 with tabs[4]:
     st.subheader("📤 Export")
