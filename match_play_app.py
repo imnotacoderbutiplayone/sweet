@@ -1,8 +1,8 @@
 # --- Set Page Configuration First ---
+import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-# --- Now import necessary libraries ---
-import streamlit as st
+# --- Now import other necessary libraries ---
 import pandas as pd
 from collections import defaultdict
 import io
