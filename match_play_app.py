@@ -795,8 +795,9 @@ with tabs[3]:
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    if "match_results" not in st.session_state:
-        st.session_state.match_results = load_match_results()
+    # Always load fresh match results for accuracy
+    match_results = load_match_results()
+    st.session_state.match_results = match_results
 
     pod_results = {}
 
@@ -807,7 +808,7 @@ with tabs[2]:
             total_points = 0
             total_margin = 0
 
-            for key, result in st.session_state.match_results.items():
+            for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|"):
                     if name in key:
                         if result["winner"] == name:
@@ -819,8 +820,8 @@ with tabs[2]:
                             total_margin -= result["margin"]
 
             updated_players.append({
-                "name": name,
-                "handicap": player["handicap"],
+                "Player": name,
+                "Handicap": player["handicap"],
                 "Points": total_points,
                 "Margin": total_margin
             })
@@ -828,7 +829,6 @@ with tabs[2]:
         df = pd.DataFrame(updated_players)
         if not df.empty:
             df = df.sort_values(by=["Points", "Margin"], ascending=False)
-            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
             pod_results[pod_name] = df
 
     if pod_results:
