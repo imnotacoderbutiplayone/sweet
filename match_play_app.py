@@ -113,23 +113,159 @@ def update_standings(pod_name, player_name, winner, margin):
     # Execute the query (you may need to replace this with your method for executing SQL queries)
     execute_query(update_query)
 
-# --- update round of 16 -----
 
+
+# ---- round of 16 to database ----
+# --- Connect to Supabase ---
+@st.cache_resource
+def init_supabase():
+    url = st.secrets["supabase"]["url"]
+    key = st.secrets["supabase"]["key"]
+    return create_client(url, key)
+
+supabase = init_supabase()
+
+# --- Save bracket data to Supabase ---
+def save_bracket_data(df):
+    try:
+        json_data = df.to_json(orient="split")
+        response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Failed to save bracket data to Supabase")
+        st.code(str(e))
+        return None
+
+# --- Save one match result to Supabase ---
+def save_match_result(pod, player1, player2, winner, margin_text):
+    from datetime import datetime
+
+    # Normalize player order
+    normalized_player1, normalized_player2 = sorted([player1, player2])
+    match_key = f"{normalized_player1}|{normalized_player2}|{pod}"
+
+    data = {
+        "pod": pod,
+        "player1": normalized_player1,
+        "player2": normalized_player2,
+        "winner": winner,
+        "margin": margin_text,
+        "match_key": match_key,
+        "created_at": datetime.utcnow().isoformat()
+    }
+
+    try:
+        response = supabase.table("match_results") \
+            .upsert(data, on_conflict=["match_key"]) \
+            .execute()  # Ensure that the `match_key` is unique
+        return response
+    except Exception as e:
+        st.error("❌ Error saving match result to Supabase")
+        st.code(str(e))
+        return None
+
+# --- Load Round of 16 Data ---
+def load_round_of_16():
+    try:
+        response = supabase.table("round_of_16").select("*").order("created_at").execute()
+        return response.data
+    except Exception as e:
+        st.error("❌ Supabase error loading round of 16 data")
+        st.code(str(e))
+        return []
+
+# --- Render match results in the bracket ---
+def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
+    label1 = f"{p1['name']} ({p1['handicap']})"
+    label2 = f"{p2['name']} ({p2['handicap']})"
+    match_label = f"🏌️ {label1} vs {label2}"
+
+    if readonly:
+        if winner_name == p1['name']:
+            result_text = f"✔️ **{label1}** defeated **{label2}**"
+        elif winner_name == p2['name']:
+            result_text = f"✔️ **{label2}** defeated **{label1}**"
+        else:
+            result_text = f"❓ No winner recorded"
+        st.markdown(result_text)
+        return None
+    else:
+        choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
+        return p1 if choice == label1 else p2
+
+# --- Bracket View ---
+with st.beta_expander("🏆 Round of 16 - Bracket View"):
+    # Load Round of 16 matches from Supabase
+    round_of_16_matches = load_round_of_16()
+    if not round_of_16_matches:
+        st.warning("No Round of 16 matches found.")
+        st.stop()
+
+    # Split into left and right sides for the bracket
+    left = round_of_16_matches[:8]
+    right = round_of_16_matches[8:]
+
+    col1, col2 = st.columns(2)
+
+    # Admin section for match results entry
+    if st.session_state.authenticated:
+        st.info("🔐 Admin mode: Enter results and save")
+
+        # Left Side of the Bracket
+        with col1:
+            st.markdown("### 🟦 Left Side")
+            st.markdown("#### 🔹 Round of 16")
+            for match in left:
+                render_match(
+                    {'name': match['player1'], 'handicap': 'N/A'},  # Example, replace with actual player data
+                    {'name': match['player2'], 'handicap': 'N/A'},  # Example, replace with actual player data
+                    "",  # Winner (leave empty for now, you can populate it later)
+                    readonly=False,
+                    key_prefix="r16_left"
+                )
+
+        # Right Side of the Bracket
+        with col2:
+            st.markdown("### 🟥 Right Side")
+            st.markdown("#### 🔹 Round of 16")
+            for match in right:
+                render_match(
+                    {'name': match['player1'], 'handicap': 'N/A'},  # Example, replace with actual player data
+                    {'name': match['player2'], 'handicap': 'N/A'},  # Example, replace with actual player data
+                    "",  # Winner (leave empty for now, you can populate it later)
+                    readonly=False,
+                    key_prefix="r16_right"
+                )
+
+    # View mode (non-admin)
+    else:
+        st.info("🔒 Admin access required to enter match results.")
+
+# --- Save Bracket Progression ---
+def save_bracket_progression_to_supabase(data):
+    try:
+        response = supabase.table("bracket_progression").insert(data).execute()
+        return response
+    except Exception as e:
+        st.error("❌ Error saving bracket progression to Supabase")
+        st.code(str(e))
+
+
+# --- Update Round of 16 Matches Based on Latest Standings ---
 def update_round_of_16():
     # Query the top players based on the latest standings
     query = "SELECT player_name FROM pod_standings ORDER BY points DESC, margin DESC LIMIT 16"
     top_players = execute_query(query)
 
-    # Now, update the Round of 16 matches based on these top players
-    # Update the database with the new matchups for Round of 16
+    # Insert matches into the Round of 16 table
     for i in range(0, len(top_players), 2):
-        # Set up matches, example:
-        # Round of 16 Match 1: Player X vs Player Y
+        # Round of 16 Matchup: Player X vs Player Y
         match_query = f"""
         INSERT INTO round_of_16 (player1, player2)
         VALUES ('{top_players[i]}', '{top_players[i+1]}')
         """
         execute_query(match_query)
+
 
 # ----- Refresh ----
 def refresh_ui():
@@ -425,6 +561,7 @@ def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
         return p1 if choice == label1 else p2
     
 
+# --- Simulate Matches and Update Round of 16 ---
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -500,12 +637,17 @@ def simulate_matches(players, pod_name, source=""):
                 else:
                     results[p1['name']]['points'] += 0.5
                     results[p2['name']]['points'] += 0.5
+
+                # Call to update Round of 16 after each match result
+                update_round_of_16()
+
             else:
                 st.info("🔒 Only admin can enter match results.")
 
     for player in players:
         player.update(results[player['name']])
     return players
+
 
 
 # --- Label Helper ---
