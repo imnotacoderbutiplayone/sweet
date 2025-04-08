@@ -281,6 +281,7 @@ def compute_pod_standings_from_results(pods, match_results):
     return pod_scores
 
 
+
 # --- Build bracket from scores and tiebreaks ---
 def build_bracket_df_from_pod_scores(pod_scores, tiebreak_selections):
     winners, second_place = [], []
@@ -414,7 +415,8 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()  # Updated to tournament_matches
+        # Always fetch the latest results from Supabase
+        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
         match_dict = defaultdict(dict)
         for r in response.data:
@@ -430,6 +432,7 @@ def load_match_results():
         st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
+
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
@@ -791,12 +794,12 @@ with tabs[1]:
 
 
 # --- Standings ---
+# --- Standings ---
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Load match results from session state
-    if "match_results" not in st.session_state:
-        st.session_state.match_results = load_match_results()
+    # Always load match results from the database
+    match_results = load_match_results()
 
     pod_results = {}
 
@@ -809,7 +812,7 @@ with tabs[2]:
             total_margin = 0
 
             # Iterate through all match results and calculate points and margins
-            for key, result in st.session_state.match_results.items():
+            for key, result in match_results.items():
                 if key.startswith(f"{pod_name}|"):
                     if name in key:
                         if result["winner"] == name:
