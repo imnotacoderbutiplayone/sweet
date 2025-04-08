@@ -809,6 +809,12 @@ with tabs[4]:
 with tabs[5]:
     st.subheader("🔮 Predict Bracket")
 
+    # --- Clear the full_name input if a prediction was just submitted ---
+    if st.session_state.get("prediction_submitted", False):
+        if "full_name" in st.session_state:
+            del st.session_state["full_name"]
+        st.session_state.prediction_submitted = False
+
     if st.session_state.bracket_data.empty or len(st.session_state.bracket_data) < 16:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
@@ -816,7 +822,6 @@ with tabs[5]:
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-        # Bind text input to a session state key
         full_name = st.text_input("Enter your full name to submit a prediction:", key="full_name")
 
         if full_name.strip():
@@ -930,15 +935,14 @@ with tabs[5]:
                             }
                             supabase.table("predictions").insert(prediction_entry).execute()
                             st.success("✅ Your bracket prediction has been submitted!")
-                            # Clear the full_name value so the input doesn't persist after rerun
-                            st.session_state["full_name"] = ""
+                            # Set a flag to clear the full_name input on next run
+                            st.session_state.prediction_submitted = True
                             st.rerun()
                         except Exception as e:
                             st.error("❌ Error saving your prediction.")
                             st.code(str(e))
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
-
 
 
 
