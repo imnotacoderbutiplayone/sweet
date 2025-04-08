@@ -119,22 +119,23 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Log the full response to help with debugging
+        # Log the full response for debugging
         print("Supabase Response:", response)
 
-        # Check for errors in the response
-        if response.error:
-            st.error(f"❌ Error saving match result: {response.error}")
+        # Check if the response was successful
+        if response.status_code == 201:  # HTTP status code for successful creation
+            st.success(f"Match result saved: {winner} wins {margin_text}")
+            return response.data  # Return the inserted data
+        else:
+            st.error(f"❌ Error saving match result. Status Code: {response.status_code}")
+            st.error(f"Response Data: {response.data}")
             return None
-
-        # Successful insertion
-        st.success(f"Match result saved: {winner} wins {margin_text}")
-        return response.data  # Return the inserted data
 
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
         print(f"Error: {str(e)}")  # Log exception for debugging
         return None
+
 
 
 #-- winner data ---
