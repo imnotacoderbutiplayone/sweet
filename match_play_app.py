@@ -598,42 +598,45 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        # Fetch the latest match results directly from Supabase
+        # Fetch match results directly from Supabase, ordered by created_at (most recent first)
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Check if we got any data from the response
+        # Check if the response contains data
         if not response.data:
             st.warning("📭 No match results found in the Supabase response.")
             return {}
 
-        # Dictionary to hold the most recent result for each match pair
+        # Dictionary to group match results by match pair
         match_dict = defaultdict(list)
 
-        # Populate the match dictionary with match results grouped by match pair
-        for r in response.data:
-            match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
-            match_dict[match_key].append(r)
+        # Group the match results by match pair
+        for result in response.data:
+            match_key = f"{result['pod']}|{result['player1']} vs {result['player2']}"
+            match_dict[match_key].append(result)
 
-        # Now, for each match pair, we will sort the results by timestamp (most recent first)
-        # and pick the latest one.
+        # Dictionary to store the most recent result for each match pair
         latest_match_results = {}
 
+        # Iterate through each match pair and select the most recent result
         for match_key, match_results in match_dict.items():
-            # Sort the match results by timestamp, most recent first
+            # Sort the match results by created_at (timestamp), most recent first
             match_results.sort(key=lambda x: x['created_at'], reverse=True)
 
-            # Take the latest result
+            # Pick the latest result (first entry after sorting by timestamp)
             latest_result = match_results[0]
             latest_match_results[match_key] = {
                 "winner": latest_result["winner"],
                 "margin": latest_result["margin"]
             }
 
-        return latest_match_results  # Return the dictionary with most recent results
+        # Return the dictionary with the most recent match results
+        return latest_match_results
 
     except Exception as e:
+        # Handle any errors that occur during the process
         st.error(f"❌ Error loading match results from Supabase: {e}")
         return {}
+
 
 
 # --- Load all predictions from Supabase ---
