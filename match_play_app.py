@@ -914,7 +914,7 @@ with tabs[5]:
                     "SF Right": [p['name'] for p in pred_sf_right],
                     "Finalist Right": finalist_right['name'] if finalist_right is not None else None,
                     "Champion Label": champ_label,
-                    "Champion Final": champion_final["name"] if champion_final else None
+                    "Champion Final": champion_final["name"] if champion_final is not None else None
                 }
 
                 st.write("🧪 Debug:", debug)
