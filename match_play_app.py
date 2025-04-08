@@ -1042,19 +1042,35 @@ with tabs[6]:
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
+def parse_json_field(field_val):
+    """
+    If the field value is a string, attempt to JSON-decode it.
+    If it is already a list, return it as is.
+    Otherwise, return an empty list.
+    """
+    if isinstance(field_val, list):
+        return field_val
+    elif isinstance(field_val, str):
+        try:
+            return json.loads(field_val)
+        except Exception:
+            return []
+    else:
+        return []
+
 # Tab 7: Leaderboard
 with tabs[7]:
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
-        # Retrieve all prediction rows from Supabase
+        # Retrieve all prediction rows from Supabase.
         predictions_response = supabase.table("predictions").select("*").execute()
         predictions = predictions_response.data
 
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            # Query final_results table ordering by created_at (the correct column)
+            # Query final_results table ordering by created_at
             final_results_response = supabase.table("final_results") \
                                              .select("*") \
                                              .order("created_at", desc=True) \
@@ -1067,33 +1083,26 @@ with tabs[7]:
             else:
                 final_result = final_results_data[0]
 
-                # Build the actual results dictionary from the final_result.
-                # The JSONB columns (for rounds) are stored as strings, so we load them.
+                # For the JSONB columns, we use the helper function to ensure they are lists.
                 actual_results = {
-                    "r16_left": json.loads(final_result.get("r16_left", "[]")),
-                    "r16_right": json.loads(final_result.get("r16_right", "[]")),
-                    "qf_left": json.loads(final_result.get("qf_left", "[]")),
-                    "qf_right": json.loads(final_result.get("qf_right", "[]")),
-                    "sf_left": json.loads(final_result.get("sf_left", "[]")),
-                    "sf_right": json.loads(final_result.get("sf_right", "[]")),
+                    "r16_left": parse_json_field(final_result.get("r16_left", "[]")),
+                    "r16_right": parse_json_field(final_result.get("r16_right", "[]")),
+                    "qf_left": parse_json_field(final_result.get("qf_left", "[]")),
+                    "qf_right": parse_json_field(final_result.get("qf_right", "[]")),
+                    "sf_left": parse_json_field(final_result.get("sf_left", "[]")),
+                    "sf_right": parse_json_field(final_result.get("sf_right", "[]")),
                     "champion": final_result.get("champion", "").strip()
                 }
 
-                # Now compute scores for each prediction.
+                # Compute scores for each prediction.
                 leaderboard = []
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
 
                     # --- Round-of-16 scoring (1 point per correct prediction) ---
-                    try:
-                        pred_r16_left = json.loads(row.get("r16_left", "[]"))
-                    except Exception:
-                        pred_r16_left = []
-                    try:
-                        pred_r16_right = json.loads(row.get("r16_right", "[]"))
-                    except Exception:
-                        pred_r16_right = []
+                    pred_r16_left = parse_json_field(row.get("r16_left", "[]"))
+                    pred_r16_right = parse_json_field(row.get("r16_right", "[]"))
 
                     for actual, predicted in zip(actual_results["r16_left"], pred_r16_left):
                         if actual == predicted:
@@ -1103,14 +1112,8 @@ with tabs[7]:
                             score += 1
 
                     # --- Quarterfinals scoring (3 points per correct prediction) ---
-                    try:
-                        pred_qf_left = json.loads(row.get("qf_left", "[]"))
-                    except Exception:
-                        pred_qf_left = []
-                    try:
-                        pred_qf_right = json.loads(row.get("qf_right", "[]"))
-                    except Exception:
-                        pred_qf_right = []
+                    pred_qf_left = parse_json_field(row.get("qf_left", "[]"))
+                    pred_qf_right = parse_json_field(row.get("qf_right", "[]"))
 
                     for actual, predicted in zip(actual_results["qf_left"], pred_qf_left):
                         if actual == predicted:
@@ -1120,14 +1123,8 @@ with tabs[7]:
                             score += 3
 
                     # --- Semifinals scoring (5 points per correct prediction) ---
-                    try:
-                        pred_sf_left = json.loads(row.get("sf_left", "[]"))
-                    except Exception:
-                        pred_sf_left = []
-                    try:
-                        pred_sf_right = json.loads(row.get("sf_right", "[]"))
-                    except Exception:
-                        pred_sf_right = []
+                    pred_sf_left = parse_json_field(row.get("sf_left", "[]"))
+                    pred_sf_right = parse_json_field(row.get("sf_right", "[]"))
 
                     for actual, predicted in zip(actual_results["sf_left"], pred_sf_left):
                         if actual == predicted:
