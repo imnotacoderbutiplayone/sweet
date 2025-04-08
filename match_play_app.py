@@ -343,6 +343,7 @@ def compute_pod_standings_from_results(pods, match_results):
                     # Debugging: Print match results
                     print(f"Match result for {key}: winner={winner}, margin={margin_str}, margin_value={margin_value}")
 
+                    # Safely adjust the points and margin
                     if winner == name:
                         points += 1
                         margin += margin_value  # Add margin for winner
