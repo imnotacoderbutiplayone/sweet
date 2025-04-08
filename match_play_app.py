@@ -95,36 +95,24 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Save match result to Supabase ---
+# --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
-    """
-    Save match result to Supabase
-    """
     data = {
         "pod": pod,
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin_text,  # Ensure the margin is saved
-        "status": "pending",  # Assuming the match is still pending until the result is finalized
-        "created_at": datetime.utcnow().isoformat(),
-        "updated_at": datetime.utcnow().isoformat()
+        "margin": margin_text,
+        "created_at": datetime.utcnow().isoformat()
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()  # Save to the database
-        st.write("Match Result Saved:", response)  # Debugging line to check the response
-        
-        # Reload match results into session state
-        st.session_state.match_results = load_match_results()  # Re-load match results from Supabase
-
+        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
-
-
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
@@ -134,27 +122,31 @@ def get_winner_player(player1, player2, winner_name):
             return p
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
-def render_match(player1, player2, winner, margin, readonly=False, key_prefix=""):
+# --- Render Match ----
+def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     """
     Renders the match between two players.
     - player1, player2: dictionaries containing player info (e.g., name, handicap)
     - winner: the current winner (or "Tie")
-    - margin: the margin of victory (or "Tie")
     - readonly: if True, makes the match readonly (admin-only input)
     - key_prefix: ensures that each checkbox/radio button has a unique key
 
-    Returns the winner of the match and the margin.
+    Returns the winner of the match.
     """
+    # Debugging: Print out player data
+    #st.write(f"Player 1 Data: {player1}")
+    #st.write(f"Player 2 Data: {player2}")
+    
     # Check if both players have valid data
     if not player1 or not player2:
         st.error(f"❌ Invalid player data for one or both players: {player1}, {player2}")
-        return None, None
+        return None
     if "name" not in player1 or "handicap" not in player1:
         st.error(f"❌ Invalid player data for {player1}")
-        return None, None
+        return None
     if "name" not in player2 or "handicap" not in player2:
         st.error(f"❌ Invalid player data for {player2}")
-        return None, None
+        return None
 
     # Display match information
     st.write(f"### Match: {player1['name']} vs {player2['name']}")
@@ -180,29 +172,57 @@ def render_match(player1, player2, winner, margin, readonly=False, key_prefix=""
         )
 
         # Select margin if there is a winner
-        margin = "Tie"  # Default if it's a tie
         if selected_winner != "Tie":
             margin = st.selectbox(
                 "Select win margin",
                 options=["1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4"],
                 key=margin_key
             )
+        else:
+            margin = "Tie"
         
         # Display result button
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
-            # Save the result to Supabase
+            # Here you would save the result to Supabase
             save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
-
-            # Reload match results to update session state
-            st.session_state.match_results = load_match_results()  # Re-load match results from Supabase
-            
             st.success(f"Result saved: {selected_winner} wins {margin}")
-            return selected_winner, margin
+            return selected_winner
     else:
-        # If readonly is True, just display the result and margin
+        # If readonly is True, just display the result
         st.write(f"Match result: {winner}")
-        st.write(f"Margin: {margin}")
-        return winner, margin
+        return winner
+
+
+# --- Compute standings dynamically from match results ---
+def compute_pod_standings_from_results(pods, match_results):
+    pod_scores = {}
+
+    for pod_name, players in pods.items():
+        results = []
+        for player in players:
+            name = player["name"]
+            points, margin = 0, 0
+
+            for key, result in match_results.items():
+                if key.startswith(f"{pod_name}|") and name in key:
+                    if result["winner"] == name:
+                        points += 1
+                        margin += result["margin"]
+                    elif result["winner"] == "Tie":
+                        points += 0.5
+                    else:
+                        margin -= result["margin"]
+
+            results.append({
+                "name": name,
+                "handicap": player["handicap"],
+                "points": points,
+                "margin": margin
+            })
+
+        pod_scores[pod_name] = pd.DataFrame(results)
+
+    return pod_scores
 
 
 # --- Build bracket from scores and tiebreaks ---
@@ -338,21 +358,16 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()  # Updated to tournament_matches
 
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
-
-            # Handle None values gracefully and check the status
             match_dict[match_key] = {
-                "winner": r.get("winner", "N/A"),  # Default to 'N/A' if winner is missing
-                "margin": r.get("margin", "N/A"),  # Default to 'N/A' if margin is missing
-                "status": r.get("status", "N/A"),  # Handle status if it's missing or null
-                "round": r.get("round", "N/A"),  # Handle round if it's None
+                "winner": r["winner"],
+                "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
 
-        st.write("Loaded Match Results:", match_dict)  # Debugging line to check what is loaded
         return dict(match_dict)
 
     except Exception as e:
@@ -630,65 +645,17 @@ with tabs[0]:
 with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
-    # Load match results from Supabase (or session state if loaded earlier)
+    # Load match results
     match_results = load_match_results()
     st.session_state.match_results = match_results
 
     pod_results = {}
 
-    # Render matches for each pod
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            # Render each match and allow the admin to pick winners and margins
-            for i in range(0, len(players), 2):  # Pair players for each match
-                if i + 1 < len(players):  # Ensure there are two players to compare
-                    player1 = players[i]
-                    player2 = players[i + 1]
+            updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
+            pod_results[pod_name] = pd.DataFrame(updated_players)
 
-                    # Get current winner and margin if it exists
-                    match_key = f"{pod_name}|{player1['name']} vs {player2['name']}"
-                    current_result = match_results.get(match_key, {"winner": "Tie", "margin": "Tie"})
-
-                    # Check and ensure valid winner and margin values
-                    winner = current_result.get("winner", "Tie")
-                    margin = current_result.get("margin", "Tie")
-
-                    # Validate the winner (must be 'Tie', or one of the player names)
-                    if not isinstance(winner, str) or winner not in ["Tie", player1['name'], player2['name']]:
-                        winner = "Tie"  # Fallback to "Tie" if winner is invalid
-
-                    # Validate the margin (must be 'Tie', or valid margin values like "1 up", "2 and 1", etc.)
-                    valid_margins = ["Tie", "1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4"]
-                    if not isinstance(margin, str) or margin not in valid_margins:
-                        margin = "Tie"  # Fallback to "Tie" if margin is invalid
-
-                    # Add debugging prints to check the values of winner and margin
-                    st.write(f"Debug - Match: {player1['name']} vs {player2['name']}")
-                    st.write(f"Debug - Initial Winner: {winner}")
-                    st.write(f"Debug - Initial Margin: {margin}")
-
-                    # Ensure the 'winner' and 'margin' are valid before passing to the render_match function
-                    if winner not in ["Tie", player1['name'], player2['name']]:
-                        st.error(f"❌ Invalid winner value: {winner}")
-                        continue  # Skip this match if invalid winner
-
-                    if margin not in valid_margins:
-                        st.error(f"❌ Invalid margin value: {margin}")
-                        continue  # Skip this match if invalid margin
-
-                    # Render the match, allowing for winner and margin selection
-                    winner, margin = render_match(player1, player2, winner, margin, readonly=False, key_prefix=match_key)
-
-                    # After the match result is chosen, update match results
-                    if winner != "Tie":
-                        match_results[match_key] = {"winner": winner, "margin": margin}
-                    else:
-                        match_results[match_key] = {"winner": "Tie", "margin": margin}
-
-            # Update pod standings after each match
-            pod_results[pod_name] = pd.DataFrame(players)
-
-    # If authenticated, allow to review and resolve tiebreakers
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
@@ -767,8 +734,6 @@ with tabs[1]:
 
 
 
-
-
 # --- Standings ---
 with tabs[2]:
     st.subheader("📋 Standings")
@@ -824,6 +789,7 @@ with tabs[2]:
 
 
 # --- Admin View Rendering Bracket ---
+# --- Bracket ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
@@ -920,86 +886,6 @@ with tabs[3]:
             st.success("✅ Bracket progression saved!")
     else:
         st.warning("Bracket progression not set yet.")
-        
-# --- Non-Admin View Rendering Bracket ---
-with tabs[3]:
-    st.subheader("🏆 Bracket")
-
-    # Check if the bracket is finalized
-    if "finalized_bracket" not in st.session_state:
-        st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
-        st.stop()
-
-    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
-
-    # Split bracket into left and right sides
-    left = bracket_df.iloc[0:8].to_dict("records")
-    right = bracket_df.iloc[8:16].to_dict("records")
-
-    col1, col2 = st.columns(2)
-
-    def get_winner_safe(round_list, index):
-        try:
-            return round_list[index]["name"]
-        except (IndexError, TypeError, KeyError):
-            return ""
-
-    # Render the bracket for non-admin users
-    with col1:
-        st.markdown("### 🟦 Left Side")
-
-        st.markdown("#### 🔹 Round of 16")
-        r16_left = []
-        for i in range(0, len(left), 2):
-            winner_name = get_winner_safe(left, i)
-            r16_left.append(winner_name)
-
-        st.markdown("#### 🥉 Quarterfinals")
-        qf_left = []
-        for i in range(0, len(r16_left), 2):
-            if i + 1 < len(r16_left):
-                winner_name = get_winner_safe(r16_left, i)
-                qf_left.append(winner_name)
-
-        st.markdown("#### 🥈 Semifinal")
-        sf_left = []
-        for i in range(0, len(qf_left), 2):
-            if i + 1 < len(qf_left):
-                winner_name = get_winner_safe(qf_left, i)
-                sf_left.append(winner_name)
-
-    with col2:
-        st.markdown("### 🟥 Right Side")
-
-        st.markdown("#### 🔹 Round of 16")
-        r16_right = []
-        for i in range(0, len(right), 2):
-            winner_name = get_winner_safe(right, i)
-            r16_right.append(winner_name)
-
-        st.markdown("#### 🥉 Quarterfinals")
-        qf_right = []
-        for i in range(0, len(r16_right), 2):
-            if i + 1 < len(r16_right):
-                winner_name = get_winner_safe(r16_right, i)
-                qf_right.append(winner_name)
-
-        st.markdown("#### 🥈 Semifinal")
-        sf_right = []
-        for i in range(0, len(qf_right), 2):
-            if i + 1 < len(qf_right):
-                winner_name = get_winner_safe(qf_right, i)
-                sf_right.append(winner_name)
-
-    if sf_left and sf_right:
-        st.markdown("### 🏁 Final Match")
-        champ_choice = st.radio("🏆 Select the Champion",
-                                [label(sf_left[0]), label(sf_right[0])],
-                                key="final_match_radio")
-        champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
-    else:
-        champion = None
-
 
 
 # --- Export ---
@@ -1201,11 +1087,11 @@ with tabs[5]:
 
 
 # --- Results Log ---
-with tabs[6]:  # Results Log tab
+with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Reload match results into session state (after saving match result)
+        # Load match results from Supabase
         match_results = st.session_state.get("match_results", {})
 
         if not match_results:
@@ -1224,19 +1110,18 @@ with tabs[6]:  # Results Log tab
                     continue  # Skip malformed match strings
 
                 winner = result.get("winner", "Tie")
-                margin = result.get("margin", "Tie")  # Ensure we handle 'Tie' margin
-                status = result.get("status", "N/A")  # Include status here
-                
-                # Fallback for unknown margin
-                margin_text = margin if margin != "Tie" else "Tie"
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
 
                 data.append({
                     "Pod": pod_name,
                     "Player 1": player1.strip(),
                     "Player 2": player2.strip(),
                     "Winner": winner,
-                    "Margin": margin_text,
-                    "Status": status  # Display status in the log
+                    "Margin": margin_text
                 })
 
             # Create DataFrame to display the match results
@@ -1249,11 +1134,10 @@ with tabs[6]:  # Results Log tab
             # Optional: Allow the user to download the match results as CSV
             csv = df.to_csv(index=False).encode("utf-8")
             st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
-    
+
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
-
 
 
 # --- Leaderboard ---
