@@ -214,31 +214,36 @@ else:
         st.session_state.authenticated = False
         st.rerun()
 
-    # --- ⚙️ Admin Tools (Visible ONLY to Admin) ---
+ # --- ⚙️ Admin Tools ---
+if st.session_state.authenticated:
     st.sidebar.markdown("---")
     st.sidebar.subheader("⚙️ Admin Tools")
 
-    st.sidebar.warning("This will permanently delete ALL tournament data from Supabase and local files.")
-
-    confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset")
+    st.sidebar.warning("⚠️ This will permanently delete ALL tournament data from Supabase and local files.")
+    
+    confirm_reset = st.sidebar.text_input("Type RESET to confirm", key="confirm_reset_input")
+    confirm_checkbox = st.sidebar.checkbox("Yes, I understand this will delete all tournament data", key="confirm_checkbox")
 
     if st.sidebar.button("🧨 Reset Tournament Data"):
-        if confirm_reset.strip().upper() == "RESET":
+        if confirm_reset.strip().upper() == "RESET" and confirm_checkbox:
+            # ---- Optional: delete local JSON files if still in use ----
             for file in [RESULTS_FILE, BRACKET_FILE]:
                 if os.path.exists(file):
                     os.remove(file)
 
+            # ---- Supabase Table Wipe ----
             try:
-                supabase.table("match_results").delete().neq("player1", "").execute()
-                supabase.table("bracket_data").delete().neq("json_data", "").execute()
-                supabase.table("bracket_progression").delete().neq("champion", "").execute()
-                supabase.table("final_results").delete().neq("champion", "").execute()
-                supabase.table("predictions").delete().neq("name", "").execute()
+                supabase.table("match_results").delete().execute()
+                supabase.table("bracket_data").delete().execute()
+                supabase.table("bracket_progression").delete().execute()
+                supabase.table("final_results").delete().execute()
+                supabase.table("predictions").delete().execute()
                 st.sidebar.success("✅ Supabase tournament data wiped clean.")
             except Exception as e:
                 st.sidebar.error("❌ Failed to delete data from Supabase.")
                 st.sidebar.code(str(e))
 
+            # ---- Session Cleanup ----
             st.session_state.match_results = {}
             st.session_state.bracket_data = pd.DataFrame()
             st.session_state.tiebreak_selections = {}
@@ -250,8 +255,11 @@ else:
             st.sidebar.success("✅ Local data and session state cleared.")
             st.sidebar.info("🔁 Refreshing app now...")
             st.rerun()
-        else:
+        elif confirm_reset.strip().upper() != "RESET":
             st.sidebar.error("❌ You must type RESET to confirm.")
+        elif not confirm_checkbox:
+            st.sidebar.error("❌ You must check the box to confirm you understand.")
+
 
 # ---- Link to Golf Score Probability Calculator ----
 st.sidebar.markdown(
