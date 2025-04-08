@@ -816,7 +816,14 @@ with tabs[5]:
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
-        full_name = st.text_input("Enter your full name to submit a prediction:")
+        if full_name.strip():
+            existing = supabase.table("predictions").select("name").eq("name", full_name.strip()).execute()
+
+            if existing.data:
+                st.warning("You've already submitted a bracket. Only one entry per name is allowed.")
+         else:
+        # your prediction logic...
+
 
         if full_name.strip():
             existing = supabase.table("predictions").select("name").eq("name", full_name.strip()).execute()
