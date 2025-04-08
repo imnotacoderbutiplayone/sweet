@@ -1032,40 +1032,44 @@ with tabs[7]:
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            if "champion" not in st.session_state or not st.session_state.get("bracket_data") is not None:
+            # Check if champion and finalists have been set
+            champion_name = st.session_state.get("champion_name", "").strip()
+            finalist_left_name = st.session_state.get("finalist_left_name", "").strip()
+            finalist_right_name = st.session_state.get("finalist_right_name", "").strip()
+            
+            if not champion_name or not finalist_left_name or not finalist_right_name:
                 st.warning("Champion has not been selected yet. Leaderboard will update once a winner is finalized.")
             else:
-                # Actual results
                 actual_results = {
-                    "champion": st.session_state.get("champion_name", "").strip(),
-                    "finalist_left": st.session_state.get("finalist_left_name", "").strip(),
-                    "finalist_right": st.session_state.get("finalist_right_name", "").strip()
+                    "champion": champion_name,
+                    "finalist_left": finalist_left_name,
+                    "finalist_right": finalist_right_name
                 }
-
+    
                 leaderboard = []
-
+    
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
                     champion_pick = row.get("champion", "")
                     left_finalist_pick = row.get("finalist_left", "")
                     right_finalist_pick = row.get("finalist_right", "")
-
+    
                     if champion_pick == actual_results["champion"]:
                         score += 3
                     if left_finalist_pick == actual_results["finalist_left"]:
                         score += 1
                     if right_finalist_pick == actual_results["finalist_right"]:
                         score += 1
-
+    
                     leaderboard.append({
                         "Name": name,
                         "Champion Pick": champion_pick,
                         "Score": score
                     })
-
+    
                 leaderboard_df = pd.DataFrame(leaderboard)
-
+    
                 if "Score" in leaderboard_df.columns:
                     leaderboard_df = leaderboard_df.sort_values(by="Score", ascending=False).reset_index(drop=True)
                     st.dataframe(leaderboard_df, use_container_width=True)
