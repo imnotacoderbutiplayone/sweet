@@ -1355,70 +1355,68 @@ with tabs[5]:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
 
 
+# --- Results Log ---
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Try loading the match results from Supabase directly
+        # Load match results from Supabase directly
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Debug: Check the response
-        st.write("Raw Response from Supabase:", response)
-
+        # Check if the response contains data
         if response.data:
+            # Process the response data
             match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
                 "margin": r["margin"]
             } for r in response.data}
 
-            # Debug: Display match results (check data format)
-            st.write("Match Results from Database:", match_results)
+            # Debug: Display match results in session state
+            st.write("Match Results:", match_results)
 
-            if not match_results:
-                st.info("No match results have been entered yet.")
-            else:
-                # Convert the match results into a DataFrame
-                data = []
-                for key, result in match_results.items():
-                    if "|" not in key:
-                        continue  # Skip malformed or legacy keys
+            # Convert the match results into a DataFrame
+            data = []
+            for key, result in match_results.items():
+                if "|" not in key:
+                    continue  # Skip malformed or legacy keys
 
-                    pod_name, match_str = key.split("|", 1)
-                    try:
-                        player1, player2 = match_str.split(" vs ")
-                    except ValueError:
-                        continue  # Skip malformed match strings
+                pod_name, match_str = key.split("|", 1)
+                try:
+                    player1, player2 = match_str.split(" vs ")
+                except ValueError:
+                    continue  # Skip malformed match strings
 
-                    winner = result.get("winner", "Tie")
-                    margin = result.get("margin", 0)
-                    margin_text = next(
-                        (k for k, v in margin_lookup.items() if v == margin),
-                        "Tie" if winner == "Tie" else "1 up"
-                    )
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
 
-                    data.append({
-                        "Pod": pod_name,
-                        "Player 1": player1.strip(),
-                        "Player 2": player2.strip(),
-                        "Winner": winner,
-                        "Margin": margin_text
-                    })
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
 
-                # Create DataFrame to display the match results
-                df = pd.DataFrame(data)
-                df = df.sort_values(by=["Pod", "Player 1"])
+            # Create DataFrame to display the match results
+            df = pd.DataFrame(data)
+            df = df.sort_values(by=["Pod", "Player 1"])
 
-                # Display match results
-                st.dataframe(df, use_container_width=True)
+            # Display match results
+            st.dataframe(df, use_container_width=True)
 
-                # Optional: Allow the user to download the match results as CSV
-                csv = df.to_csv(index=False).encode("utf-8")
-                st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+            # Optional: Allow the user to download the match results as CSV
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+
         else:
-            st.info("No match results found in the database.")
-    
+            st.info("No match results have been entered yet.")
+
     except Exception as e:
-        st.error("❌ Error loading match results from Supabase.")
+        st.error("❌ Error loading match results.")
         st.code(str(e))
 
 
