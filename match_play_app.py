@@ -38,8 +38,6 @@ def sanitize_key(text):
 
 # --- Save one match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
-    from datetime import datetime
-
     data = {
         "pod": pod,
         "player1": player1,
@@ -50,12 +48,13 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("match_results").insert(data).execute()
+        response = supabase.table("match_results_new").insert(data).execute()
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
+
 
 def simulate_matches(players, pod_name, source=""):
     # Initialize result dictionary for players
@@ -154,7 +153,7 @@ def simulate_matches(players, pod_name, source=""):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
+        response = supabase.table("match_results_new").select("*").order("created_at", desc=True).execute()
 
         match_dict = defaultdict(dict)
         for r in response.data:
@@ -170,6 +169,7 @@ def load_match_results():
         st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
+
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
@@ -986,7 +986,7 @@ with tabs[6]:
 
     try:
         # Load match results from Supabase
-        match_results = st.session_state.get("match_results", {})
+        match_results = st.session_state.get("match_results_new", {})
 
         if not match_results:
             st.info("No match results have been entered yet.")
