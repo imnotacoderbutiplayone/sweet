@@ -103,6 +103,57 @@ def load_match_results():
         return {}
 
 
+# --- update standigns ----
+def update_standings(pod_name, player_name, winner, margin):
+    """
+    Update the player's points and margin in the standings after a match result is entered.
+    """
+    if winner == player_name:
+        points = 1
+    else:
+        points = 0.5  # Tie logic
+
+    # Query to update the player's points and margin in the database
+    update_query = f"""
+    UPDATE pod_standings
+    SET points = points + {points}, margin = margin + {margin}
+    WHERE pod = '{pod_name}' AND player_name = '{player_name}'
+    """
+    # Execute the query (you may need to replace this with your method for executing SQL queries)
+    execute_query(update_query)
+
+# --- update round of 16 -----
+
+def update_round_of_16():
+    # Query the top players based on the latest standings
+    query = "SELECT player_name FROM pod_standings ORDER BY points DESC, margin DESC LIMIT 16"
+    top_players = execute_query(query)
+
+    # Now, update the Round of 16 matches based on these top players
+    # Update the database with the new matchups for Round of 16
+    for i in range(0, len(top_players), 2):
+        # Set up matches, example:
+        # Round of 16 Match 1: Player X vs Player Y
+        match_query = f"""
+        INSERT INTO round_of_16 (player1, player2)
+        VALUES ('{top_players[i]}', '{top_players[i+1]}')
+        """
+        execute_query(match_query)
+
+# ----- Refresh ----
+def refresh_ui():
+    # Query the updated standings and Round of 16
+    standings_query = "SELECT * FROM pod_standings ORDER BY points DESC, margin DESC"
+    standings = execute_query(standings_query)
+
+    round_of_16_query = "SELECT * FROM round_of_16"
+    round_of_16 = execute_query(round_of_16_query)
+
+    # Update the UI components in Streamlit
+    st.session_state.standings = standings
+    st.session_state.round_of_16 = round_of_16
+
+
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
     try:
