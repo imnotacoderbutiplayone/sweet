@@ -95,7 +95,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# Save one match result to Supabase
+# --- Save match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -108,12 +108,12 @@ def save_match_result(pod, player1, player2, winner, margin_text):
 
     try:
         response = supabase.table("tournament_matches").insert(data).execute()  # Save to the database
+        st.write("Match Result Saved:", response)  # Add this line to check the response
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
-
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
@@ -181,6 +181,10 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
             # Save the result to Supabase
             save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
+
+            # Reload match results to update session state
+            st.session_state.match_results = load_match_results()  # Re-load match results from Supabase
+            
             st.success(f"Result saved: {selected_winner} wins {margin}")
             return selected_winner, margin
     else:
@@ -366,6 +370,7 @@ def load_match_results():
                 "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
 
+        st.write("Loaded Match Results:", match_dict)  # Debugging line to check what is loaded
         return dict(match_dict)
 
     except Exception as e:
@@ -1168,9 +1173,9 @@ with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
     try:
-        # Load match results from Supabase
+        # Reload match results into session state (after saving match result)
         match_results = st.session_state.get("match_results", {})
-        
+
         # Debugging: print the loaded results
         st.write("Loaded Match Results:", match_results)  # Debugging line
 
@@ -1220,7 +1225,6 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
-
 
 # --- Leaderboard ---
 with tabs[7]:
