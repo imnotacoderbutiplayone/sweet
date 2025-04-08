@@ -23,7 +23,13 @@ def save_bracket_data(df):
     try:
         json_data = df.to_json(orient="split")
         response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
-        return response
+
+        # Check for any errors in the response
+        if response.error:
+            st.error(f"❌ Failed to save bracket data to Supabase: {response.error}")
+            return None
+        else:
+            return response.data  # Return the inserted data or a success indicator
     except Exception as e:
         st.error("❌ Failed to save bracket data to Supabase")
         st.code(str(e))
@@ -95,7 +101,7 @@ def sanitize_key(text):
     hashed = hashlib.md5(text.encode()).hexdigest()[:8]  # Short hash for uniqueness
     return f"{cleaned}_{hashed}"
 
-# --- Save one match result to Supabase ---
+# --- Save match result to Supabase ---
 def save_match_result(pod, player1, player2, winner, margin_text):
     data = {
         "pod": pod,
@@ -107,17 +113,18 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()
-        if response.status_code == 201:
-            return response
+        response = supabase.table("tournament_matches").insert(data).execute()  # Updated to tournament_matches
+        
+        # Check for any errors in the response
+        if response.error:
+            st.error(f"❌ Error saving match result to Supabase: {response.error}")
+            return None
         else:
-            st.error(f"❌ Failed to save match result: {response.status_code}")
-            st.write(response.text)
+            return response.data  # Return the inserted data or a success indicator
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
-    return None
-
+        return None
 
 #-- winner data ---
 def get_winner_player(player1, player2, winner_name):
