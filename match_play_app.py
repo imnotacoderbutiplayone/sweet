@@ -38,11 +38,10 @@ def save_bracket_data(df):
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
 
-    # Normalize player order to avoid duplicates
-    normalized_player1, normalized_player2 = sorted([player1.strip(), player2.strip()])
+    # Normalize player order
+    normalized_player1, normalized_player2 = sorted([player1, player2])
     match_key = f"{normalized_player1}|{normalized_player2}|{pod}"
 
-    # Construct the match result entry
     data = {
         "pod": pod,
         "player1": normalized_player1,
@@ -54,17 +53,9 @@ def save_match_result(pod, player1, player2, winner, margin_text):
     }
 
     try:
-        # Delete any existing match with the same key
-        supabase.table("match_results") \
-            .delete() \
-            .eq("match_key", match_key) \
-            .execute()
-
-        # Insert the new record
         response = supabase.table("match_results") \
-            .insert(data) \
-            .execute()
-
+            .upsert(data, on_conflict=["match_key"]) \
+            .execute()  # Ensure that the `match_key` is unique
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
