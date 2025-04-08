@@ -667,6 +667,15 @@ with tabs[1]:
                     st.write(f"Debug - Initial Winner: {winner}")
                     st.write(f"Debug - Initial Margin: {margin}")
 
+                    # Ensure the 'winner' and 'margin' are valid before passing to the render_match function
+                    if winner not in ["Tie", player1['name'], player2['name']]:
+                        st.error(f"❌ Invalid winner value: {winner}")
+                        continue  # Skip this match if invalid winner
+
+                    if margin not in valid_margins:
+                        st.error(f"❌ Invalid margin value: {margin}")
+                        continue  # Skip this match if invalid margin
+
                     # Render the match, allowing for winner and margin selection
                     winner, margin = render_match(player1, player2, winner, margin, readonly=False, key_prefix=match_key)
 
@@ -755,6 +764,7 @@ with tabs[1]:
                 st.write("📊 Final Bracket", bracket_df)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
+
 
 
 
