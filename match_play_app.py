@@ -372,7 +372,6 @@ def simulate_matches(players, pod_name, source=""):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
 
-            # Create consistent, unique match key
             player_names = sorted([p1['name'], p2['name']])
             raw_key = f"{source}_{pod_name}|{player_names[0]} vs {player_names[1]}"
             base_key = sanitize_key(raw_key)
@@ -416,13 +415,24 @@ def simulate_matches(players, pod_name, source=""):
                 else:
                     result_str = "Tie"
 
+                # Save to session
                 st.session_state.match_results[match_key] = {
                     "winner": winner,
                     "margin": margin
                 }
 
+                # Save to Supabase
                 save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
+                # 🧠 Add this line to refresh session with fresh Supabase data
+                st.session_state.match_results = load_match_results()
+
+                # 🧪 Debug logs
+                st.success(f"✅ Saved match: {match_key} → {winner} ({result_str})")
+                st.write("Match key:", match_key)
+                st.write("Session state match result:", st.session_state.match_results[match_key])
+
+                # Update scores
                 if winner == p1['name']:
                     results[p1['name']]['points'] += 1
                     results[p1['name']]['margin'] += margin
@@ -789,8 +799,6 @@ with tabs[3]:
                 st.info("Final match not confirmed.")
 
 
-
-# Tab 3: Standings
 # Tab 2: Standings
 with tabs[2]:
     st.subheader("📋 Standings")
