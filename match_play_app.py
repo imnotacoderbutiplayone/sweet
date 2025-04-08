@@ -362,7 +362,6 @@ def compute_pod_standings_from_results(pods, match_results):
     return pod_scores
 
 
-
 # --- Build bracket from scores and tiebreaks ---
 def build_bracket_df_from_pod_scores(pod_scores, tiebreak_selections):
     winners, second_place = [], []
