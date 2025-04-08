@@ -4,6 +4,9 @@ from collections import defaultdict
 import io
 import json
 import os
+import time 
+import re
+import hashlib
 
 # --- Utility functions for persistence ---
 from supabase import create_client, Client
@@ -314,8 +317,6 @@ margin_lookup = {
 }
 
 
-import re
-import hashlib
 from collections import defaultdict
 
 def sanitize_key(text):
@@ -360,8 +361,6 @@ def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
         choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
         return p1 if choice == label1 else p2
     
-
-import time  # Make sure this is at the top of your script
 
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
