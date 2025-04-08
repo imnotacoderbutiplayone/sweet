@@ -1,7 +1,7 @@
 # --- Set Page Configuration First ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-# --- Now initialize Supabase Client ---
+# --- Now import necessary libraries ---
 import streamlit as st
 import pandas as pd
 from collections import defaultdict
@@ -40,8 +40,6 @@ def init_supabase():
 
 # Initialize the Supabase client
 supabase = init_supabase()
-
-
 
 # --- Save bracket data to Supabase ---
 def save_bracket_data(df):
