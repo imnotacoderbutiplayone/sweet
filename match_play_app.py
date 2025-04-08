@@ -4,17 +4,13 @@ from collections import defaultdict
 import io
 import json
 import os
-import time 
+import time
 import re
 import hashlib
-
-# --- Utility functions for persistence ---
 from supabase import create_client, Client
-import streamlit as st
-import pandas as pd
 from datetime import datetime
 
-# --- Connect to Supabase ---
+# --- Utility functions for persistence ---
 @st.cache_resource
 def init_supabase():
     url = st.secrets["supabase"]["url"]
@@ -62,107 +58,33 @@ def save_match_result(pod, player1, player2, winner, margin_text):
         st.code(str(e))
         return None
 
-
-
-margin_lookup = {
-    "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
-    "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
-}
-
-# --- Load all match results from Supabase ---
-from collections import defaultdict
-
+# --- Load match results ---
 def load_match_results():
     try:
         response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
-
         match_dict = defaultdict(dict)
         for r in response.data:
-            # Normalize match key to match write logic
             p1, p2 = sorted([r['player1'].strip(), r['player2'].strip()])
             match_key = f"{r['pod']}|{p1} vs {p2}"
             match_dict[match_key] = {
                 "winner": r["winner"],
                 "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
-
         return dict(match_dict)
-
     except Exception as e:
         st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
 
-
-# --- update standigns ----
+# --- Update standings ---
 def update_standings(pod_name, player_name, winner, margin):
-    """
-    Update the player's points and margin in the standings after a match result is entered.
-    """
-    if winner == player_name:
-        points = 1
-    else:
-        points = 0.5  # Tie logic
-
-    # Query to update the player's points and margin in the database
+    points = 1 if winner == player_name else 0.5  # Tie logic
     update_query = f"""
     UPDATE pod_standings
     SET points = points + {points}, margin = margin + {margin}
     WHERE pod = '{pod_name}' AND player_name = '{player_name}'
     """
-    # Execute the query (you may need to replace this with your method for executing SQL queries)
     execute_query(update_query)
-
-
-
-# ---- round of 16 to database ----
-# --- Connect to Supabase ---
-@st.cache_resource
-def init_supabase():
-    url = st.secrets["supabase"]["url"]
-    key = st.secrets["supabase"]["key"]
-    return create_client(url, key)
-
-supabase = init_supabase()
-
-# --- Save bracket data to Supabase ---
-def save_bracket_data(df):
-    try:
-        json_data = df.to_json(orient="split")
-        response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
-        return response
-    except Exception as e:
-        st.error("❌ Failed to save bracket data to Supabase")
-        st.code(str(e))
-        return None
-
-# --- Save one match result to Supabase ---
-def save_match_result(pod, player1, player2, winner, margin_text):
-    from datetime import datetime
-
-    # Normalize player order
-    normalized_player1, normalized_player2 = sorted([player1, player2])
-    match_key = f"{normalized_player1}|{normalized_player2}|{pod}"
-
-    data = {
-        "pod": pod,
-        "player1": normalized_player1,
-        "player2": normalized_player2,
-        "winner": winner,
-        "margin": margin_text,
-        "match_key": match_key,
-        "created_at": datetime.utcnow().isoformat()
-    }
-
-    try:
-        response = supabase.table("match_results") \
-            .upsert(data, on_conflict=["match_key"]) \
-            .execute()  # Ensure that the `match_key` is unique
-        return response
-    except Exception as e:
-        st.error("❌ Error saving match result to Supabase")
-        st.code(str(e))
-        return None
 
 # --- Load Round of 16 Data ---
 def load_round_of_16():
@@ -193,15 +115,39 @@ def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
         choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
         return p1 if choice == label1 else p2
 
+# --- Update Round of 16 ---
+def update_round_of_16():
+    # Query the top players based on the latest standings
+    query = "SELECT player_name FROM pod_standings ORDER BY points DESC, margin DESC LIMIT 16"
+    top_players = execute_query(query)
+
+    # Insert matches into the Round of 16 table
+    for i in range(0, len(top_players), 2):
+        # Round of 16 Matchup: Player X vs Player Y
+        match_query = f"""
+        INSERT INTO round_of_16 (player1, player2)
+        VALUES ('{top_players[i]}', '{top_players[i+1]}')
+        """
+        execute_query(match_query)
+
+# ----- Refresh ----
+def refresh_ui():
+    standings_query = "SELECT * FROM pod_standings ORDER BY points DESC, margin DESC"
+    standings = execute_query(standings_query)
+
+    round_of_16_query = "SELECT * FROM round_of_16"
+    round_of_16 = execute_query(round_of_16_query)
+
+    st.session_state.standings = standings
+    st.session_state.round_of_16 = round_of_16
+
 # --- Bracket View ---
 with st.beta_expander("🏆 Round of 16 - Bracket View"):
-    # Load Round of 16 matches from Supabase
     round_of_16_matches = load_round_of_16()
     if not round_of_16_matches:
         st.warning("No Round of 16 matches found.")
         st.stop()
 
-    # Split into left and right sides for the bracket
     left = round_of_16_matches[:8]
     right = round_of_16_matches[8:]
 
