@@ -1357,82 +1357,77 @@ with tabs[5]:
                 else:
                     st.info("📋 Fill out all predictions and pick a champion to unlock the Submit button.")
 
-with tabs[6]:
+# --- Results Log Tab ---
+with tabs[6]:  # Make sure you're in the correct tab index
     st.subheader("🗃️ Match Results Log")
-    
-    # Debugging if this section is being executed
-    st.text("Inside the Results Log tab!")  # Check if the code block is being run
+
+    # Test to ensure we are entering this tab and can see the logic running
+    st.write("Attempting to load match results...")
 
     try:
-        # Fetch match results from Supabase
+        # Load match results directly from Supabase
         response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
-        # Check if data is being returned
-        st.write(f"Response Status Code: {response.status_code}")
-        st.write(f"Response Data: {response.data}")
+        # Check if we got any data back from Supabase
+        if response.data:
+            st.write("Match results loaded successfully!")
+            st.write(f"Number of results: {len(response.data)}")  # Show number of match results loaded
+        else:
+            st.write("No match results available.")
 
-        if response.status_code != 200:
-            st.error(f"❌ Error: Supabase returned status code {response.status_code}")
-            st.write("Error Details:", response.error)  # Log the error details from Supabase
-            st.stop()
-
-        if not response.data:
-            st.warning("No data returned from Supabase.")
-            st.stop()
-
-        # Process the data to format it
-        match_results = {
-            f"{r['pod']}|{r['player1']} vs {r['player2']}": {
+        # If data is loaded, process and display
+        if response.data:
+            match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
                 "margin": r["margin"]
-            } for r in response.data
-        }
+            } for r in response.data}
 
-        # Debugging: Show processed match results
-        st.write("Processed Match Results:", match_results)
+            # Debug: Display match results data structure
+            st.write("Processed Match Results:", match_results)
 
-        # Create the DataFrame
-        data = []
-        for key, result in match_results.items():
-            if "|" not in key:
-                continue
+            # Convert match results into a DataFrame for display
+            import pandas as pd
+            data = []
+            for key, result in match_results.items():
+                if "|" not in key:
+                    continue  # Skip malformed or legacy keys
 
-            pod_name, match_str = key.split("|", 1)
-            try:
-                player1, player2 = match_str.split(" vs ")
-            except ValueError:
-                continue
+                pod_name, match_str = key.split("|", 1)
+                try:
+                    player1, player2 = match_str.split(" vs ")
+                except ValueError:
+                    continue  # Skip malformed match strings
 
-            winner = result.get("winner", "Tie")
-            margin = result.get("margin", 0)
-            margin_text = next(
-                (k for k, v in margin_lookup.items() if v == margin),
-                "Tie" if winner == "Tie" else "1 up"
-            )
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
 
-            data.append({
-                "Pod": pod_name,
-                "Player 1": player1.strip(),
-                "Player 2": player2.strip(),
-                "Winner": winner,
-                "Margin": margin_text
-            })
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
 
-        # Create DataFrame
-        df = pd.DataFrame(data)
-        df = df.sort_values(by=["Pod", "Player 1"])
+            # Create a DataFrame and display the match results
+            df = pd.DataFrame(data)
+            df = df.sort_values(by=["Pod", "Player 1"])
+            st.dataframe(df, use_container_width=True)
 
-        # Display the DataFrame
-        st.dataframe(df, use_container_width=True)
+            # Allow the user to download match results as CSV
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
-        # Optional: Allow the user to download the results as CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+        else:
+            st.write("No match results found.")
 
     except Exception as e:
-        st.error(f"❌ Error loading match results: {e}")
-        st.write("Exception:", e)
-
+        st.error(f"❌ Error loading match results from Supabase: {e}")
+        st.code(str(e))  # Display the error if any
 
 
 # --- Leaderboard ---
