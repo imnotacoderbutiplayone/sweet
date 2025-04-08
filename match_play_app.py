@@ -360,14 +360,18 @@ def simulate_matches(players, pod_name, source="", editable=False):
 # --- Load all match results from Supabase ---
 def load_match_results():
     try:
-        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()  # Updated to tournament_matches
+        response = supabase.table("tournament_matches").select("*").order("created_at", desc=True).execute()
 
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
+            
+            # Handle None values gracefully and check the status
             match_dict[match_key] = {
-                "winner": r["winner"],
-                "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
+                "winner": r.get("winner", "N/A"),  # Default to 'N/A' if winner is missing
+                "margin": r.get("margin", "N/A"),  # Default to 'N/A' if margin is missing
+                "status": r.get("status", "N/A"),  # Handle status if it's missing or null
+                "round": r.get("round", "N/A"),  # Handle round if it's None
             }
 
         st.write("Loaded Match Results:", match_dict)  # Debugging line to check what is loaded
@@ -1169,7 +1173,7 @@ with tabs[5]:
 
 
 # --- Results Log ---
-with tabs[6]:
+with tabs[6]:  # Results Log tab
     st.subheader("🗃️ Match Results Log")
 
     try:
@@ -1196,6 +1200,7 @@ with tabs[6]:
 
                 winner = result.get("winner", "Tie")
                 margin = result.get("margin", 0)
+                status = result.get("status", "N/A")  # Include status here
                 
                 # Fallback for unknown margin
                 margin_text = next(
@@ -1208,7 +1213,8 @@ with tabs[6]:
                     "Player 1": player1.strip(),
                     "Player 2": player2.strip(),
                     "Winner": winner,
-                    "Margin": margin_text
+                    "Margin": margin_text,
+                    "Status": status  # Display status in the log
                 })
 
             # Create DataFrame to display the match results
@@ -1225,6 +1231,7 @@ with tabs[6]:
     except Exception as e:
         st.error("❌ Error loading match results.")
         st.code(str(e))
+
 
 # --- Leaderboard ---
 with tabs[7]:
