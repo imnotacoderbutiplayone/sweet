@@ -29,6 +29,28 @@ def save_bracket_data(df):
         st.code(str(e))
         return None
 
+#-- player by name helper ---
+def get_players_by_names(source_players, names):
+    """
+    Given a list of names and a source player list (or pods), return full player dicts.
+    Will default to {"name": name, "handicap": "N/A"} if player is not found.
+    """
+    name_lookup = {}
+
+    # If passed pods dictionary, flatten all players
+    if isinstance(source_players, dict):
+        for pod in source_players.values():
+            for player in pod:
+                name_lookup[player["name"]] = player
+    else:
+        # Assume it's already a flat list of players
+        for player in source_players:
+            name_lookup[player["name"]] = player
+
+    # Return the full player records in the same order
+    return [name_lookup.get(name, {"name": name, "handicap": "N/A"}) for name in names]
+
+
 # --- Helper: Sanitize Key function for Streamlit ---
 def sanitize_key(text):
     """Sanitize and hash widget keys to avoid Streamlit duplication."""
@@ -1039,7 +1061,7 @@ with tabs[6]:
 
     try:
         # Load match results from Supabase
-        match_results = st.session_state.get("match_results_new", {})
+        match_results = st.session_state.get("match_results", {})
 
         if not match_results:
             st.info("No match results have been entered yet.")
