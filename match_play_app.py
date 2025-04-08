@@ -59,7 +59,6 @@ def get_players_by_names(source_players, names):
     # Return the full player records in the same order
     return [name_lookup.get(name, {"name": name, "handicap": "N/A"}) for name in names]
 
-
 #-- load round players ---
 def load_round_players(round_key, progression_data, source_players=None):
     """
@@ -779,6 +778,15 @@ with tabs[2]:
     else:
         st.info("📭 No match results have been entered yet.")
 
+
+# Ensure the match results are initialized
+if "match_results" not in st.session_state:
+    st.session_state.match_results = {}
+
+# Function to check if all matches are completed
+def all_matches_completed():
+    """Check if all match results have been entered."""
+    return all(result.get("winner") is not None for result in st.session_state.match_results.values())
 
 # --- Bracket ---
 with tabs[3]:
