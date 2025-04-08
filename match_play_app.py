@@ -432,9 +432,15 @@ def load_match_results():
         match_dict = defaultdict(dict)
         for r in response.data:
             match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
+            
+            # Safely access 'winner' and 'margin' with fallback values
+            winner = r.get("winner", "Tie")  # Default to 'Tie' if not found
+            margin = r.get("margin", "Tie")  # Default to 'Tie' if not found
+            
+            # If the margin is not valid (e.g., null or empty), we can set it to 'Tie'
             match_dict[match_key] = {
-                "winner": r["winner"],
-                "margin": r["margin"]
+                "winner": winner,
+                "margin": margin
             }
 
         return dict(match_dict)  # Return the fresh match results
