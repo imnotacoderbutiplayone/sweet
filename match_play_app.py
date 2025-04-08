@@ -51,11 +51,21 @@ def get_players_by_names(source_players, names):
     return [name_lookup.get(name, {"name": name, "handicap": "N/A"}) for name in names]
 
 #-- load round players ---
-def load_round_players(round_key, progression_data, source_players=pods):
+def load_round_players(round_key, progression_data, source_players=None):
     """
-    Load a round from Supabase progression data and return full player dicts.
-    Falls back to empty list if missing or bad data.
+    Load player records for a specific bracket round using Supabase progression data.
+    
+    Parameters:
+    - round_key (str): The bracket round key, e.g., 'r16_left', 'qf_right'
+    - progression_data (dict): The loaded Supabase progression object
+    - source_players (list or dict): Optional. If not provided, defaults to global `pods`
+
+    Returns:
+    - list of dicts: Player records with name and handicap
     """
+    if source_players is None:
+        source_players = pods  # fallback to global pods
+
     try:
         names = parse_json_field(progression_data.get(round_key, "[]"))
         return get_players_by_names(source_players, names)
