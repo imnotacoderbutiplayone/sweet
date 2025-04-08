@@ -895,7 +895,7 @@ with tabs[5]:
                 finalist_right = pred_sf_right[0] if len(pred_sf_right) == 1 else None
 
                 champion_final = None
-                if finalist_left and finalist_right:
+                if finalist_left is not None and finalist_right is not None:
                     st.markdown("### 🏁 Final Match")
                     champ_label = st.radio(
                         "🏆 Predict the Champion:",
@@ -905,7 +905,7 @@ with tabs[5]:
                     if champ_label:
                         champion_final = finalist_left if champ_label == label(finalist_left) else finalist_right
 
-                if finalist_left and finalist_right and champion_final:
+                if finalist_left is not None and finalist_right is not None and champion_final is not None:
                     if st.button("🚀 Submit My Bracket Prediction"):
                         try:
                             prediction_entry = {
