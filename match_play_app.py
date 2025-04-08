@@ -636,7 +636,7 @@ with tabs[1]:
 
 # --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
-    st.subheader("🏆 Bracket View (Supabase Driven)")
+    st.subheader("🏆 Bracket View ")
     
     bracket_df = load_bracket_data()
     if bracket_df.empty:
