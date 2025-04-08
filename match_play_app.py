@@ -4,13 +4,14 @@ from collections import defaultdict
 import io
 import json
 import os
-import time
-import re
-import hashlib
-from supabase import create_client, Client
-from datetime import datetime
 
 # --- Utility functions for persistence ---
+from supabase import create_client, Client
+import streamlit as st
+import pandas as pd
+from datetime import datetime
+
+# --- Connect to Supabase ---
 @st.cache_resource
 def init_supabase():
     url = st.secrets["supabase"]["url"]
@@ -34,198 +35,49 @@ def save_bracket_data(df):
 def save_match_result(pod, player1, player2, winner, margin_text):
     from datetime import datetime
 
-    # Normalize player order
-    normalized_player1, normalized_player2 = sorted([player1, player2])
-    match_key = f"{normalized_player1}|{normalized_player2}|{pod}"
-
     data = {
         "pod": pod,
-        "player1": normalized_player1,
-        "player2": normalized_player2,
+        "player1": player1,
+        "player2": player2,
         "winner": winner,
         "margin": margin_text,
-        "match_key": match_key,
         "created_at": datetime.utcnow().isoformat()
     }
 
     try:
-        response = supabase.table("match_results") \
-            .upsert(data, on_conflict=["match_key"]) \
-            .execute()  # Ensure that the `match_key` is unique
+        response = supabase.table("match_results").insert(data).execute()
         return response
     except Exception as e:
         st.error("❌ Error saving match result to Supabase")
         st.code(str(e))
         return None
 
-# --- Load match results ---
+margin_lookup = {
+    "1 up": 1, "2 and 1": 3, "3 and 2": 5, "4 and 3": 7,
+    "5 and 4": 9, "6 and 5": 11, "7 and 6": 13, "8 and 7": 15, "9 and 8": 17
+}
+
+# --- Load all match results from Supabase ---
+from collections import defaultdict
+
 def load_match_results():
     try:
         response = supabase.table("match_results").select("*").order("created_at", desc=True).execute()
+
         match_dict = defaultdict(dict)
         for r in response.data:
-            p1, p2 = sorted([r['player1'].strip(), r['player2'].strip()])
-            match_key = f"{r['pod']}|{p1} vs {p2}"
+            match_key = f"{r['pod']}|{r['player1']} vs {r['player2']}"
             match_dict[match_key] = {
                 "winner": r["winner"],
                 "margin": next((v for k, v in margin_lookup.items() if k == r["margin"]), 0)
             }
+
         return dict(match_dict)
+
     except Exception as e:
         st.error("❌ Supabase error loading match results")
         st.code(str(e))
         return {}
-
-# --- Update standings ---
-def update_standings(pod_name, player_name, winner, margin):
-    points = 1 if winner == player_name else 0.5  # Tie logic
-    update_query = f"""
-    UPDATE pod_standings
-    SET points = points + {points}, margin = margin + {margin}
-    WHERE pod = '{pod_name}' AND player_name = '{player_name}'
-    """
-    execute_query(update_query)
-
-# --- Load Round of 16 Data ---
-def load_round_of_16():
-    try:
-        response = supabase.table("round_of_16").select("*").order("created_at").execute()
-        return response.data
-    except Exception as e:
-        st.error("❌ Supabase error loading round of 16 data")
-        st.code(str(e))
-        return []
-
-# --- Render match results in the bracket ---
-def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
-    label1 = f"{p1['name']} ({p1['handicap']})"
-    label2 = f"{p2['name']} ({p2['handicap']})"
-    match_label = f"🏌️ {label1} vs {label2}"
-
-    if readonly:
-        if winner_name == p1['name']:
-            result_text = f"✔️ **{label1}** defeated **{label2}**"
-        elif winner_name == p2['name']:
-            result_text = f"✔️ **{label2}** defeated **{label1}**"
-        else:
-            result_text = f"❓ No winner recorded"
-        st.markdown(result_text)
-        return None
-    else:
-        choice = st.radio(match_label, [label1, label2], key=f"{key_prefix}_{p1['name']}_vs_{p2['name']}")
-        return p1 if choice == label1 else p2
-
-# --- Update Round of 16 ---
-def update_round_of_16():
-    # Query the top players based on the latest standings
-    query = "SELECT player_name FROM pod_standings ORDER BY points DESC, margin DESC LIMIT 16"
-    top_players = execute_query(query)
-
-    # Insert matches into the Round of 16 table
-    for i in range(0, len(top_players), 2):
-        # Round of 16 Matchup: Player X vs Player Y
-        match_query = f"""
-        INSERT INTO round_of_16 (player1, player2)
-        VALUES ('{top_players[i]}', '{top_players[i+1]}')
-        """
-        execute_query(match_query)
-
-# ----- Refresh ----
-def refresh_ui():
-    standings_query = "SELECT * FROM pod_standings ORDER BY points DESC, margin DESC"
-    standings = execute_query(standings_query)
-
-    round_of_16_query = "SELECT * FROM round_of_16"
-    round_of_16 = execute_query(round_of_16_query)
-
-    st.session_state.standings = standings
-    st.session_state.round_of_16 = round_of_16
-
-# --- Bracket View ---
-with st.beta_expander("🏆 Round of 16 - Bracket View"):
-    round_of_16_matches = load_round_of_16()
-    if not round_of_16_matches:
-        st.warning("No Round of 16 matches found.")
-        st.stop()
-
-    left = round_of_16_matches[:8]
-    right = round_of_16_matches[8:]
-
-    col1, col2 = st.columns(2)
-
-    # Admin section for match results entry
-    if st.session_state.authenticated:
-        st.info("🔐 Admin mode: Enter results and save")
-
-        # Left Side of the Bracket
-        with col1:
-            st.markdown("### 🟦 Left Side")
-            st.markdown("#### 🔹 Round of 16")
-            for match in left:
-                render_match(
-                    {'name': match['player1'], 'handicap': 'N/A'},  # Example, replace with actual player data
-                    {'name': match['player2'], 'handicap': 'N/A'},  # Example, replace with actual player data
-                    "",  # Winner (leave empty for now, you can populate it later)
-                    readonly=False,
-                    key_prefix="r16_left"
-                )
-
-        # Right Side of the Bracket
-        with col2:
-            st.markdown("### 🟥 Right Side")
-            st.markdown("#### 🔹 Round of 16")
-            for match in right:
-                render_match(
-                    {'name': match['player1'], 'handicap': 'N/A'},  # Example, replace with actual player data
-                    {'name': match['player2'], 'handicap': 'N/A'},  # Example, replace with actual player data
-                    "",  # Winner (leave empty for now, you can populate it later)
-                    readonly=False,
-                    key_prefix="r16_right"
-                )
-
-    # View mode (non-admin)
-    else:
-        st.info("🔒 Admin access required to enter match results.")
-
-# --- Save Bracket Progression ---
-def save_bracket_progression_to_supabase(data):
-    try:
-        response = supabase.table("bracket_progression").insert(data).execute()
-        return response
-    except Exception as e:
-        st.error("❌ Error saving bracket progression to Supabase")
-        st.code(str(e))
-
-
-# --- Update Round of 16 Matches Based on Latest Standings ---
-def update_round_of_16():
-    # Query the top players based on the latest standings
-    query = "SELECT player_name FROM pod_standings ORDER BY points DESC, margin DESC LIMIT 16"
-    top_players = execute_query(query)
-
-    # Insert matches into the Round of 16 table
-    for i in range(0, len(top_players), 2):
-        # Round of 16 Matchup: Player X vs Player Y
-        match_query = f"""
-        INSERT INTO round_of_16 (player1, player2)
-        VALUES ('{top_players[i]}', '{top_players[i+1]}')
-        """
-        execute_query(match_query)
-
-
-# ----- Refresh ----
-def refresh_ui():
-    # Query the updated standings and Round of 16
-    standings_query = "SELECT * FROM pod_standings ORDER BY points DESC, margin DESC"
-    standings = execute_query(standings_query)
-
-    round_of_16_query = "SELECT * FROM round_of_16"
-    round_of_16 = execute_query(round_of_16_query)
-
-    # Update the UI components in Streamlit
-    st.session_state.standings = standings
-    st.session_state.round_of_16 = round_of_16
-
 
 # --- Load all predictions from Supabase ---
 def load_predictions_from_supabase():
@@ -462,6 +314,8 @@ margin_lookup = {
 }
 
 
+import re
+import hashlib
 from collections import defaultdict
 
 def sanitize_key(text):
@@ -507,7 +361,6 @@ def render_match(p1, p2, winner_name="", readonly=False, key_prefix=""):
         return p1 if choice == label1 else p2
     
 
-# --- Simulate Matches and Update Round of 16 ---
 def simulate_matches(players, pod_name, source=""):
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
@@ -519,6 +372,7 @@ def simulate_matches(players, pod_name, source=""):
         for j in range(i + 1, num_players):
             p1, p2 = players[i], players[j]
 
+            # Create consistent, unique match key
             player_names = sorted([p1['name'], p2['name']])
             raw_key = f"{source}_{pod_name}|{player_names[0]} vs {player_names[1]}"
             base_key = sanitize_key(raw_key)
@@ -562,16 +416,13 @@ def simulate_matches(players, pod_name, source=""):
                 else:
                     result_str = "Tie"
 
-                # Save to Supabase
+                st.session_state.match_results[match_key] = {
+                    "winner": winner,
+                    "margin": margin
+                }
+
                 save_match_result(pod_name, p1['name'], p2['name'], winner, result_str)
 
-                # Slight delay to ensure Supabase reflects updated result
-                time.sleep(0.5)
-
-                # Refresh the latest from Supabase to stay in sync
-                st.session_state.match_results = load_match_results()
-
-                # Update points/margin logic
                 if winner == p1['name']:
                     results[p1['name']]['points'] += 1
                     results[p1['name']]['margin'] += margin
@@ -583,10 +434,6 @@ def simulate_matches(players, pod_name, source=""):
                 else:
                     results[p1['name']]['points'] += 0.5
                     results[p2['name']]['points'] += 0.5
-
-                # Call to update Round of 16 after each match result
-                update_round_of_16()
-
             else:
                 st.info("🔒 Only admin can enter match results.")
 
@@ -789,8 +636,8 @@ with tabs[1]:
 
 # --- Tab 3: Bracket (Admin – Confirm Winners) ---
 with tabs[3]:
-    st.subheader("🏆 Bracket View (Supabase Driven)")
-
+    st.subheader("🏆 Bracket View ")
+    
     bracket_df = load_bracket_data()
     if bracket_df.empty:
         st.warning("Please finalize seeding in the Group Stage tab.")
@@ -814,20 +661,17 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
-                if i + 1 < len(left):
-                    r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
+                r16_left.append(render_match(left[i], left[i+1], "", readonly=False, key_prefix="r16_left"))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
-                if i + 1 < len(r16_left):
-                    qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
+                qf_left.append(render_match(r16_left[i], r16_left[i+1], "", readonly=False, key_prefix="qf_left"))
 
             st.markdown("#### 🥈 Semifinal")
             sf_left = []
             for i in range(0, len(qf_left), 2):
-                if i + 1 < len(qf_left):
-                    sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
+                sf_left.append(render_match(qf_left[i], qf_left[i+1], "", readonly=False, key_prefix="sf_left"))
 
         # --------------------
         # RIGHT SIDE
@@ -838,20 +682,17 @@ with tabs[3]:
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
-                if i + 1 < len(right):
-                    r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
+                r16_right.append(render_match(right[i], right[i+1], "", readonly=False, key_prefix="r16_right"))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
             for i in range(0, len(r16_right), 2):
-                if i + 1 < len(r16_right):
-                    qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
+                qf_right.append(render_match(r16_right[i], r16_right[i+1], "", readonly=False, key_prefix="qf_right"))
 
             st.markdown("#### 🥈 Semifinal")
             sf_right = []
             for i in range(0, len(qf_right), 2):
-                if i + 1 < len(qf_right):
-                    sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
+                sf_right.append(render_match(qf_right[i], qf_right[i+1], "", readonly=False, key_prefix="sf_right"))
 
         # --------------------
         # FINAL MATCH
@@ -879,9 +720,6 @@ with tabs[3]:
             })
             st.success("✅ Bracket progression saved!")
 
-    # --------------------
-    # VIEWER MODE
-    # --------------------
     else:
         if not progression:
             st.warning("Bracket progression not set yet.")
@@ -892,23 +730,20 @@ with tabs[3]:
                 st.markdown("#### 🔹 Round of 16")
                 r16_left = get_players_by_names(left, parse_json_field(progression["r16_left"]))
                 for i in range(0, len(left), 2):
-                    if i//2 < len(r16_left):
-                        winner = r16_left[i//2]["name"]
-                        render_match(left[i], left[i+1], winner, readonly=True)
+                    winner = r16_left[i//2]["name"]
+                    render_match(left[i], left[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_left = get_players_by_names(r16_left, parse_json_field(progression["qf_left"]))
                 for i in range(0, len(r16_left), 2):
-                    if i//2 < len(qf_left):
-                        winner = qf_left[i//2]["name"]
-                        render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
+                    winner = qf_left[i//2]["name"]
+                    render_match(r16_left[i], r16_left[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥈 Semifinal")
                 sf_left = get_players_by_names(qf_left, parse_json_field(progression["sf_left"]))
                 for i in range(0, len(qf_left), 2):
-                    if i//2 < len(sf_left):
-                        winner = sf_left[i//2]["name"]
-                        render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
+                    winner = sf_left[i//2]["name"]
+                    render_match(qf_left[i], qf_left[i+1], winner, readonly=True)
 
             with col2:
                 st.markdown("### 🟥 Right Side")
@@ -916,23 +751,20 @@ with tabs[3]:
                 st.markdown("#### 🔹 Round of 16")
                 r16_right = get_players_by_names(right, parse_json_field(progression["r16_right"]))
                 for i in range(0, len(right), 2):
-                    if i//2 < len(r16_right):
-                        winner = r16_right[i//2]["name"]
-                        render_match(right[i], right[i+1], winner, readonly=True)
+                    winner = r16_right[i//2]["name"]
+                    render_match(right[i], right[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥉 Quarterfinals")
                 qf_right = get_players_by_names(r16_right, parse_json_field(progression["qf_right"]))
                 for i in range(0, len(r16_right), 2):
-                    if i//2 < len(qf_right):
-                        winner = qf_right[i//2]["name"]
-                        render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
+                    winner = qf_right[i//2]["name"]
+                    render_match(r16_right[i], r16_right[i+1], winner, readonly=True)
 
                 st.markdown("#### 🥈 Semifinal")
                 sf_right = get_players_by_names(qf_right, parse_json_field(progression["sf_right"]))
                 for i in range(0, len(qf_right), 2):
-                    if i//2 < len(sf_right):
-                        winner = sf_right[i//2]["name"]
-                        render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
+                    winner = sf_right[i//2]["name"]
+                    render_match(qf_right[i], qf_right[i+1], winner, readonly=True)
 
             champ_name = progression.get("champion", "")
             if champ_name:
@@ -942,12 +774,13 @@ with tabs[3]:
                 st.info("Final match not confirmed.")
 
 
+# Tab 3: Standings
 # Tab 2: Standings
 with tabs[2]:
     st.subheader("📋 Standings")
 
-    # Always load fresh match results directly from Supabase
-    match_results = load_match_results()
+    if "match_results" not in st.session_state:
+        st.session_state.match_results = load_match_results()
 
     pod_results = {}
 
@@ -958,22 +791,20 @@ with tabs[2]:
             total_points = 0
             total_margin = 0
 
-            for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|") and name in key:
-                    winner = result.get("winner", "")
-                    margin = result.get("margin", 0)
-
-                    if winner == name:
-                        total_points += 1
-                        total_margin += margin
-                    elif winner == "Tie":
-                        total_points += 0.5
-                    else:
-                        total_margin -= margin
+            for key, result in st.session_state.match_results.items():
+                if key.startswith(f"{pod_name}|"):
+                    if name in key:
+                        if result["winner"] == name:
+                            total_points += 1
+                            total_margin += result["margin"]
+                        elif result["winner"] == "Tie":
+                            total_points += 0.5
+                        else:
+                            total_margin -= result["margin"]
 
             updated_players.append({
-                "Player": name,
-                "Handicap": player["handicap"],
+                "name": name,
+                "handicap": player["handicap"],
                 "Points": total_points,
                 "Margin": total_margin
             })
@@ -981,6 +812,7 @@ with tabs[2]:
         df = pd.DataFrame(updated_players)
         if not df.empty:
             df = df.sort_values(by=["Points", "Margin"], ascending=False)
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
             pod_results[pod_name] = df
 
     if pod_results:
@@ -1141,19 +973,20 @@ with tabs[5]:
 
 
 
+# Tab 6: Results Log
 with tabs[6]:
     st.subheader("🗃️ Match Results Log")
 
-    match_results = load_match_results()  # Force fresh load, not just session_state
+    match_results = st.session_state.get("match_results", {})
 
     if not match_results:
-        st.info("📭 No match results have been entered yet.")
+        st.info("No match results have been entered yet.")
     else:
         # Convert dict into a DataFrame
         data = []
         for key, result in match_results.items():
             if "|" not in key:
-                continue  # Skip malformed keys
+                continue  # Skip malformed or legacy keys
 
             pod_name, match_str = key.split("|", 1)
             try:
@@ -1185,6 +1018,21 @@ with tabs[6]:
         csv = df.to_csv(index=False).encode("utf-8")
         st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
 
+def parse_json_field(field_val):
+    """
+    If the field value is a string, attempt to JSON-decode it.
+    If it is already a list, return it as is.
+    Otherwise, return an empty list.
+    """
+    if isinstance(field_val, list):
+        return field_val
+    elif isinstance(field_val, str):
+        try:
+            return json.loads(field_val)
+        except Exception:
+            return []
+    else:
+        return []
 
 with tabs[7]:
     st.subheader("🏅 Prediction Leaderboard")
