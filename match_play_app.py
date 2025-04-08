@@ -1047,21 +1047,28 @@ with tabs[7]:
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
-        predictions = supabase.table("predictions").select("*").execute().data
+        # Retrieve all prediction rows from Supabase
+        predictions_response = supabase.table("predictions").select("*").execute()
+        predictions = predictions_response.data
+
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            # Query the latest final results from the Supabase table
-            final_results_data = supabase.table("final_results") \
-                                       .select("*") \
-                                       .order("timestamp", desc=True) \
-                                       .limit(1) \
-                                       .execute().data
+            # Query final_results table ordering by created_at (the correct column)
+            final_results_response = supabase.table("final_results") \
+                                             .select("*") \
+                                             .order("created_at", desc=True) \
+                                             .limit(1) \
+                                             .execute()
+            final_results_data = final_results_response.data
+
             if not final_results_data or len(final_results_data) == 0:
                 st.warning("Final results have not been confirmed yet. Leaderboard will update once a winner is finalized.")
             else:
                 final_result = final_results_data[0]
-                # Rebuild the actual results dictionary from the stored JSON data:
+
+                # Build the actual results dictionary from the final_result.
+                # The JSONB columns (for rounds) are stored as strings, so we load them.
                 actual_results = {
                     "r16_left": json.loads(final_result.get("r16_left", "[]")),
                     "r16_right": json.loads(final_result.get("r16_right", "[]")),
@@ -1069,79 +1076,78 @@ with tabs[7]:
                     "qf_right": json.loads(final_result.get("qf_right", "[]")),
                     "sf_left": json.loads(final_result.get("sf_left", "[]")),
                     "sf_right": json.loads(final_result.get("sf_right", "[]")),
-                    "champion": final_result.get("champion", "")
+                    "champion": final_result.get("champion", "").strip()
                 }
-    
+
+                # Now compute scores for each prediction.
                 leaderboard = []
-    
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
-                    
+
                     # --- Round-of-16 scoring (1 point per correct prediction) ---
                     try:
                         pred_r16_left = json.loads(row.get("r16_left", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_r16_left = []
                     try:
                         pred_r16_right = json.loads(row.get("r16_right", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_r16_right = []
-                    
+
                     for actual, predicted in zip(actual_results["r16_left"], pred_r16_left):
                         if actual == predicted:
                             score += 1
                     for actual, predicted in zip(actual_results["r16_right"], pred_r16_right):
                         if actual == predicted:
                             score += 1
-    
+
                     # --- Quarterfinals scoring (3 points per correct prediction) ---
                     try:
                         pred_qf_left = json.loads(row.get("qf_left", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_qf_left = []
                     try:
                         pred_qf_right = json.loads(row.get("qf_right", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_qf_right = []
-                    
+
                     for actual, predicted in zip(actual_results["qf_left"], pred_qf_left):
                         if actual == predicted:
                             score += 3
                     for actual, predicted in zip(actual_results["qf_right"], pred_qf_right):
                         if actual == predicted:
                             score += 3
-    
+
                     # --- Semifinals scoring (5 points per correct prediction) ---
                     try:
                         pred_sf_left = json.loads(row.get("sf_left", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_sf_left = []
                     try:
                         pred_sf_right = json.loads(row.get("sf_right", "[]"))
-                    except Exception as e:
+                    except Exception:
                         pred_sf_right = []
-                    
+
                     for actual, predicted in zip(actual_results["sf_left"], pred_sf_left):
                         if actual == predicted:
                             score += 5
                     for actual, predicted in zip(actual_results["sf_right"], pred_sf_right):
                         if actual == predicted:
                             score += 5
-    
+
                     # --- Final match scoring (10 points for picking the champion) ---
                     if row.get("champion", "").strip() == actual_results["champion"]:
                         score += 10
-    
+
                     leaderboard.append({
                         "Name": name,
                         "Score": score
                     })
-    
+
                 leaderboard_df = pd.DataFrame(leaderboard)
                 leaderboard_df = leaderboard_df.sort_values(by="Score", ascending=False).reset_index(drop=True)
                 st.dataframe(leaderboard_df, use_container_width=True)
-                
     except Exception as e:
         st.error("❌ Error loading leaderboard.")
         st.code(str(e))
