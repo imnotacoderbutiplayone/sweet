@@ -1184,10 +1184,12 @@ def decode_if_json(raw):
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
     # --- Load Bracket Data (standings) ---
-    bracket_df = st.session_state.get("finalized_bracket")
-    if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty:
+    if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket is None or st.session_state.finalized_bracket.empty:
         bracket_df = load_bracket_data_from_supabase()
         st.session_state.finalized_bracket = bracket_df
+    else:
+        bracket_df = st.session_state.finalized_bracket
+
 
     if bracket_df is None or bracket_df.empty:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
@@ -1310,7 +1312,12 @@ with tabs[4]:
             del st.session_state["full_name"]
         st.session_state.prediction_submitted = False
 
-    bracket_df = st.session_state.get("finalized_bracket")
+    if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket is None or st.session_state.finalized_bracket.empty:
+        bracket_df = load_bracket_data_from_supabase()
+        st.session_state.finalized_bracket = bracket_df
+    else:
+        bracket_df = st.session_state.finalized_bracket
+
 
     if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty or len(bracket_df) < 16:
 
