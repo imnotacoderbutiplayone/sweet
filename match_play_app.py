@@ -1168,10 +1168,15 @@ with tabs[3]:
 
     # Load bracket
     bracket_df = st.session_state.get("finalized_bracket", load_bracket_data_from_supabase())
-    st.write("🧪 Full Bracket Data", bracket_data)  # 👈 ADD THIS
     if bracket_df.empty:
         st.warning("No bracket data found. Finalize in Group Stage first.")
         st.stop()
+
+    # ✅ Now fetch bracket progression from Supabase
+    bracket_data = load_bracket_progression_from_supabase()
+    st.session_state.bracket_data = bracket_data
+    st.write("🧪 Full Bracket Data", bracket_data)
+
 
     bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
     st.session_state.bracket_data = bracket_data  # Save latest
