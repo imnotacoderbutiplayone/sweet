@@ -1122,7 +1122,9 @@ with tabs[3]:
 
     if st.session_state.authenticated:
         st.info("🔐 Admin mode")
-        
+        if field_locked:
+            st.error("⚠️ The Round of 16 field is locked and cannot be edited.")
+
 
         left = bracket_df.iloc[0:8].to_dict("records")
         right = bracket_df.iloc[8:16].to_dict("records")
@@ -1218,9 +1220,11 @@ with tabs[3]:
             if st.button("🔓 Unlock R16 (Admin Only)", type="primary"):
                 try:
                     supabase.table("bracket_progression").update({"field_locked": False}).eq("id", bracket_data["id"]).execute()
-                    st.warning("🚨 Field has been unlocked. Refresh the page to edit Round of 16.")
+                    st.success("✅ Field has been unlocked.")
+                    st.experimental_rerun()  # ⬅️ automatically reloads the app to pick up changes
                 except Exception as e:
                     st.error(f"Failed to unlock field: {e}")
+
 
     else:
         st.markdown("### 🏆 Finalized Bracket (Read-Only)")
