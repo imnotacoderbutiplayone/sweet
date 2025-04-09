@@ -1167,7 +1167,15 @@ with tabs[3]:
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
     # Load bracket
-    bracket_df = st.session_state.get("finalized_bracket", load_bracket_data_from_supabase())
+    bracket_df = st.session_state.get("finalized_bracket")
+    if bracket_df is None:
+        bracket_df = load_bracket_data_from_supabase()
+        st.session_state.finalized_bracket = bracket_df
+
+    if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty:
+        st.warning("❌ Bracket data not available. Finalize it in Group Stage.")
+        st.stop()
+
     if bracket_df.empty:
         st.warning("No bracket data found. Finalize in Group Stage first.")
         st.stop()
