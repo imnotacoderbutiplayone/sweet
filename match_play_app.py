@@ -276,7 +276,7 @@ def save_bracket_progression_to_supabase(data: dict):
     # Remove id — Supabase will create it automatically
     response = supabase.table("bracket_progression").insert(data).execute()
     
-    if response.get("status_code", 200) >= 400:
+    if response.status_code >= 400:
         raise Exception(f"Supabase save error: {response}")
 
     return response
