@@ -1231,7 +1231,7 @@ with tabs[3]:
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default = qf_left[i // 2] if i // 2 < len(qf_left) else "Tie"
-                winner = render_match(p1, p2, default, readonly=field_locked, key_prefix=f"r16_left_{i}", stage="bracket_r16")
+                winner = render_match(p1, p2, default, readonly=field_locked and not st.session_state.authenticated, key_prefix=f"r16_left_{i}", stage="bracket_r16")
                 r16_left_results.append(get_winner_player(p1, p2, winner))
 
             for i in range(0, len(r16_left_results), 2):
@@ -1239,7 +1239,7 @@ with tabs[3]:
                     p1 = r16_left_results[i]
                     p2 = r16_left_results[i + 1]
                     default = sf_left[i // 2] if i // 2 < len(sf_left) else "Tie"
-                    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_left_{i}", stage="bracket_qf")
+                    winner = render_match(p1, p2, default, readonly=field_locked and not st.session_state.authenticated, key_prefix=f"qf_left_{i}", stage="bracket_qf")
                     qf_left_results.append(get_winner_player(p1, p2, winner))
 
         with col2:
@@ -1249,7 +1249,7 @@ with tabs[3]:
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default = qf_right[i // 2] if i // 2 < len(qf_right) else "Tie"
-                winner = render_match(p1, p2, default, readonly=field_locked, key_prefix=f"r16_right_{i}", stage="bracket_r16")
+                winner = render_match(p1, p2, default, readonly=field_locked and not st.session_state.authenticated, key_prefix=f"r16_right_{i}", stage="bracket_r16")
                 r16_right_results.append(get_winner_player(p1, p2, winner))
 
             for i in range(0, len(r16_right_results), 2):
@@ -1257,7 +1257,7 @@ with tabs[3]:
                     p1 = r16_right_results[i]
                     p2 = r16_right_results[i + 1]
                     default = sf_right[i // 2] if i // 2 < len(sf_right) else "Tie"
-                    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
+                    winner = render_match(p1, p2, default, readonly=field_locked and not st.session_state.authenticated, key_prefix=f"qf_right_{i}", stage="bracket_qf")
                     qf_right_results.append(get_winner_player(p1, p2, winner))
 
         # --- Save Button ---
