@@ -1083,7 +1083,7 @@ with tabs[1]:
                         "finalist_left": None,
                         "finalist_right": None,
                         "champion": None,
-                        "field_locked": True,
+                        "field_locked": False,
                         "created_at": datetime.utcnow().isoformat()
                     }
                     result = supabase.table("bracket_progression").insert(record).execute()
