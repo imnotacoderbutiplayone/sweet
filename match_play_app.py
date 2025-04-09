@@ -1063,47 +1063,43 @@ with tabs[1]:
                 save_bracket_data(bracket_df)
 
                 # --- Build Round of 16 matchups ---
-                r16_left = [
-                    [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
-                    [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
-                    [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
-                    [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
-                ]
-                r16_right = [
-                    [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
-                    [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
-                    [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
-                    [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
-                ]
+r16_left = [
+    [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
+    [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
+    [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
+    [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
+]
+r16_right = [
+    [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
+    [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
+    [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
+    [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
+]
 
-                # Save R16 matchups to bracket_progression
-               try:
-                    record = {
-                        "r16_left": json.dumps(r16_left),
-                        "r16_right": json.dumps(r16_right),
-                        "qf_left": json.dumps([]),
-                        "qf_right": json.dumps([]),
-                        "sf_left": json.dumps([]),
-                        "sf_right": json.dumps([]),
-                        "finalist_left": None,
-                        "finalist_right": None,
-                        "champion": None,
-                        "field_locked": True,
-                        "created_at": datetime.utcnow().isoformat()
-                    }
+# Save R16 matchups to bracket_progression
+try:
+    record = {
+        "r16_left": json.dumps(r16_left),
+        "r16_right": json.dumps(r16_right),
+        "qf_left": json.dumps([]),
+        "qf_right": json.dumps([]),
+        "sf_left": json.dumps([]),
+        "sf_right": json.dumps([]),
+        "finalist_left": None,
+        "finalist_right": None,
+        "champion": None,
+        "field_locked": True,
+        "created_at": datetime.utcnow().isoformat()
+    }
 
-                    result = supabase.table("bracket_progression").insert(record).execute()
-                    st.success("✅ Bracket finalized and Round of 16 seeded.")
-                except Exception as e:
-                    st.error(f"❌ Failed to save bracket progression: {e}")
+    result = supabase.table("bracket_progression").insert(record).execute()
+    st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
+except Exception as e:
+    st.error(f"❌ Failed to save bracket progression: {e}")
 
-                    st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
-                except Exception as e:
-                    st.error(f"❌ Failed to save R16 matchups: {e}")
-
-                # Display bracket confirmation
-                st.write("📊 Final Bracket")
-                st.dataframe(bracket_df)
+# Display bracket confirmation
+st.write("📊 Final Bracket")
+st.dataframe(bracket_df)
 
 # --- Standings ---
 with tabs[2]:
