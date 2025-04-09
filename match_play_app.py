@@ -331,7 +331,20 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
 
-
+# Define the function to load bracket data from Supabase
+ddef load_bracket_data_from_supabase():
+    try:
+        response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
+        if response.data and len(response.data) > 0:
+            bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
+            return bracket_df
+        else:
+            st.warning("No bracket data found.")
+            return pd.DataFrame()  # Return an empty DataFrame if no bracket data is found
+    except Exception as e:
+        st.error("❌ Error loading bracket data from Supabase.")
+        st.code(str(e))  # Display the error if any
+        return pd.DataFrame()  # Return an empty DataFrame in case of an error
 
 
 #-- winner data ---
@@ -713,26 +726,6 @@ RESULTS_FILE = "match_results.json"
 # --- Helper: Label players ---
 def label(player):
     return f"{player['name']} ({player['handicap']})"
-
-# Define the function to load bracket data from Supabase
-def load_bracket_data_from_supabase():
-    try:
-        # Fetch bracket data from Supabase
-        response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
-
-        if response.data and len(response.data) > 0:
-            # Parse the JSON data and return it as a DataFrame
-            bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
-            return bracket_df
-        else:
-            st.warning("No bracket data found.")
-            return pd.DataFrame()  # Return an empty DataFrame if no bracket data is found
-    except Exception as e:
-        st.error("❌ Error loading bracket data from Supabase.")
-        st.code(str(e))  # Display the error if any
-        return pd.DataFrame()  # Return an empty DataFrame in case of an error
-
-
 
 # --- Bracket Progress ---
 def save_bracket_progression_to_supabase(data):
