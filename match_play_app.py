@@ -138,20 +138,27 @@ def load_most_recent_match_results():
 def load_match_result_log():
     try:
         # Fetch all match results, ordered by created_at
-        response = supabase.table("tournament_matches") \
-            .select("*") \
-            .order("created_at", desc=True) \
-            .execute()
+        response = supabase.table("tournament_matches").select("*") \
+            .order("created_at", desc=True).execute()
 
         if response.data:
-            return response.data  # Return all match results
+            # Process and display the results immediately
+            match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
+                "winner": r["winner"],
+                "margin": r["margin"]
+            } for r in response.data}
+            st.write("📋 Match Results Log")
+            # Convert to DataFrame
+            df = pd.DataFrame([
+                {"Pod": pod, "Player 1": p1, "Player 2": p2, "Winner": w, "Margin": m}
+                for (pod, (p1, p2), w, m) in match_results.items()
+            ])
+            st.dataframe(df)
         else:
             st.warning("No match results found.")
-            return []
-
     except Exception as e:
         st.error(f"❌ Error loading match results: {e}")
-        return []
+
 
 
 # --- Display the most recent match result ---
@@ -244,54 +251,32 @@ margin_lookup = {
 }
 
 def save_match_result(pod, player1, player2, winner, margin_str):
-    # Convert margin string to numeric value
+    # Save the match result to Supabase
     if margin_str != "Tie":
-        margin_value = margin_lookup.get(margin_str, 0)  # Get corresponding numeric value, default to 0 if not found
+        margin_value = margin_lookup.get(margin_str, 0)
     else:
         margin_value = 0
-    
-    # Prepare data for insertion (store numeric margin value)
+
     data = {
         "pod": pod,
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin_value,  # Store the numeric margin value, not the string
+        "margin": margin_value,  
         "created_at": datetime.utcnow().isoformat()
     }
 
     try:
-        # Print data for debugging purposes
-        print("Saving match result:", data)
-
-        # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Log the response object to check its structure
-        print("Supabase response:", response)
-
-        # Directly check if the response contains 'data' (usually the successful insert response)
-        if hasattr(response, 'data'):
-            if response.data:
-                st.success(f"Match result saved: {winner} wins {margin_str}")
-                return response.data  # Return the inserted data
-            else:
-                st.error("❌ Error: No data in the response.")
-                print("No data in the response:", response)
-                return None
+        if response.data:
+            st.success(f"Result saved: {winner} wins {margin_str}")
+            # After saving, load the updated match results immediately
+            load_match_result_log()  # Refresh the results log
         else:
-            # If response doesn't have 'data', log the whole response
-            st.error("❌ Unexpected response from Supabase.")
-            print("Unexpected Supabase response:", response)
-            return None
-
+            st.error("❌ Error saving match result.")
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
-        print(f"Error: {str(e)}")  # Log exception for debugging
-        return None
-
-
-
 
 
 
