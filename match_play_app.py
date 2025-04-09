@@ -244,6 +244,7 @@ margin_lookup = {
 }
 
 def save_match_result(pod, player1, player2, winner, margin_str):
+    """Save match result directly to Supabase and update results log immediately."""
     # Convert margin string to numeric value
     if margin_str != "Tie":
         margin_value = margin_lookup.get(margin_str, 0)  # Get corresponding numeric value, default to 0 if not found
@@ -261,37 +262,19 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     }
 
     try:
-        # Print data for debugging purposes
-        print("Saving match result:", data)
-
         # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Log the response object to check its structure
-        print("Supabase response:", response)
-
-        # Directly check if the response contains 'data' (usually the successful insert response)
-        if hasattr(response, 'data'):
-            if response.data:
-                st.success(f"Match result saved: {winner} wins {margin_str}")
-                return response.data  # Return the inserted data
-            else:
-                st.error("❌ Error: No data in the response.")
-                print("No data in the response:", response)
-                return None
-        else:
-            # If response doesn't have 'data', log the whole response
-            st.error("❌ Unexpected response from Supabase.")
-            print("Unexpected Supabase response:", response)
+        # Check for response
+        if response.error:
+            st.error(f"❌ Failed to save match result: {response.error}")
             return None
-
+        else:
+            st.success(f"Match result saved for {player1} vs {player2} ({winner} wins {margin_str})")
+            return response.data  # Return the inserted data or a success indicator
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
-        print(f"Error: {str(e)}")  # Log exception for debugging
         return None
-
-
-
 
 
 
@@ -1361,7 +1344,7 @@ with tabs[5]:
 with tabs[6]:  # Make sure you're in the correct tab index
     st.subheader("🗃️ Match Results Log")
 
-    # Test to ensure we are entering this tab and can see the logic running
+    # Ensure the results are always fetched from Supabase
     st.write("Attempting to load match results...")
 
     try:
@@ -1381,9 +1364,6 @@ with tabs[6]:  # Make sure you're in the correct tab index
                 "winner": r["winner"],
                 "margin": r["margin"]
             } for r in response.data}
-
-            # Debug: Display match results data structure
-            st.write("Processed Match Results:", match_results)
 
             # Convert match results into a DataFrame for display
             import pandas as pd
