@@ -1114,10 +1114,6 @@ with tabs[3]:
     left = bracket_df.iloc[0:8]  # Left side of the bracket
     right = bracket_df.iloc[8:16]  # Right side of the bracket
 
-    # Helper function to create a match string for easy visualization
-    def matchup_string(player1, player2):
-        return f"{player1} vs {player2}"
-
     # --- Create a function for rendering matchups ---
     def render_bracket_side(players, side_title):
         st.markdown(f"### {side_title}")
@@ -1141,6 +1137,7 @@ with tabs[3]:
             st.markdown(f"#### Round {round_num + 1}")
             round_players = right.iloc[round_num * 2 : (round_num + 1) * 2].to_dict("records")
             render_bracket_side(round_players, f"Round {round_num + 1}")
+
 
 
 # --- Predict Bracket ---
