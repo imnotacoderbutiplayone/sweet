@@ -1196,6 +1196,8 @@ with tabs[3]:
     # --- Load Bracket Progression ---
     bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
     st.session_state.bracket_data = bracket_data
+    # 👇 Add this for debug
+    st.write("🧪 Raw Bracket Data from Supabase:", bracket_data)
     bracket_id = bracket_data.get("id")
 
     r16_left = decode_if_json(bracket_data.get("r16_left"))
