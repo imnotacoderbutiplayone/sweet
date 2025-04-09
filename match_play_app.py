@@ -1151,16 +1151,25 @@ with tabs[3]:
                 return []
         return raw or []
 
-    def load_bracket_progression_from_supabase():
-        try:
-            res = supabase.table("bracket_progression") \
-                .select("*") \
-                .order("created_at", desc=True) \
-                .limit(1).execute()
-            return res.data[0] if res.data else {}
-        except Exception as e:
-            st.error(f"❌ Failed to load bracket progression: {e}")
-            return {}
+    # --- Load and cache latest bracket progression ---
+    def load_or_refresh_bracket_data():
+        bracket_data = st.session_state.get("bracket_data", {})
+        bracket_id = bracket_data.get("id")
+
+        # Refresh if missing or invalid ID
+        if not bracket_id:
+            bracket_data = load_bracket_progression_from_supabase()
+            if bracket_data and "id" in bracket_data:
+                st.session_state.bracket_data = bracket_data
+            else:
+                st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
+                st.stop()
+    
+    return st.session_state.bracket_data
+
+# --- Use refreshed data ---
+bracket_data = load_or_refresh_bracket_data()
+bracket_id = bracket_data.get("id")
 
     def get_player_by_name(name, df):
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
