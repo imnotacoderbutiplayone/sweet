@@ -1164,25 +1164,21 @@ with tabs[3]:
         else:
             champion = None
 
-        if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
-            # Show what’s being saved
-            st.subheader("🧪 DEBUG: Saving R16 Matchups")
-            r16_left_debug = [(left[i]["name"], left[i + 1]["name"]) for i in range(0, len(left), 2)]
-            r16_right_debug = [(right[i]["name"], right[i + 1]["name"]) for i in range(0, len(right), 2)]
-            st.json({"r16_left_matchups": r16_left_debug, "r16_right_matchups": r16_right_debug})
+ if st.button("💾 Test Save to Supabase"):
+    test_data = {
+        "r16_left_matchups": json.dumps([("Test Player A", "Test Player B")]),
+        "r16_right_matchups": json.dumps([("Test Player C", "Test Player D")]),
+        "qf_left": json.dumps(["Test QF Left"]),
+        "qf_right": json.dumps(["Test QF Right"]),
+        "sf_left": json.dumps(["Test SF Left"]),
+        "sf_right": json.dumps(["Test SF Right"]),
+        "finalist_left": "Test Finalist Left",
+        "finalist_right": "Test Finalist Right",
+        "champion": "Test Champion"
+    }
+    save_bracket_progression_to_supabase(test_data)
+    st.success("✅ Test data written to Supabase")
 
-            save_bracket_progression_to_supabase({
-                "r16_left_matchups": json.dumps(r16_left_debug),
-                "r16_right_matchups": json.dumps(r16_right_debug),
-                "qf_left": json.dumps([p["name"] for p in qf_left]),
-                "qf_right": json.dumps([p["name"] for p in qf_right]),
-                "sf_left": json.dumps([p["name"] for p in sf_left]),
-                "sf_right": json.dumps([p["name"] for p in sf_right]),
-                "finalist_left": sf_left[0]["name"] if sf_left else "",
-                "finalist_right": sf_right[0]["name"] if sf_right else "",
-                "champion": champion["name"] if champion else ""
-            })
-            st.success("✅ Bracket progression saved!")
 
     else:
         st.markdown("### 🏆 Finalized Bracket (Read-Only)")
