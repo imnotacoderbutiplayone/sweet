@@ -18,13 +18,21 @@ def init_supabase():
 
 supabase = init_supabase()
 
+# --- Main Tournament App ---
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+
+# Initialize Session States
+if 'app_authenticated' not in st.session_state:
+    st.session_state.app_authenticated = False
+if 'authenticated' not in st.session_state:
+    st.session_state.authenticated = False
+
 # --- Save bracket data to Supabase ---
 def save_bracket_data(df):
     try:
         json_data = df.to_json(orient="split")
         response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
 
-        # Check if the response contains data
         if response.status_code == 200 and response.data:
             return response.data  # Return the inserted data or a success indicator
         else:
@@ -710,7 +718,7 @@ RESULTS_FILE = "match_results.json"
 def label(player):
     return f"{player['name']} ({player['handicap']})"
 
-# --- Load bracket data ---
+# --- Load bracket data from Supabase ---
 def load_bracket_data():
     try:
         # Fetch bracket data from Supabase
@@ -729,8 +737,6 @@ def load_bracket_data():
         st.error("❌ Supabase error loading bracket data")
         st.code(str(e))
         return pd.DataFrame()
-
-
 # --- Bracket Progress ---
 def save_bracket_progression_to_supabase(data):
     try:
@@ -884,6 +890,51 @@ else:
     if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
         st.rerun()
+
+# Load bracket data from Supabase or session state
+if "bracket_data" not in st.session_state:
+    bracket_df = load_bracket_data()  # Load from Supabase if not in session state
+    st.session_state.bracket_data = bracket_df
+
+# --- Bracket Finalization Logic ---
+with st.expander("Finalize Bracket and Seed Field"):
+    if st.session_state.get("tiebreaks_resolved", False):
+        if st.button("🏁 Finalize Bracket and Seed Field"):
+            bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
+            st.session_state.finalized_bracket = bracket_df  # Save to session state
+
+            # Optionally, save to Supabase if you want persistence
+            save_bracket_data(bracket_df)
+
+            st.success("✅ Bracket finalized and seeded.")
+            st.write("📊 Final Bracket", bracket_df)
+    else:
+        st.warning("Please resolve all tiebreakers before finalizing the bracket.")
+
+# --- Bracket Display for Non-Admins ---
+with st.expander("Bracket"):
+    if "finalized_bracket" in st.session_state:
+        bracket_df = st.session_state.finalized_bracket
+        if bracket_df.empty:
+            st.warning("Bracket data is not available.")
+        else:
+            st.write("📊 Bracket", bracket_df)
+    else:
+        st.warning("Bracket is not finalized yet. Please finalize the bracket first.")
+
+# --- Prevent Predictions until Bracket is Finalized ---
+with st.expander("Predict Bracket"):
+    if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket.empty:
+        st.warning("The bracket is not finalized yet. Predictions can only be made once the bracket is set.")
+        st.stop()
+
+    # Allow bracket predictions here...
+    full_name = st.text_input("Enter your full name to submit a prediction:")
+
+    if full_name.strip():
+        # Logic for handling bracket predictions
+        pass
+
 
 # --- Streamlit App Configuration ---
 tabs = st.tabs([
