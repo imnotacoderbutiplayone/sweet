@@ -1091,7 +1091,7 @@ with tabs[2]:
 
 # --- Bracket Visualization for Non-Admins ---
 with tabs[3]:
-    st.subheader("🏆 Bracket")
+    #st.subheader("🏆 Bracket")
 
     # For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
