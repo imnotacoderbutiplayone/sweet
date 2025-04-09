@@ -273,12 +273,12 @@ margin_lookup = {
 }
 
 def save_bracket_progression_to_supabase(data: dict):
-    response = supabase.table("bracket_progression").insert(data).execute()
-
-    if response.error:
-        raise Exception(f"Supabase save error: {response.error}")
-
-    return response.data
+    try:
+        response = supabase.table("bracket_progression").insert(data).execute()
+        st.write("✅ Supabase insert response:", response.data)  # optional debug
+    except Exception as e:
+        st.error(f"Supabase save failed: {e}")
+        raise
 
 
 
