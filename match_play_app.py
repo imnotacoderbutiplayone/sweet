@@ -1245,6 +1245,7 @@ with tabs[3]:
                 supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
                 st.success("✅ Bracket updated!")
                 st.session_state.bracket_data = load_bracket_progression_from_supabase()
+                st.write("🧪 Full Bracket Data", bracket_data)  # 👈 ADD THIS
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to update bracket: {e}")
