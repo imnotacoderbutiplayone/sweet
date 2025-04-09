@@ -1149,10 +1149,15 @@ with tabs[3]:
     def decode_if_json(raw):
         if isinstance(raw, str):
             try:
-                return json.loads(raw)
+                result = json.loads(raw)
+                if isinstance(result, list):
+                    return result
             except:
                 return []
-        return raw or []
+        elif isinstance(raw, list):
+            return raw
+        return []
+
 
     def load_bracket_progression_from_supabase():
         try:
