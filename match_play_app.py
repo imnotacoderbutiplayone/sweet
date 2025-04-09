@@ -1159,12 +1159,12 @@ with tabs[3]:
 
     # --- Helper functions ---
     def decode_if_json(raw):
-    if isinstance(raw, str):
-        try:
-            # Double-decoding if stringified JSON array is inside a string
-            value = json.loads(raw)
-            if isinstance(value, str):
-                return json.loads(value)
+        if isinstance(raw, str):
+            try:
+                # Double-decoding if stringified JSON array is inside a string
+                value = json.loads(raw)
+                if isinstance(value, str):
+                    return json.loads(value)
             return value
         except Exception:
             return []
