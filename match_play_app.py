@@ -1158,17 +1158,15 @@ with tabs[3]:
     st.subheader("🏆 Bracket Stage")
 
 # --- Helper functions ---
- def decode_if_json(raw):
+def decode_if_json(raw):
     if isinstance(raw, str):
         try:
-            # Double-decoding if stringified JSON array is inside a string
-            value = json.loads(raw)
-            if isinstance(value, str):
-                return json.loads(value)
-            return value
+            while isinstance(raw, str):
+                raw = json.loads(raw)
         except Exception:
             return []
     return raw or []
+
 
 
     def load_bracket_progression_from_supabase():
