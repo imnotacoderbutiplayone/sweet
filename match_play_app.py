@@ -184,7 +184,7 @@ def load_match_result_log():
 
 # --- Initialize Bracket Data in Session State ---
 if "bracket_data" not in st.session_state:
-    bracket_df = load_bracket_data()  # Load from Supabase if not in session state
+    bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
     st.session_state.bracket_data = bracket_df
 
 
