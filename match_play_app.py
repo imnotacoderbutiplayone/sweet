@@ -1085,6 +1085,56 @@ with tabs[1]:
                 st.write("📊 Final Bracket")
                 st.dataframe(bracket_df)
 
+# --- Standings ---
+with tabs[2]:
+    st.subheader("📋 Standings")
+
+    match_results = load_match_results()
+    if not match_results:
+        st.info("📭 No match results have been entered yet.")
+        st.stop()
+
+    pod_results = {}
+
+    for pod_name, players in pods.items():
+        updated_players = []
+        for player in players:
+            name = player['name']
+            total_points = 0
+            total_margin = 0
+
+            for match_key, result in match_results.items():
+                if match_key.startswith(f"{pod_name}|") and name in match_key:
+                    winner = result.get("winner", "")
+                    margin_val = result.get("margin", 0)
+
+                    if winner == name:
+                        total_points += 1
+                        total_margin += margin_val
+                    elif winner == "Tie":
+                        total_points += 0.5
+                    else:
+                        total_margin -= margin_val
+
+            updated_players.append({
+                "Player": name,
+                "Handicap": player["handicap"] if player["handicap"] is not None else "N/A",
+                "Points": total_points,
+                "Margin": total_margin
+            })
+
+        df = pd.DataFrame(updated_players)
+        if not df.empty:
+            df = df.sort_values(by=["Points", "Margin"], ascending=False)
+            pod_results[pod_name] = df
+
+    # Display
+    if pod_results:
+        for pod_name, df in pod_results.items():
+            with st.expander(f"📦 {pod_name} Standings", expanded=False):
+                st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("No standings available yet.")
 
 # --- Bracket Visualization ---
 with tabs[3]:
