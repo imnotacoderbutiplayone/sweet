@@ -1164,20 +1164,20 @@ with tabs[3]:
         else:
             champion = None
 
- if st.button("💾 Test Save to Supabase"):
-    test_data = {
-        "r16_left_matchups": json.dumps([("Test Player A", "Test Player B")]),
-        "r16_right_matchups": json.dumps([("Test Player C", "Test Player D")]),
-        "qf_left": json.dumps(["Test QF Left"]),
-        "qf_right": json.dumps(["Test QF Right"]),
-        "sf_left": json.dumps(["Test SF Left"]),
-        "sf_right": json.dumps(["Test SF Right"]),
-        "finalist_left": "Test Finalist Left",
-        "finalist_right": "Test Finalist Right",
-        "champion": "Test Champion"
-    }
-    save_bracket_progression_to_supabase(test_data)
-    st.success("✅ Test data written to Supabase")
+        if st.button("💾 Test Save to Supabase"):
+            test_data = {
+                "r16_left_matchups": json.dumps([("Test Player A", "Test Player B")]),
+                "r16_right_matchups": json.dumps([("Test Player C", "Test Player D")]),
+                "qf_left": json.dumps(["Test QF Left"]),
+                "qf_right": json.dumps(["Test QF Right"]),
+                "sf_left": json.dumps(["Test SF Left"]),
+                "sf_right": json.dumps(["Test SF Right"]),
+                "finalist_left": "Test Finalist Left",
+                "finalist_right": "Test Finalist Right",
+                "champion": "Test Champion"
+            }
+            save_bracket_progression_to_supabase(test_data)
+            st.success("✅ Test data written to Supabase")
 
 
     else:
