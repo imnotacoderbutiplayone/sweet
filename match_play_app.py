@@ -1108,35 +1108,57 @@ with tabs[3]:
 
     # Display the finalized bracket matchups for non-admin users
     st.write("### 🏆 Finalized Bracket")
-    
-    # Assuming bracket_df has a structure where players are in pairs for each match
-    # For example, bracket_df might have 'player1' and 'player2' columns to show each match
+
+    # Split bracket into left and right sides (16 players total)
     left = bracket_df.iloc[0:8]  # Left side of the bracket
     right = bracket_df.iloc[8:16]  # Right side of the bracket
 
-    # --- Create a function for rendering matchups ---
+    # --- Helper function for rendering matchups ---
     def render_bracket_side(players, side_title):
-        st.markdown(f"### {side_title}")
+        st.markdown(f"#### {side_title}")
         for i in range(0, len(players), 2):  # Iterate in steps of 2 to group players in pairs
-            st.write(f"{players[i]['name']} vs {players[i+1]['name']}")
+            st.markdown(f"**{players[i]['name']}** vs **{players[i+1]['name']}**")
 
-    # --- Left Side Bracket ---
+    # --- Create two columns for left and right sides ---
     col1, col2 = st.columns([1, 1])
 
+    # --- Left Side Bracket ---
     with col1:
         st.markdown("### 🟦 Left Side")
-        for round_num in range(4):  # 4 rounds: Round of 16, Quarterfinals, Semifinals, Final
-            st.markdown(f"#### Round {round_num + 1}")
-            round_players = left.iloc[round_num * 2 : (round_num + 1) * 2].to_dict("records")
-            render_bracket_side(round_players, f"Round {round_num + 1}")
+        # Round of 16
+        round1_left = left.iloc[0:8].to_dict("records")  # 8 players in Round of 16
+        render_bracket_side(round1_left, "Round of 16")
+
+        # Quarterfinals
+        round2_left = left.iloc[8:12].to_dict("records")  # 4 players in Quarterfinals
+        render_bracket_side(round2_left, "Quarterfinals")
+
+        # Semifinals
+        round3_left = left.iloc[12:14].to_dict("records")  # 2 players in Semifinals
+        render_bracket_side(round3_left, "Semifinals")
+
+        # Final
+        round4_left = left.iloc[14:16].to_dict("records")  # 1 player in the Final
+        render_bracket_side(round4_left, "Final")
 
     # --- Right Side Bracket ---
     with col2:
         st.markdown("### 🟥 Right Side")
-        for round_num in range(4):  # 4 rounds: Round of 16, Quarterfinals, Semifinals, Final
-            st.markdown(f"#### Round {round_num + 1}")
-            round_players = right.iloc[round_num * 2 : (round_num + 1) * 2].to_dict("records")
-            render_bracket_side(round_players, f"Round {round_num + 1}")
+        # Round of 16
+        round1_right = right.iloc[0:8].to_dict("records")  # 8 players in Round of 16
+        render_bracket_side(round1_right, "Round of 16")
+
+        # Quarterfinals
+        round2_right = right.iloc[8:12].to_dict("records")  # 4 players in Quarterfinals
+        render_bracket_side(round2_right, "Quarterfinals")
+
+        # Semifinals
+        round3_right = right.iloc[12:14].to_dict("records")  # 2 players in Semifinals
+        render_bracket_side(round3_right, "Semifinals")
+
+        # Final
+        round4_right = right.iloc[14:16].to_dict("records")  # 1 player in the Final
+        render_bracket_side(round4_right, "Final")
 
 
 
