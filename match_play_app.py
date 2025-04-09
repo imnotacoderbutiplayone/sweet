@@ -1104,6 +1104,7 @@ with tabs[3]:
 
     # Step 2: For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
+        # Attempt to load the bracket data from Supabase
         bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
         if bracket_df.empty:
             st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
