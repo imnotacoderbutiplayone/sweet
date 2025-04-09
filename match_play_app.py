@@ -37,12 +37,11 @@ def save_bracket_data(df):
 
 
 # --- Helper: Parse JSON field ---
-def parse_json_field(json_data):
-    """Parse the JSON string into a Python object."""
+def parse_json_field(field):
     try:
-        return json.loads(json_data) if json_data else []
+        return json.loads(field) if isinstance(field, str) else field
     except Exception as e:
-        st.error(f"❌ Error parsing JSON field: {e}")
+        st.error(f"❌ Error parsing bracket field: {e}")
         return []
 
 def get_player_by_name(name, source_df):
@@ -1089,6 +1088,9 @@ with tabs[1]:
 
 # --- Bracket Visualization ---
 with tabs[3]:
+    st.subheader("🏆 Bracket")
+
+    # Load finalized bracket (seeds) from Supabase if not in session
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()
         if bracket_df.empty:
@@ -1100,19 +1102,28 @@ with tabs[3]:
     bracket_df = st.session_state.finalized_bracket
     icon = "🏌️‍♂️"
 
-    # Load last bracket state from Supabase
-    records = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
-    bracket_data = records.data[0] if records.data else {}
-    field_locked = bracket_data.get("field_locked", False)
+    # --- Load bracket progression (R16+ results and state) ---
+    try:
+        records = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
+        bracket_data = records.data[0] if records.data else {}
+        field_locked = bracket_data.get("field_locked", False)
 
+        # ✅ Safely parse JSON fields
+        r16_left = parse_json_field(bracket_data.get("r16_left", "[]"))
+        r16_right = parse_json_field(bracket_data.get("r16_right", "[]"))
+    except Exception as e:
+        st.error(f"❌ Failed to load bracket progression: {e}")
+        r16_left, r16_right = [], []
+        bracket_data = {}
+        field_locked = False
+
+    # Player lookup helper
     def get_player_by_name(name, source_df):
         return next((p for p in source_df.to_dict("records") if p["name"] == name), {"name": name})
 
+    # --- Admin View ---
     if st.session_state.authenticated:
         st.info("🔐 Admin mode")
-
-        st.subheader("🧪 Bracket Data Preview")
-        st.dataframe(bracket_df)
 
         if field_locked:
             st.error("⚠️ The Round of 16 field is locked and cannot be edited.")
@@ -1125,20 +1136,20 @@ with tabs[3]:
         with col1:
             st.markdown("### 🟦 Left Side")
             st.markdown("#### 🔒 Round of 16 (Locked)")
-            r16_left = []
-            for i, (p1_name, p2_name) in enumerate(bracket_data.get("r16_left", [])):
+            r16_left_results = []
+            for i, (p1_name, p2_name) in enumerate(r16_left):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default_winner = bracket_data.get("qf_left", [None] * 4)[i // 2]
                 winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"r16_left_{i}")
-                r16_left.append(get_winner_player(p1, p2, winner_name))
+                r16_left_results.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
-            for i in range(0, len(r16_left), 2):
-                if i + 1 < len(r16_left):
-                    p1 = r16_left[i]
-                    p2 = r16_left[i + 1]
+            for i in range(0, len(r16_left_results), 2):
+                if i + 1 < len(r16_left_results):
+                    p1 = r16_left_results[i]
+                    p2 = r16_left_results[i + 1]
                     default_winner = bracket_data.get("sf_left", [None] * 2)[i // 2] if bracket_data.get("sf_left") else None
                     winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(p1, p2, winner_name))
@@ -1146,24 +1157,25 @@ with tabs[3]:
         with col2:
             st.markdown("### 🟥 Right Side")
             st.markdown("#### 🔒 Round of 16 (Locked)")
-            r16_right = []
-            for i, (p1_name, p2_name) in enumerate(bracket_data.get("r16_right", [])):
+            r16_right_results = []
+            for i, (p1_name, p2_name) in enumerate(r16_right):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default_winner = bracket_data.get("qf_right", [None] * 4)[i // 2]
                 winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"r16_right_{i}")
-                r16_right.append(get_winner_player(p1, p2, winner_name))
+                r16_right_results.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
-            for i in range(0, len(r16_right), 2):
-                if i + 1 < len(r16_right):
-                    p1 = r16_right[i]
-                    p2 = r16_right[i + 1]
+            for i in range(0, len(r16_right_results), 2):
+                if i + 1 < len(r16_right_results):
+                    p1 = r16_right_results[i]
+                    p2 = r16_right_results[i + 1]
                     default_winner = bracket_data.get("sf_right", [None] * 2)[i // 2] if bracket_data.get("sf_right") else None
                     winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_right_{i}")
                     qf_right.append(get_winner_player(p1, p2, winner_name))
 
+        # --- Semifinals & Final ---
         st.markdown("### 🏁 Semifinals & Final")
         sf_left = qf_left
         sf_right = qf_right
@@ -1187,6 +1199,7 @@ with tabs[3]:
             finalist_right_player = None
             champion = None
 
+        # --- Save Updates ---
         if st.button("📋 Save Bracket Progress"):
             try:
                 updates = {}
@@ -1216,6 +1229,7 @@ with tabs[3]:
                 except Exception as e:
                     st.error(f"Failed to unlock field: {e}")
 
+    # --- Read-Only View ---
     else:
         st.markdown("### 🏆 Finalized Bracket (Read-Only)")
         if not bracket_data:
@@ -1235,15 +1249,15 @@ with tabs[3]:
 
         with col1:
             st.markdown("### 🟦 Left Side")
-            render_matchups("#### 🔹 Round of 16", bracket_data.get("r16_left", []))
-            render_matchups("#### 🥉 Quarterfinals", bracket_data.get("qf_left", []))
-            render_matchups("#### 🥈 Semifinalist", bracket_data.get("sf_left", []))
+            render_matchups("#### 🔹 Round of 16", r16_left)
+            render_matchups("#### 🥉 Quarterfinals", parse_json_field(bracket_data.get("qf_left", "[]")))
+            render_matchups("#### 🥈 Semifinalist", parse_json_field(bracket_data.get("sf_left", "[]")))
 
         with col2:
             st.markdown("### 🟥 Right Side")
-            render_matchups("#### 🔹 Round of 16", bracket_data.get("r16_right", []))
-            render_matchups("#### 🥉 Quarterfinals", bracket_data.get("qf_right", []))
-            render_matchups("#### 🥈 Semifinalist", bracket_data.get("sf_right", []))
+            render_matchups("#### 🔹 Round of 16", r16_right)
+            render_matchups("#### 🥉 Quarterfinals", parse_json_field(bracket_data.get("qf_right", "[]")))
+            render_matchups("#### 🥈 Semifinalist", parse_json_field(bracket_data.get("sf_right", "[]")))
 
         if bracket_data.get("finalist_left") and bracket_data.get("finalist_right"):
             st.markdown("### 🏁 Final Match")
