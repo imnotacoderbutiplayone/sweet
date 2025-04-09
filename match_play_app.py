@@ -1077,13 +1077,25 @@ with tabs[1]:
                 ]
 
                 # Save R16 matchups to bracket_progression
-                try:
-                    supabase.table("bracket_progression").insert({
+               try:
+                    record = {
                         "r16_left": json.dumps(r16_left),
                         "r16_right": json.dumps(r16_right),
-                        "field_locked": True,  # Lock after seeding
+                        "qf_left": json.dumps([]),
+                        "qf_right": json.dumps([]),
+                        "sf_left": json.dumps([]),
+                        "sf_right": json.dumps([]),
+                        "finalist_left": None,
+                        "finalist_right": None,
+                        "champion": None,
+                        "field_locked": True,
                         "created_at": datetime.utcnow().isoformat()
-                    }).execute()
+                    }
+
+                    result = supabase.table("bracket_progression").insert(record).execute()
+                    st.success("✅ Bracket finalized and Round of 16 seeded.")
+                except Exception as e:
+                    st.error(f"❌ Failed to save bracket progression: {e}")
 
                     st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
                 except Exception as e:
