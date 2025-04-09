@@ -1181,7 +1181,8 @@ with tabs[3]:
     else:
         st.markdown("### 🏆 Finalized Bracket (Read-Only)")
 
-        bracket_progression = load_bracket_progression_from_supabase()
+        bracket_progression = load_bracket_progression_from_supabase() or {}
+
 
         def safe_load(key):
             try:
