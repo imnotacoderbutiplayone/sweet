@@ -21,19 +21,19 @@ supabase = init_supabase()
 # --- Save bracket data to Supabase ---
 def save_bracket_data(df):
     try:
-        json_data = df.to_json(orient="split")
+        json_data = df.to_json(orient="split")  # Convert DataFrame to JSON string
         response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
 
-        # Check if the response contains data
         if response.status_code == 200 and response.data:
+            st.success("✅ Bracket data saved successfully to Supabase.")
             return response.data  # Return the inserted data or a success indicator
         else:
             st.error(f"❌ Failed to save bracket data to Supabase: {response.status_code} - {response.error_message if hasattr(response, 'error_message') else ''}")
             return None
     except Exception as e:
-        st.error("❌ Failed to save bracket data to Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error saving bracket data to Supabase: {e}")
         return None
+
 
 # --- Helper: Parse JSON field ---
 def parse_json_field(json_data):
