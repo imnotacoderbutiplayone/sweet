@@ -1086,20 +1086,20 @@ with tabs[1]:
                         "field_locked": False,
                         "created_at": datetime.utcnow().isoformat()
                     }
-                    try:
-                        result = supabase.table("bracket_progression").insert(record).execute()
+                try:
+                    result = supabase.table("bracket_progression").insert(record).execute()
 
-                        if result.data and len(result.data) > 0:
-                            bracket_id = result.data[0]["id"]  # ✅ Grab the Supabase-generated UUID
-                            # Merge the inserted record with its new ID
-                            st.session_state.bracket_data = {**record, "id": bracket_id}
-                            st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
-                            st.dataframe(bracket_df)
-                        else:
-                            st.error("❌ Bracket was inserted, but no ID was returned.")
+                    if result.data and len(result.data) > 0:
+                        bracket_id = result.data[0]["id"]  # ✅ Grab the Supabase-generated UUID
+                        # Merge the inserted record with its new ID
+                        st.session_state.bracket_data = {**record, "id": bracket_id}
+                        st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
+                        st.dataframe(bracket_df)
+                    else:
+                        st.error("❌ Bracket was inserted, but no ID was returned.")
 
-                    except Exception as e:
-                        st.error(f"❌ Failed to save bracket progression: {e}")
+                except Exception as e:
+                    st.error(f"❌ Failed to save bracket progression: {e}")
 
 
 
