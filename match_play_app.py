@@ -913,7 +913,7 @@ with tabs[0]:
 
 
 # --- Group Stage ---
-with tabs[1]:  # Group Stage Tab
+with tabs[1]:
     st.subheader("📊 Group Stage - Match Results")
 
     # Show loading spinner while loading match results
@@ -922,67 +922,88 @@ with tabs[1]:  # Group Stage Tab
 
     st.session_state.match_results = match_results
 
-    # Display match result logs for both admins and non-admins
-    st.write("📋 Match Results Log")
-    
-    match_results_display = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
-        "winner": r["winner"],
-        "margin": r["margin"]
-    } for r in match_results}
+    pod_results = {}
 
-    data = []
-    for key, result in match_results_display.items():
-        pod_name, match_str = key.split("|", 1)
-        player1, player2 = match_str.split(" vs ")
-        winner = result.get("winner", "Tie")
-        margin = result.get("margin", 0)
-        margin_text = next(
-            (k for k, v in margin_lookup.items() if v == margin),
-            "Tie" if winner == "Tie" else "1 up"
-        )
+    for pod_name, players in pods.items():
+        with st.expander(pod_name):
+            updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
+            pod_results[pod_name] = pd.DataFrame(updated_players)
 
-        data.append({
-            "Pod": pod_name,
-            "Player 1": player1.strip(),
-            "Player 2": player2.strip(),
-            "Winner": winner,
-            "Margin": margin_text
-        })
-
-    # Create a DataFrame and display the match results log
-    df = pd.DataFrame(data)
-    df = df.sort_values(by=["Pod", "Player 1"])
-    st.dataframe(df, use_container_width=True)
-
-    # Admin-only functionality to select winners
     if st.session_state.authenticated:
-        # Admin can select the winner
-        st.header("🧠 Admin: Select Match Winners")
+        st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
-        pod_results = {}
+        if "tiebreak_selections" not in st.session_state:
+            st.session_state.tiebreak_selections = {}
+        if "tiebreaks_resolved" not in st.session_state:
+            st.session_state.tiebreaks_resolved = False
 
-        for pod_name, players in pods.items():
-            with st.expander(pod_name):
-                updated_players = simulate_matches(players, pod_name, source="group_stage", editable=True)
-                pod_results[pod_name] = pd.DataFrame(updated_players)
+        unresolved = False
+        pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-        # Button to finalize and save results
-        if st.button("🏁 Finalize Group Stage Results"):
-            for pod_name, df in pod_results.items():
-                # Process the final results and save to Supabase
-                for _, row in df.iterrows():
-                    save_match_result(
-                        pod_name,
-                        row["name"],
-                        row["name"],  # In real case, you'd compare player1 and player2, and set the winner
-                        row["points"],
-                        row["margin"]
-                    )
+        for pod_name, df in pod_scores.items():
+            if df.empty or "points" not in df.columns:
+                st.info(f"📭 No match results entered yet for {pod_name}.")
+                continue
 
-            st.success("✅ Group Stage Results Saved.")
+            sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+
+            # Resolve tiebreakers for first place
+            top_score = sorted_players.iloc[0]["points"]
+            top_margin = sorted_players.iloc[0]["margin"]
+            tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
+
+            if len(tied_first) > 1:
+                st.warning(f"🔁 Tie for 1st in {pod_name}")
+                options = tied_first["name"].tolist()
+                selected = st.radio(f"Select 1st place in {pod_name}:", options, key=f"{pod_name}_1st")
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
+                else:
+                    unresolved = True
+            else:
+                st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
+
+            winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
+            remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
+
+            if remaining.empty:
+                st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
+                continue
+
+            second_score = remaining.iloc[0]["points"]
+            second_margin = remaining.iloc[0]["margin"]
+            tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
+
+            if len(tied_second) > 1:
+                st.warning(f"🔁 Tie for 2nd in {pod_name}")
+                options = tied_second["name"].tolist()
+                selected = st.radio(f"Select 2nd place in {pod_name}:", options, key=f"{pod_name}_2nd")
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
+                else:
+                    unresolved = True
+            else:
+                st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
+
+        if unresolved:
+            st.error("⛔ Please resolve all tiebreakers before finalizing.")
+            st.session_state.tiebreaks_resolved = False
+        else:
+            st.success("✅ All tiebreakers selected.")
+            st.session_state.tiebreaks_resolved = True
+
+        if st.session_state.get("tiebreaks_resolved", False):
+            if st.button("🏁 Finalize Bracket and Seed Field"):
+                bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
+                st.session_state.finalized_bracket = bracket_df
+
+                # Optionally, save to Supabase if you want persistence
+                save_bracket_data(bracket_df)
+
+                st.success("✅ Bracket finalized and seeded.")
+                st.write("📊 Final Bracket", bracket_df)
     else:
-        # Non-admins can only view the logs, not interact with them
-        st.warning("You can view the match results but cannot select winners.")
+        st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
 
 
 # --- Standings ---
