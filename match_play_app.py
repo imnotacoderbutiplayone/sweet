@@ -275,12 +275,13 @@ margin_lookup = {
 }
 
 def save_match_result(pod, player1, player2, winner, margin_str):
-    # Save the match result to Supabase
+    # Convert margin string to numeric
     if margin_str != "Tie":
         margin_value = margin_lookup.get(margin_str, 0)
     else:
         margin_value = 0
 
+    # Prepare the data to save
     data = {
         "pod": pod,
         "player1": player1,
@@ -291,14 +292,37 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     }
 
     try:
-        response = supabase.table("tournament_matches").insert(data).execute()
+        # Check if a match result already exists
+        response = supabase.table("tournament_matches").select("*") \
+            .eq("pod", pod) \
+            .eq("player1", player1) \
+            .eq("player2", player2) \
+            .execute()
 
-        if response.data:
-            st.success(f"Result saved: {winner} wins {margin_str}")
-            # After saving, load the updated match results immediately
-            load_match_result_log()  # Refresh the results log
+        if response.data and len(response.data) > 0:
+            # Match exists, so update it
+            match_id = response.data[0]['id']  # Assuming the match has an 'id' field
+            update_response = supabase.table("tournament_matches") \
+                .update(data) \
+                .eq("id", match_id) \
+                .execute()
+
+            if update_response.data:
+                st.success(f"Result updated: {winner} wins {margin_str}")
+            else:
+                st.error("❌ Error updating match result.")
         else:
-            st.error("❌ Error saving match result.")
+            # Match does not exist, so insert it
+            insert_response = supabase.table("tournament_matches").insert(data).execute()
+
+            if insert_response.data:
+                st.success(f"Result saved: {winner} wins {margin_str}")
+            else:
+                st.error("❌ Error saving match result.")
+
+        # Refresh the match result log after saving/updating the result
+        load_match_result_log()  # Reload the log with the updated result
+
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
 
