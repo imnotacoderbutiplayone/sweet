@@ -762,15 +762,23 @@ def update_bracket_progression(round_key, winners):
 # --- Load updated bracket progression ---
 def load_bracket_progression_from_supabase():
     try:
-        # Load the current bracket progression from Supabase
-        response = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
+        response = supabase.table("bracket_progression") \
+            .select("id, r16_left, r16_right, qf_left, qf_right, sf_left, sf_right, finalist_left, finalist_right, champion, field_locked") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+
         if response.data:
-            return response.data[0]
+            bracket_data = response.data[0]
+            st.session_state.bracket_data = bracket_data  # save to session
+            return bracket_data
         else:
-            return None
+            st.warning("⚠️ No bracket progression record found.")
+            return {}
     except Exception as e:
-        st.error(f"❌ Error loading bracket progression from Supabase: {str(e)}")
-        return None
+        st.error(f"❌ Error loading bracket progression: {e}")
+        return {}
+
 
 # --- Bracket Margin Lookup ---
 margin_lookup = {
