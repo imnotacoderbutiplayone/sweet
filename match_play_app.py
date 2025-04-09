@@ -9,8 +9,6 @@ from supabase import create_client
 import hashlib
 import re
 
-# --- Main Tournament App ---
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # --- Connect to Supabase ---
 @st.cache_resource
