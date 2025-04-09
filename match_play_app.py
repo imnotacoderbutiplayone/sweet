@@ -345,13 +345,16 @@ def load_bracket_data_from_supabase():
         response = (
             supabase.table("bracket_data")
             .select("json_data")
-            .order("timestamp", desc=True)  # ✅ Use 'timestamp' instead of 'created_at'
+            .order("timestamp", desc=True)
             .limit(1)
             .execute()
         )
 
+        st.write("📦 Raw Supabase response:", response.data)  # <--- DEBUG LINE
+
         if response.data and len(response.data) > 0:
             bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
+            st.write("✅ Parsed Bracket DataFrame:", bracket_df)  # <--- DEBUG LINE
             return bracket_df
         else:
             st.warning("No bracket data found.")
@@ -360,6 +363,7 @@ def load_bracket_data_from_supabase():
         st.error("❌ Error loading bracket data from Supabase.")
         st.code(str(e))
         return pd.DataFrame()
+
 
 
 # --- Initialize Bracket Data in Session State ---
