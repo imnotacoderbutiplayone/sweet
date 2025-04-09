@@ -143,6 +143,8 @@ def load_match_result_log():
             .order("created_at", desc=True) \
             .execute()
 
+        st.write("Response from Supabase:", response)  # Debugging line
+        
         if response.data:
             return response.data  # Return all match results
         else:
