@@ -1284,7 +1284,7 @@ with tabs[4]:
             del st.session_state["full_name"]
         st.session_state.prediction_submitted = False
 
-    if st.session_state.bracket_data.empty or len(st.session_state.bracket_data) < 16:
+    if bracket_df.empty or len(bracket_df) < 16:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
         bracket_df = st.session_state.bracket_data
