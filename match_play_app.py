@@ -1205,10 +1205,10 @@ with tabs[3]:
         if st.button("📋 Save Bracket Progress"):
             try:
                 updates = {}
-                if r16_left: updates["qf_left"] = [p["name"] for p in r16_left[::2]]
-                if r16_right: updates["qf_right"] = [p["name"] for p in r16_right[::2]]
-                if qf_left: updates["sf_left"] = [p["name"] for p in qf_left[::2]]
-                if qf_right: updates["sf_right"] = [p["name"] for p in qf_right[::2]]
+                if qf_left: updates["qf_left"] = [p["name"] for p in qf_left]
+                if qf_right: updates["qf_right"] = [p["name"] for p in qf_right]
+                if sf_left: updates["sf_left"] = [p["name"] for p in sf_left]
+                if sf_right: updates["sf_right"] = [p["name"] for p in sf_right]
                 if finalist_left_player: updates["finalist_left"] = finalist_left_player["name"]
                 if finalist_right_player: updates["finalist_right"] = finalist_right_player["name"]
                 if champion: updates["champion"] = champion["name"]
