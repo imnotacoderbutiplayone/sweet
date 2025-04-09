@@ -1166,6 +1166,26 @@ with tabs[3]:
     def get_player_by_name(name, df):
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
+    # --- Load Bracket Data from Supabase or Session ---
+bracket_df = st.session_state.get("finalized_bracket")
+
+# Fallback: Load from Supabase if not in session or broken
+if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty:
+    try:
+        bracket_df = load_bracket_data_from_supabase()
+        st.session_state.finalized_bracket = bracket_df
+        st.success("✅ Bracket data loaded from Supabase.")
+    except Exception as e:
+        st.error("❌ Error loading bracket data from Supabase.")
+        st.code(str(e))
+        st.stop()
+
+# Final safety check
+if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty:
+    st.warning("❌ Bracket data not available. Finalize it in Group Stage.")
+    st.stop()
+
+
     # Load bracket
     bracket_df = st.session_state.get("finalized_bracket")
     if bracket_df is None:
