@@ -292,7 +292,7 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     }
 
     try:
-        # Check if a match result already exists
+        # Check if a match result already exists based on pod, player1, and player2
         response = supabase.table("tournament_matches").select("*") \
             .eq("pod", pod) \
             .eq("player1", player1) \
@@ -301,10 +301,11 @@ def save_match_result(pod, player1, player2, winner, margin_str):
 
         if response.data and len(response.data) > 0:
             # Match exists, so update it
-            match_id = response.data[0]['id']  # Assuming the match has an 'id' field
             update_response = supabase.table("tournament_matches") \
                 .update(data) \
-                .eq("id", match_id) \
+                .eq("pod", pod) \
+                .eq("player1", player1) \
+                .eq("player2", player2) \
                 .execute()
 
             if update_response.data:
@@ -325,6 +326,7 @@ def save_match_result(pod, player1, player2, winner, margin_str):
 
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
+
 
 
 
