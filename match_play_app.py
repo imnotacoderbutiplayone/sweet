@@ -1168,6 +1168,7 @@ with tabs[3]:
 
     # Load bracket
     bracket_df = st.session_state.get("finalized_bracket", load_bracket_data_from_supabase())
+    st.write("🧪 Full Bracket Data", bracket_data)  # 👈 ADD THIS
     if bracket_df.empty:
         st.warning("No bracket data found. Finalize in Group Stage first.")
         st.stop()
@@ -1245,7 +1246,6 @@ with tabs[3]:
                 supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
                 st.success("✅ Bracket updated!")
                 st.session_state.bracket_data = load_bracket_progression_from_supabase()
-                st.write("🧪 Full Bracket Data", bracket_data)  # 👈 ADD THIS
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to update bracket: {e}")
