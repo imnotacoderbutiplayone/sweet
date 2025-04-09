@@ -1051,55 +1051,57 @@ with tabs[1]:
             st.session_state.tiebreaks_resolved = True
 
         # --- Finalize Bracket ---
-        st.header("🏁 Step 2: Finalize Bracket and Seed Field")
-        if st.session_state.get("tiebreaks_resolved", False):
-            if st.button("🏁 Finalize Bracket and Seed Field"):
-                bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-                st.session_state.finalized_bracket = bracket_df
-                save_bracket_data(bracket_df)
+if st.session_state.get("tiebreaks_resolved", False):
+    if st.button("🏁 Finalize Bracket and Seed Field"):
+        bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
+        st.session_state.finalized_bracket = bracket_df
 
-                # Build R16 Matchups
-                r16_left = [
-                    [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
-                    [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
-                    [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
-                    [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
-                ]
-                r16_right = [
-                    [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
-                    [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
-                    [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
-                    [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
-                ]
+        # Save bracket to Supabase (for prediction tab, etc.)
+        save_bracket_data(bracket_df)
 
-                try:
-                    record = {
-                        "r16_left": json.dumps(r16_left),
-                        "r16_right": json.dumps(r16_right),
-                        "qf_left": json.dumps([]),
-                        "qf_right": json.dumps([]),
-                        "sf_left": json.dumps([]),
-                        "sf_right": json.dumps([]),
-                        "finalist_left": None,
-                        "finalist_right": None,
-                        "champion": None,
-                        "field_locked": False,
-                        "created_at": datetime.utcnow().isoformat()
-                    }
-                try:
-                    result = supabase.table("bracket_progression").insert(record).execute()
+        # --- Build Round of 16 matchups ---
+        r16_left = [
+            [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
+            [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
+            [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
+            [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
+        ]
+        r16_right = [
+            [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
+            [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
+            [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
+            [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
+        ]
 
-                    if result.data and len(result.data) > 0:
-                        bracket_id = result.data[0]["id"]  # ✅ Grab the Supabase-generated UUID
-                        # Merge the inserted record with its new ID
-                        st.session_state.bracket_data = {**record, "id": bracket_id}
-                        st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
-                        st.dataframe(bracket_df)
-                    else:
-                        st.error("❌ Bracket was inserted, but no ID was returned.")
+        # Save R16 matchups to bracket_progression
+        try:
+            record = {
+                "r16_left": json.dumps(r16_left),
+                "r16_right": json.dumps(r16_right),
+                "qf_left": json.dumps([]),
+                "qf_right": json.dumps([]),
+                "sf_left": json.dumps([]),
+                "sf_right": json.dumps([]),
+                "finalist_left": None,
+                "finalist_right": None,
+                "champion": None,
+                "field_locked": True,
+                "created_at": datetime.utcnow().isoformat()
+            }
 
-                except Exception as e:
-                    st.error(f"❌ Failed to save bracket progression: {e}")
+            result = supabase.table("bracket_progression").insert(record).execute()
+
+            if result.data and len(result.data) > 0:
+                bracket_id = result.data[0]["id"]
+                st.session_state.bracket_data = {**record, "id": bracket_id}
+                st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
+                st.dataframe(bracket_df)
+            else:
+                st.error("❌ Bracket was inserted, but no ID was returned.")
+
+        except Exception as e:
+            st.error(f"❌ Failed to save bracket progression: {e}")
+
 
 
 
