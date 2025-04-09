@@ -1130,7 +1130,7 @@ with tabs[3]:
         st.info("🔐 Admin mode")
 
         if field_locked:
-            st.error("\u26a0\ufe0f The Round of 16 field is locked and cannot be edited.")
+            st.error("⚠️ The Round of 16 field is locked and cannot be edited.")
 
         left = bracket_df.iloc[0:8].to_dict("records")
         right = bracket_df.iloc[8:16].to_dict("records")
@@ -1146,7 +1146,12 @@ with tabs[3]:
             for i, (p1_name, p2_name) in enumerate(bracket_data.get("r16_left", [])):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
-                winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"r16_left_{i}")
+                default_winner = None
+                saved_qf = bracket_data.get("qf_left", [])
+                if len(saved_qf) > i // 2:
+                    saved_name = saved_qf[i // 2]
+                    default_winner = saved_name if saved_name in [p1["name"], p2["name"]] else None
+                winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🤽️ Quarterfinals")
@@ -1155,7 +1160,12 @@ with tabs[3]:
                 if i + 1 < len(r16_left):
                     p1 = r16_left[i]
                     p2 = r16_left[i + 1]
-                    winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"qf_left_{i}")
+                    default_winner = None
+                    saved_qf = bracket_data.get("sf_left", [])
+                    if len(saved_qf) > i // 2:
+                        saved_name = saved_qf[i // 2]
+                        default_winner = saved_name if saved_name in [p1["name"], p2["name"]] else None
+                    winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(p1, p2, winner_name))
 
             sf_left = qf_left
@@ -1167,7 +1177,12 @@ with tabs[3]:
             for i, (p1_name, p2_name) in enumerate(bracket_data.get("r16_right", [])):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
-                winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"r16_right_{i}")
+                default_winner = None
+                saved_qf = bracket_data.get("qf_right", [])
+                if len(saved_qf) > i // 2:
+                    saved_name = saved_qf[i // 2]
+                    default_winner = saved_name if saved_name in [p1["name"], p2["name"]] else None
+                winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🤽️ Quarterfinals")
@@ -1176,7 +1191,12 @@ with tabs[3]:
                 if i + 1 < len(r16_right):
                     p1 = r16_right[i]
                     p2 = r16_right[i + 1]
-                    winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"qf_right_{i}")
+                    default_winner = None
+                    saved_qf = bracket_data.get("sf_right", [])
+                    if len(saved_qf) > i // 2:
+                        saved_name = saved_qf[i // 2]
+                        default_winner = saved_name if saved_name in [p1["name"], p2["name"]] else None
+                    winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_right_{i}")
                     qf_right.append(get_winner_player(p1, p2, winner_name))
 
             sf_right = qf_right
@@ -1185,6 +1205,7 @@ with tabs[3]:
             st.markdown("### 🏎️ Final Match")
             champ_choice = st.radio("🏆 Select the Champion",
                                     [label(sf_left[0]), label(sf_right[0])],
+                                    index=0 if bracket_data.get("champion") == sf_left[0]["name"] else 1,
                                     key="final_match_radio")
             champion = sf_left[0] if champ_choice == label(sf_left[0]) else sf_right[0]
         else:
@@ -1258,7 +1279,6 @@ with tabs[3]:
 
         if bracket_data.get("champion"):
             st.success(f"🏆 Champion: **{bracket_data['champion']}**")
-
 
 
 # --- Predict Bracket ---
