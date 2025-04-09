@@ -1150,7 +1150,6 @@ with tabs[3]:
             except Exception:
                 return []
         return raw or []
-
 # --- Load and cache latest bracket progression ---
 def load_or_refresh_bracket_data():
     bracket_data = st.session_state.get("bracket_data", {})
