@@ -1151,13 +1151,18 @@ with tabs[3]:
     bracket_data = records.data[0] if records.data else {}
     field_locked = bracket_data.get("field_locked", False)
 
-    # Load JSON fields safely
-    r16_left = json.loads(bracket_data.get("r16_left", "[]"))
-    r16_right = json.loads(bracket_data.get("r16_right", "[]"))
-    qf_left = json.loads(bracket_data.get("qf_left", "[]"))
-    qf_right = json.loads(bracket_data.get("qf_right", "[]"))
-    sf_left = json.loads(bracket_data.get("sf_left", "[]"))
-    sf_right = json.loads(bracket_data.get("sf_right", "[]"))
+    # --- Fix: Smart JSON decoding ---
+    def decode_if_json(raw):
+        if isinstance(raw, str):
+            return json.loads(raw)
+        return raw if raw else []
+
+    r16_left = decode_if_json(bracket_data.get("r16_left", []))
+    r16_right = decode_if_json(bracket_data.get("r16_right", []))
+    qf_left = decode_if_json(bracket_data.get("qf_left", []))
+    qf_right = decode_if_json(bracket_data.get("qf_right", []))
+    sf_left = decode_if_json(bracket_data.get("sf_left", []))
+    sf_right = decode_if_json(bracket_data.get("sf_right", []))
 
     def get_player_by_name(name, df):
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name})
