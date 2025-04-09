@@ -44,6 +44,9 @@ def parse_json_field(json_data):
         st.error(f"❌ Error parsing JSON field: {e}")
         return []
 
+def get_player_by_name(name, source_df):
+    return next((p for p in source_df.to_dict("records") if p["name"] == name), {"name": name})
+
 #-- player by name helper ---
 def get_players_by_names(source_players, names):
     """
@@ -1159,8 +1162,11 @@ with tabs[3]:
             qf_left = []
             for i in range(0, len(r16_left), 2):
                 if i + 1 < len(r16_left):
-                    winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
-                    qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
+                    p1 = get_player_by_name(r16_left[i]["name"], bracket_df)
+                    p2 = get_player_by_name(r16_left[i + 1]["name"], bracket_df)
+                    winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"qf_left_{i}")
+                    qf_left.append(get_winner_player(p1, p2, winner_name))
+
 
             sf_left = qf_left
 
@@ -1184,8 +1190,12 @@ with tabs[3]:
             qf_right = []
             for i in range(0, len(r16_right), 2):
                 if i + 1 < len(r16_right):
-                    winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
-                    qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
+                    p1 = get_player_by_name(r16_right[i]["name"], bracket_df)
+                    p2 = get_player_by_name(r16_right[i + 1]["name"], bracket_df)
+                    winner_name = render_match(p1, p2, "", readonly=False, key_prefix=f"qf_right_{i}")
+                    qf_right.append(get_winner_player(p1, p2, winner_name))
+
+
 
             sf_right = qf_right
 
@@ -1221,7 +1231,7 @@ with tabs[3]:
                 try:
                     supabase.table("bracket_progression").update({"field_locked": False}).eq("id", bracket_data["id"]).execute()
                     st.success("✅ Field has been unlocked.")
-                    st.experimental_rerun()  # ⬅️ automatically reloads the app to pick up changes
+                    st.rerun()  # ⬅️ automatically reloads the app to pick up changes
                 except Exception as e:
                     st.error(f"Failed to unlock field: {e}")
 
