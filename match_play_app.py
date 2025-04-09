@@ -24,12 +24,12 @@ def save_bracket_data(df):
         json_data = df.to_json(orient="split")
         response = supabase.table("bracket_data").insert({"json_data": json_data}).execute()
 
-        # Check if there is an error in the response
-        if response.error:
-            st.error(f"❌ Failed to save bracket data to Supabase: {response.error}")
-            return None
-        else:
+        # Check if the response contains data
+        if response.status_code == 200 and response.data:
             return response.data  # Return the inserted data or a success indicator
+        else:
+            st.error(f"❌ Failed to save bracket data to Supabase: {response.status_code} - {response.error_message if hasattr(response, 'error_message') else ''}")
+            return None
     except Exception as e:
         st.error("❌ Failed to save bracket data to Supabase")
         st.code(str(e))
