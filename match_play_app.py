@@ -1093,7 +1093,6 @@ with tabs[2]:
         st.info("📭 No match results have been entered yet.")
 
 
-# --- Admin View Rendering Bracket ---
 with tabs[3]:
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
