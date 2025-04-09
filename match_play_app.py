@@ -1092,7 +1092,7 @@ with tabs[2]:
     else:
         st.info("📭 No match results have been entered yet.")
 
-
+# --- Bracket Visualization ---
 with tabs[3]:
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
@@ -1135,11 +1135,6 @@ with tabs[3]:
                 winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
 
-            # After Round of 16, save winners and update bracket progression
-            if st.button("🏁 Move to Quarterfinals (Left Side)", key="move_qf_left"):
-                update_bracket_progression("qf_left", r16_left)
-                save_match_result("group_stage", left[i]["name"], left[i+1]["name"], r16_left[0]["name"], "1 up")
-
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
             for i in range(0, len(r16_left), 2):
@@ -1147,7 +1142,6 @@ with tabs[3]:
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
 
-            # After Quarterfinals, save winners to SF
             sf_left = qf_left  # Assign the winners to the semifinals list for left side
 
         with col2:
@@ -1158,11 +1152,6 @@ with tabs[3]:
                 winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
 
-            # After Round of 16, save winners and update bracket progression
-            if st.button("🏁 Move to Quarterfinals (Right Side)", key="move_qf_right"):
-                update_bracket_progression("qf_right", r16_right)
-                save_match_result("group_stage", right[i]["name"], right[i+1]["name"], r16_right[0]["name"], "1 up")
-
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
             for i in range(0, len(r16_right), 2):
@@ -1170,7 +1159,6 @@ with tabs[3]:
                     winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
                     qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
 
-            # After Quarterfinals, save winners to SF
             sf_right = qf_right  # Assign the winners to the semifinals list for right side
 
         # Ensure semifinals are correctly populated
@@ -1206,33 +1194,35 @@ with tabs[3]:
         left_side = bracket_df.iloc[0:8].reset_index(drop=True)
         right_side = bracket_df.iloc[8:16].reset_index(drop=True)
 
-        # Display bracket for left side
-        st.markdown("#### 🟦 Left Side")
-        st.markdown("##### Round of 16")
-        for i in range(0, len(left_side), 2):
-            player1 = left_side.iloc[i]
-            player2 = left_side.iloc[i + 1]
-            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
+        col1, col2 = st.columns(2)
 
-        st.markdown("##### Quarterfinals")
-        for i in range(0, len(left_side), 2):
-            player1 = left_side.iloc[i]
-            player2 = left_side.iloc[i + 1]
-            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
+        with col1:
+            st.markdown("#### 🟦 Left Side")
+            st.markdown("##### Round of 16")
+            for i in range(0, len(left_side), 2):
+                player1 = left_side.iloc[i]
+                player2 = left_side.iloc[i + 1]
+                st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
-        # Display bracket for right side
-        st.markdown("#### 🟥 Right Side")
-        st.markdown("##### Round of 16")
-        for i in range(0, len(right_side), 2):
-            player1 = right_side.iloc[i]
-            player2 = right_side.iloc[i + 1]
-            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
+            st.markdown("##### Quarterfinals")
+            for i in range(0, len(left_side), 2):
+                player1 = left_side.iloc[i]
+                player2 = left_side.iloc[i + 1]
+                st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
-        st.markdown("##### Quarterfinals")
-        for i in range(0, len(right_side), 2):
-            player1 = right_side.iloc[i]
-            player2 = right_side.iloc[i + 1]
-            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
+        with col2:
+            st.markdown("#### 🟥 Right Side")
+            st.markdown("##### Round of 16")
+            for i in range(0, len(right_side), 2):
+                player1 = right_side.iloc[i]
+                player2 = right_side.iloc[i + 1]
+                st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
+
+            st.markdown("##### Quarterfinals")
+            for i in range(0, len(right_side), 2):
+                player1 = right_side.iloc[i]
+                player2 = right_side.iloc[i + 1]
+                st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
 
 
