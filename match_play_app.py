@@ -1166,8 +1166,8 @@ with tabs[3]:
 
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
             save_bracket_progression_to_supabase({
-                "r16_left": json.dumps([p["name"] for p in r16_left]),
-                "r16_right": json.dumps([p["name"] for p in r16_right]),
+                "r16_left_matchups": json.dumps([(left[i]["name"], left[i + 1]["name"]) for i in range(0, len(left), 2)]),
+                "r16_right_matchups": json.dumps([(right[i]["name"], right[i + 1]["name"]) for i in range(0, len(right), 2)]),
                 "qf_left": json.dumps([p["name"] for p in qf_left]),
                 "qf_right": json.dumps([p["name"] for p in qf_right]),
                 "sf_left": json.dumps([p["name"] for p in sf_left]),
@@ -1183,15 +1183,14 @@ with tabs[3]:
 
         bracket_progression = load_bracket_progression_from_supabase() or {}
 
-
         def safe_load(key):
             try:
                 return json.loads(bracket_progression.get(key, "[]"))
             except Exception:
                 return []
 
-        r16_left = safe_load("r16_left")
-        r16_right = safe_load("r16_right")
+        r16_left_matchups = safe_load("r16_left_matchups")
+        r16_right_matchups = safe_load("r16_right_matchups")
         qf_left = safe_load("qf_left")
         qf_right = safe_load("qf_right")
         sf_left = safe_load("sf_left")
@@ -1204,11 +1203,10 @@ with tabs[3]:
 
         with col1:
             st.markdown("### 🟦 Left Side")
-            if r16_left:
+            if r16_left_matchups:
                 st.markdown("#### 🔹 Round of 16")
-                for i in range(0, len(r16_left), 2):
-                    if i + 1 < len(r16_left):
-                        st.write(f"{r16_left[i]} {icon} vs {r16_left[i+1]} {icon}")
+                for p1, p2 in r16_left_matchups:
+                    st.write(f"{p1} {icon} vs {p2} {icon}")
             if qf_left:
                 st.markdown("#### 🥉 Quarterfinals")
                 for i in range(0, len(qf_left), 2):
@@ -1220,11 +1218,10 @@ with tabs[3]:
 
         with col2:
             st.markdown("### 🟥 Right Side")
-            if r16_right:
+            if r16_right_matchups:
                 st.markdown("#### 🔹 Round of 16")
-                for i in range(0, len(r16_right), 2):
-                    if i + 1 < len(r16_right):
-                        st.write(f"{r16_right[i]} {icon} vs {r16_right[i+1]} {icon}")
+                for p1, p2 in r16_right_matchups:
+                    st.write(f"{p1} {icon} vs {p2} {icon}")
             if qf_right:
                 st.markdown("#### 🥉 Quarterfinals")
                 for i in range(0, len(qf_right), 2):
@@ -1240,7 +1237,6 @@ with tabs[3]:
 
         if champion:
             st.success(f"🏆 Champion: **{champion}**")
-
 
 
 
