@@ -9,6 +9,9 @@ from supabase import create_client
 import hashlib
 import re
 
+# --- Main Tournament App ---
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+
 # --- Connect to Supabase ---
 @st.cache_resource
 def init_supabase():
@@ -18,8 +21,6 @@ def init_supabase():
 
 supabase = init_supabase()
 
-# --- Main Tournament App ---
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # Initialize Session States
 if 'app_authenticated' not in st.session_state:
