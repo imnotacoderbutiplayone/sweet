@@ -1094,9 +1094,7 @@ with tabs[2]:
 
 
 # --- Admin View Rendering Bracket ---
-# --- Bracket ---
 with tabs[3]:
-    # For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
         if bracket_df.empty:
@@ -1126,6 +1124,10 @@ with tabs[3]:
             except (IndexError, TypeError, KeyError):
                 return ""
 
+        # Initialize semifinal arrays
+        sf_left = []
+        sf_right = []
+
         with col1:
             st.markdown("### 🟦 Left Side")
             st.markdown("#### 🔹 Round of 16")
@@ -1145,6 +1147,9 @@ with tabs[3]:
                 if i + 1 < len(r16_left):
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
+
+            # After Quarterfinals, save winners to SF
+            sf_left = qf_left  # Assign the winners to the semifinals list for left side
 
         with col2:
             st.markdown("### 🟥 Right Side")
@@ -1166,7 +1171,10 @@ with tabs[3]:
                     winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
                     qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
 
-        # Final match if both sides have semifinals
+            # After Quarterfinals, save winners to SF
+            sf_right = qf_right  # Assign the winners to the semifinals list for right side
+
+        # Ensure semifinals are correctly populated
         if sf_left and sf_right:
             st.markdown("### 🏁 Final Match")
             champ_choice = st.radio("🏆 Select the Champion",
