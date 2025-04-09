@@ -273,17 +273,14 @@ margin_lookup = {
 }
 
 def save_bracket_progression_to_supabase(data: dict):
-    """
-    Saves bracket progression to the 'bracket_progression' table.
-    Uses a fixed row (id=1) to represent the current tournament.
-    """
-    data["id"] = 1  # Ensures we upsert into a single known row
-    response = supabase.table("bracket_progression").upsert(data, on_conflict="id").execute()
+    data["id"] = 1
+    try:
+        response = supabase.table("bracket_progression").upsert(data, on_conflict="id").execute()
+        return response
+    except Exception as e:
+        st.error(f"Supabase save failed: {e}")
+        raise
 
-    if response.get("status_code", 200) >= 400:
-        raise Exception(f"Supabase save error: {response}")
-
-    return response
 
 def save_match_result(pod, player1, player2, winner, margin_str):
     # Convert margin string to numeric
