@@ -342,11 +342,13 @@ def save_match_result(pod, player1, player2, winner, margin_str):
 # Define the function to load bracket data from Supabase
 def load_bracket_data_from_supabase():
     try:
-        response = supabase.table("bracket_data") \
-            .select("json_data") \
-            .order("timestamp", desc=True) \  # ✅ Use 'timestamp' instead
-            .limit(1) \
+        response = (
+            supabase.table("bracket_data")
+            .select("json_data")
+            .order("timestamp", desc=True)  # ✅ Use 'timestamp' instead of 'created_at'
+            .limit(1)
             .execute()
+        )
 
         if response.data and len(response.data) > 0:
             bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
