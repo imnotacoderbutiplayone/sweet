@@ -1133,191 +1133,128 @@ with tabs[2]:
     else:
         st.warning("No standings available yet.")
 
-# --- Bracket Visualization ---
+# --- Bracket Tab (Minimal, working version) ---
 with tabs[3]:
 
-    # Helper to safely decode list or JSON string from Supabase
     def decode_if_json(raw):
         if isinstance(raw, str):
-            return json.loads(raw)
-        return raw if raw else []
+            try:
+                return json.loads(raw)
+            except:
+                return []
+        return raw or []
 
-    # Load bracket progression from Supabase
     def load_bracket_progression_from_supabase():
         try:
-            response = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
-            if response.data:
-                return response.data[0]
-            else:
-                return {}
+            res = supabase.table("bracket_progression") \
+                          .select("*") \
+                          .order("created_at", desc=True) \
+                          .limit(1).execute()
+            return res.data[0] if res.data else {}
         except Exception as e:
             st.error(f"❌ Failed to load bracket progression: {e}")
             return {}
 
-    # Always load latest bracket progression on rerun
-    bracket_data = load_bracket_progression_from_supabase()
+    def get_player_by_name(name, df):
+        return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
-    if "finalized_bracket" not in st.session_state:
-        bracket_df = load_bracket_data_from_supabase()
-        if bracket_df.empty:
-            st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
-            st.stop()
-        else:
-            st.session_state.finalized_bracket = bracket_df
+    # Load bracket
+    bracket_df = st.session_state.get("finalized_bracket", load_bracket_data_from_supabase())
+    if bracket_df.empty:
+        st.warning("No bracket data found. Finalize in Group Stage first.")
+        st.stop()
 
-    bracket_df = st.session_state.finalized_bracket
-    icon = "🏌️‍♂️"
+    bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
+    st.session_state.bracket_data = bracket_data  # Save latest
+
+    # DEBUG: Show current record ID
+    bracket_id = bracket_data.get("id")
+    st.caption(f"📦 Bracket Record ID: {bracket_id}")
+
+    # Decode all rounds
+    r16_left = decode_if_json(bracket_data.get("r16_left"))
+    r16_right = decode_if_json(bracket_data.get("r16_right"))
+    qf_left = decode_if_json(bracket_data.get("qf_left"))
+    qf_right = decode_if_json(bracket_data.get("qf_right"))
+    sf_left = decode_if_json(bracket_data.get("sf_left"))
+    sf_right = decode_if_json(bracket_data.get("sf_right"))
     field_locked = bracket_data.get("field_locked", False)
 
-    # Decode bracket progression fields
-    r16_left = decode_if_json(bracket_data.get("r16_left", []))
-    r16_right = decode_if_json(bracket_data.get("r16_right", []))
-    qf_left = decode_if_json(bracket_data.get("qf_left", []))
-    qf_right = decode_if_json(bracket_data.get("qf_right", []))
-    sf_left = decode_if_json(bracket_data.get("sf_left", []))
-    sf_right = decode_if_json(bracket_data.get("sf_right", []))
-
-    def get_player_by_name(name, df):
-        return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name})
+    icon = "🏌️"
 
     if st.session_state.authenticated:
-        st.info("🔐 Admin mode")
-
-        left = bracket_df.iloc[0:8].reset_index(drop=True).to_dict("records")
-        right = bracket_df.iloc[8:16].reset_index(drop=True).to_dict("records")
+        st.success("Admin Mode Enabled")
 
         col1, col2 = st.columns(2)
 
         with col1:
             st.markdown("### 🟦 Left Side")
-            st.markdown("#### 🔒 Round of 16")
             r16_left_results = []
             for i, (p1_name, p2_name) in enumerate(r16_left):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
-                default_winner = qf_left[i // 2] if i // 2 < len(qf_left) else None
-                winner_name = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_left_{i}", stage="bracket_r16")
-                r16_left_results.append(get_winner_player(p1, p2, winner_name))
+                default_winner = qf_left[i // 2] if i // 2 < len(qf_left) else "Tie"
+                winner = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_left_{i}", stage="bracket_r16")
+                r16_left_results.append(get_winner_player(p1, p2, winner))
 
-            st.markdown("#### 🥉 Quarterfinals")
             qf_left_results = []
             for i in range(0, len(r16_left_results), 2):
                 if i + 1 < len(r16_left_results):
                     p1 = r16_left_results[i]
                     p2 = r16_left_results[i + 1]
-                    default_winner = sf_left[i // 2] if i // 2 < len(sf_left) else None
-                    winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_left_{i}", stage="bracket_qf")
-                    qf_left_results.append(get_winner_player(p1, p2, winner_name))
+                    default_winner = sf_left[i // 2] if i // 2 < len(sf_left) else "Tie"
+                    winner = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_left_{i}", stage="bracket_qf")
+                    qf_left_results.append(get_winner_player(p1, p2, winner))
 
         with col2:
             st.markdown("### 🟥 Right Side")
-            st.markdown("#### 🔒 Round of 16")
             r16_right_results = []
             for i, (p1_name, p2_name) in enumerate(r16_right):
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
-                default_winner = qf_right[i // 2] if i // 2 < len(qf_right) else None
-                winner_name = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_right_{i}", stage="bracket_r16")
-                r16_right_results.append(get_winner_player(p1, p2, winner_name))
+                default_winner = qf_right[i // 2] if i // 2 < len(qf_right) else "Tie"
+                winner = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_right_{i}", stage="bracket_r16")
+                r16_right_results.append(get_winner_player(p1, p2, winner))
 
-            st.markdown("#### 🥉 Quarterfinals")
             qf_right_results = []
             for i in range(0, len(r16_right_results), 2):
                 if i + 1 < len(r16_right_results):
                     p1 = r16_right_results[i]
                     p2 = r16_right_results[i + 1]
-                    default_winner = sf_right[i // 2] if i // 2 < len(sf_right) else None
-                    winner_name = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
-                    qf_right_results.append(get_winner_player(p1, p2, winner_name))
+                    default_winner = sf_right[i // 2] if i // 2 < len(sf_right) else "Tie"
+                    winner = render_match(p1, p2, default_winner, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
+                    qf_right_results.append(get_winner_player(p1, p2, winner))
 
-        st.markdown("### 🏁 Semifinals & Final")
-        sf_left_results = qf_left_results
-        sf_right_results = qf_right_results
-
-        if sf_left_results and sf_right_results:
-            default_finalist_left = bracket_data.get("finalist_left")
-            default_finalist_right = bracket_data.get("finalist_right")
-            finalist_left = render_match(sf_left_results[0], sf_left_results[1], default_finalist_left, readonly=False, key_prefix="sf_left", stage="bracket_sf")
-            finalist_right = render_match(sf_right_results[0], sf_right_results[1], default_finalist_right, readonly=False, key_prefix="sf_right", stage="bracket_sf")
-            finalist_left_player = get_winner_player(sf_left_results[0], sf_left_results[1], finalist_left)
-            finalist_right_player = get_winner_player(sf_right_results[0], sf_right_results[1], finalist_right)
-
-            champ_default = bracket_data.get("champion")
-            champ_choice = st.radio("🏆 Select the Champion",
-                                    [label(finalist_left_player), label(finalist_right_player)],
-                                    index=0 if champ_default == finalist_left_player["name"] else 1,
-                                    key="final_match_radio")
-            champion = finalist_left_player if champ_choice == label(finalist_left_player) else finalist_right_player
-        else:
-            finalist_left_player = None
-            finalist_right_player = None
-            champion = None
-
+        # Save Button
         if st.button("📋 Save Bracket Progress"):
             try:
-                updates = {}
-                if qf_left_results: updates["qf_left"] = json.dumps([p["name"] for p in qf_left_results])
-                if qf_right_results: updates["qf_right"] = json.dumps([p["name"] for p in qf_right_results])
-                if sf_left_results: updates["sf_left"] = json.dumps([p["name"] for p in sf_left_results])
-                if sf_right_results: updates["sf_right"] = json.dumps([p["name"] for p in sf_right_results])
-                if finalist_left_player: updates["finalist_left"] = finalist_left_player["name"]
-                if finalist_right_player: updates["finalist_right"] = finalist_right_player["name"]
-                if champion: updates["champion"] = champion["name"]
-
-                if updates:
-                    supabase.table("bracket_progression").update(updates).eq("id", bracket_data["id"]).execute()
-                    st.success("✅ Bracket progress saved.")
-                    bracket_data = load_bracket_progression_from_supabase()  # 🔁 Refresh after save
-                    st.rerun()
-                else:
-                    st.info("⚠️ Nothing new to save.")
+                updates = {
+                    "qf_left": json.dumps([p["name"] for p in qf_left_results]),
+                    "qf_right": json.dumps([p["name"] for p in qf_right_results]),
+                    "sf_left": json.dumps([p["name"] for p in qf_left_results[:2]]),  # Stub
+                    "sf_right": json.dumps([p["name"] for p in qf_right_results[:2]]),  # Stub
+                }
+                supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
+                st.success("✅ Bracket updated!")
+                st.session_state.bracket_data = load_bracket_progression_from_supabase()
+                st.rerun()
             except Exception as e:
-                st.error(f"❌ Failed to save: {e}")
-
-        if field_locked:
-            if st.button("🔓 Unlock R16 (Admin Only)", type="primary"):
-                try:
-                    supabase.table("bracket_progression").update({"field_locked": False}).eq("id", bracket_data["id"]).execute()
-                    st.success("✅ Field has been unlocked.")
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Failed to unlock field: {e}")
+                st.error(f"❌ Failed to update bracket: {e}")
 
     else:
-        st.markdown("### 🏆 Finalized Bracket (Read-Only)")
-        if not bracket_data:
-            st.warning("No bracket progression has been saved yet.")
-            st.stop()
-
+        st.markdown("### 🔒 View-Only Bracket")
         def render_matchups(title, matchups):
-            if matchups:
-                st.markdown(title)
-                for m in matchups:
-                    if isinstance(m, list) and len(m) == 2:
-                        st.write(f"{m[0]} {icon} vs {m[1]} {icon}")
-                    elif isinstance(m, str):
-                        st.write(f"{m} {icon}")
+            st.markdown(f"**{title}**")
+            for m in matchups:
+                if isinstance(m, list) and len(m) == 2:
+                    st.write(f"{m[0]} {icon} vs {m[1]} {icon}")
+                elif isinstance(m, str):
+                    st.write(m)
 
-        col1, col2 = st.columns(2)
-
-        with col1:
-            st.markdown("### 🟦 Left Side")
-            render_matchups("#### 🔹 Round of 16", r16_left)
-            render_matchups("#### 🥉 Quarterfinals", qf_left)
-            render_matchups("#### 🥈 Semifinalist", sf_left)
-
-        with col2:
-            st.markdown("### 🟥 Right Side")
-            render_matchups("#### 🔹 Round of 16", r16_right)
-            render_matchups("#### 🥉 Quarterfinals", qf_right)
-            render_matchups("#### 🥈 Semifinalist", sf_right)
-
-        if bracket_data.get("finalist_left") and bracket_data.get("finalist_right"):
-            st.markdown("### 🏁 Final Match")
-            st.write(f"{bracket_data['finalist_left']} {icon} vs {bracket_data['finalist_right']} {icon}")
-
-        if bracket_data.get("champion"):
-            st.success(f"🏆 Champion: **{bracket_data['champion']}**")
+        render_matchups("Round of 16 - Left", r16_left)
+        render_matchups("Quarterfinals - Left", qf_left)
+        render_matchups("Round of 16 - Right", r16_right)
+        render_matchups("Quarterfinals - Right", qf_right)
 
 
 
