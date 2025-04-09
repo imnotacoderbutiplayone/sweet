@@ -891,7 +891,6 @@ tabs = st.tabs([
     "📊 Group Stage", 
     "📋 Standings", 
     "🏆 Bracket", 
-    "📤 Export", 
     "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
@@ -1195,55 +1194,6 @@ with tabs[3]:
     else:
         st.warning("Bracket progression not set yet.")
 
-
-# --- Export ---
-with tabs[4]:
-    st.subheader("📤 Export")
-
-    # Export Bracket Data
-    if not st.session_state.bracket_data.empty:
-        csv = st.session_state.bracket_data.to_csv().encode("utf-8")
-        st.download_button("Download Bracket CSV", csv, "bracket.csv", "text/csv", key="bracket_download_button")
-    else:
-        st.warning("No bracket data available for export.")
-
-
-# Export Match Results
-if "match_results" in st.session_state and st.session_state.match_results:
-    match_results_data = []
-    for key, result in st.session_state.match_results.items():
-        if "|" not in key:
-            continue  # Skip malformed or legacy keys
-
-        pod_name, match_str = key.split("|", 1)
-        try:
-            player1, player2 = match_str.split(" vs ")
-        except ValueError:
-            continue  # Skip malformed match strings
-
-        winner = result.get("winner", "Tie")
-        margin = result.get("margin", 0)
-        margin_text = next(
-            (k for k, v in margin_lookup.items() if v == margin),
-            "Tie" if winner == "Tie" else "1 up"
-        )
-
-        match_results_data.append({
-            "Pod": pod_name,
-            "Player 1": player1.strip(),
-            "Player 2": player2.strip(),
-            "Winner": winner,
-            "Margin": margin_text
-        })
-
-    df_match_results = pd.DataFrame(match_results_data)
-    df_match_results = df_match_results.sort_values(by=["Pod", "Player 1"])
-
-    # Display match results CSV download button (Ensure unique key for button)
-    csv_match_results = df_match_results.to_csv(index=False).encode("utf-8")
-    st.download_button("📥 Download Match Results CSV", csv_match_results, "match_results.csv", "text/csv", key="unique_match_results_download_button")
-else:
-    st.warning("No match results available for export.")
 
 
 # --- Predict Bracket ---
