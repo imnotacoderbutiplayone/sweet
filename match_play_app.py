@@ -1091,8 +1091,6 @@ with tabs[2]:
 
 # --- Bracket Visualization for Non-Admins ---
 with tabs[3]:
-    #st.subheader("🏆 Bracket")
-
     # For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
@@ -1102,12 +1100,12 @@ with tabs[3]:
         else:
             st.session_state.finalized_bracket = bracket_df  # Save to session state for later use
 
-    # For non-admin users, we load and show the bracket
+    # For non-admin users, we load and show the finalized bracket
     bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
     # Ensure only the Round of 16 is displayed
     st.write("### 🏆 Finalized Bracket")
-    
+
     # Split bracket into left and right sides
     left = bracket_df.iloc[0:8].to_dict("records")
     right = bracket_df.iloc[8:16].to_dict("records")
