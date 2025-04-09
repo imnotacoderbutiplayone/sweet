@@ -1106,8 +1106,8 @@ with tabs[3]:
     # For non-admin users, we load and show the bracket
     bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
-    # Display the finalized bracket matchups for non-admin users
-    st.write("### 🏆 Finalized Bracket")
+    # --- Just display Finalized Bracket for non-admins ---
+    st.write("### 🏆 Finalized Bracket")  # Only display this heading
 
     # Split bracket into left and right sides (16 players total)
     left = bracket_df.iloc[0:8]  # Left side of the bracket
