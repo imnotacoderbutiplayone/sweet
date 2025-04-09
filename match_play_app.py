@@ -182,6 +182,10 @@ def load_match_result_log():
         st.code(str(e))  # Display the error if any
 
 
+# --- Initialize Bracket Data in Session State ---
+if "bracket_data" not in st.session_state:
+    bracket_df = load_bracket_data()  # Load from Supabase if not in session state
+    st.session_state.bracket_data = bracket_df
 
 
 # --- Display the most recent match result ---
