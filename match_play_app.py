@@ -1089,7 +1089,6 @@ with tabs[2]:
         st.info("📭 No match results have been entered yet.")
 
 
-# --- Admin View Rendering Bracket ---
 # --- Bracket ---
 with tabs[3]:
     st.subheader("🏆 Bracket")
@@ -1119,30 +1118,29 @@ with tabs[3]:
     def matchup_string(player1, player2):
         return f"{player1} vs {player2}"
 
+    # --- Create a function for rendering matchups ---
+    def render_bracket_side(players, side_title):
+        st.markdown(f"### {side_title}")
+        for i in range(0, len(players), 2):  # Iterate in steps of 2 to group players in pairs
+            st.write(f"{players[i]['name']} vs {players[i+1]['name']}")
+
     # --- Left Side Bracket ---
-    st.markdown("### 🟦 Left Side")
-    for i in range(0, len(left), 2):  # Iterate in steps of 2 to group players in pairs
-        st.write(matchup_string(left.iloc[i]['name'], left.iloc[i+1]['name']))
+    col1, col2 = st.columns([1, 1])
 
-    # --- Right Side Bracket ---
-    st.markdown("### 🟥 Right Side")
-    for i in range(0, len(right), 2):  # Iterate in steps of 2 to group players in pairs
-        st.write(matchup_string(right.iloc[i]['name'], right.iloc[i+1]['name']))
-
-    # To make this even more visually clear, you can use columns to display the matchups side by side
-    col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("### 🟦 Left Side")
-        for i in range(0, len(left), 2):
-            st.write(f"{left.iloc[i]['name']} vs {left.iloc[i+1]['name']}")
+        for round_num in range(4):  # 4 rounds: Round of 16, Quarterfinals, Semifinals, Final
+            st.markdown(f"#### Round {round_num + 1}")
+            round_players = left.iloc[round_num * 2 : (round_num + 1) * 2].to_dict("records")
+            render_bracket_side(round_players, f"Round {round_num + 1}")
 
+    # --- Right Side Bracket ---
     with col2:
         st.markdown("### 🟥 Right Side")
-        for i in range(0, len(right), 2):
-            st.write(f"{right.iloc[i]['name']} vs {right.iloc[i+1]['name']}")
-
-
+        for round_num in range(4):  # 4 rounds: Round of 16, Quarterfinals, Semifinals, Final
+            st.markdown(f"#### Round {round_num + 1}")
+            round_players = right.iloc[round_num * 2 : (round_num + 1) * 2].to_dict("records")
+            render_bracket_side(round_players, f"Round {round_num + 1}")
 
 
 # --- Predict Bracket ---
