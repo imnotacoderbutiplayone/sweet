@@ -1344,7 +1344,7 @@ with tabs[5]:
 with tabs[6]:  # Make sure you're in the correct tab index
     st.subheader("🗃️ Match Results Log")
 
-    # Ensure the results are always fetched from Supabase
+    # Test to ensure we are entering this tab and can see the logic running
     st.write("Attempting to load match results...")
 
     try:
@@ -1364,6 +1364,9 @@ with tabs[6]:  # Make sure you're in the correct tab index
                 "winner": r["winner"],
                 "margin": r["margin"]
             } for r in response.data}
+
+            # Debug: Display match results data structure
+            st.write("Processed Match Results:", match_results)
 
             # Convert match results into a DataFrame for display
             import pandas as pd
