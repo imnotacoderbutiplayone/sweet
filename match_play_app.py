@@ -231,6 +231,7 @@ def display_match_result_log():
     else:
         st.write("No match result log available.")
 
+
 #-- load round players ---
 def load_round_players(round_key, progression_data, source_players=None):
     """
@@ -924,6 +925,9 @@ with tabs[1]:
 
     pod_results = {}
 
+    # Display match results for all users (both admins and non-admins)
+    display_match_result_log()
+
     for pod_name, players in pods.items():
         with st.expander(pod_name):
             updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
@@ -1004,7 +1008,6 @@ with tabs[1]:
                 st.write("📊 Final Bracket", bracket_df)
     else:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
-
 
 # --- Standings ---
 # --- Standings ---
