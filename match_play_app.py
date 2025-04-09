@@ -1091,8 +1091,6 @@ with tabs[2]:
 
 # --- Bracket ---
 with tabs[3]:
-    st.subheader("🏆 Bracket")
-
     # Step 2: For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
         # Attempt to load the bracket data from Supabase
@@ -1107,7 +1105,7 @@ with tabs[3]:
     bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
     # --- Only display Finalized Bracket for non-admins ---
-    st.write("### 🏆 Finalized Bracket")  # Only display this heading
+    st.write("### 🏆 Finalized Bracket")  # Only display this heading once
 
     # Split bracket into left and right sides (16 players total)
     left = bracket_df.iloc[0:8]  # Left side of the bracket
