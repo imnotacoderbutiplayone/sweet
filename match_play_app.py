@@ -156,6 +156,7 @@ def load_match_result_log():
         return []
 
 
+
 # --- Display the most recent match result ---
 def display_most_recent_result():
     most_recent_result = load_most_recent_match_results()
