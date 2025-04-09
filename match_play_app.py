@@ -142,22 +142,45 @@ def load_match_result_log():
             .order("created_at", desc=True).execute()
 
         if response.data:
-            # Process and display the results immediately
             match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
                 "winner": r["winner"],
                 "margin": r["margin"]
             } for r in response.data}
+
             st.write("📋 Match Results Log")
-            # Convert to DataFrame
-            df = pd.DataFrame([
-                {"Pod": pod, "Player 1": p1, "Player 2": p2, "Winner": w, "Margin": m}
-                for (pod, (p1, p2), w, m) in match_results.items()
-            ])
-            st.dataframe(df)
+
+            # Adjust the iteration to handle the structure correctly
+            data = []
+            for key, result in match_results.items():
+                pod_name, match_str = key.split("|", 1)
+                player1, player2 = match_str.split(" vs ")
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
+
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
+
+            # Create a DataFrame and display the match results
+            df = pd.DataFrame(data)
+            df = df.sort_values(by=["Pod", "Player 1"])
+            st.dataframe(df, use_container_width=True)
+
         else:
             st.warning("No match results found.")
+
     except Exception as e:
         st.error(f"❌ Error loading match results: {e}")
+        st.code(str(e))  # Display the error if any
+
 
 
 
