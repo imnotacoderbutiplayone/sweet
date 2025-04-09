@@ -1157,17 +1157,15 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket Stage")
 
-# --- Helper functions ---
-def decode_if_json(raw):
-    if isinstance(raw, str):
-        try:
-            while isinstance(raw, str):
-                raw = json.loads(raw)
-        except Exception:
-            return []
-    return raw or []
-
-
+    # --- Helper functions ---
+    def decode_if_json(raw):
+        if isinstance(raw, str):
+            try:
+                while isinstance(raw, str):
+                    raw = json.loads(raw)
+            except Exception:
+                return []
+        return raw or []
 
     def load_bracket_progression_from_supabase():
         try:
@@ -1190,10 +1188,10 @@ def decode_if_json(raw):
     else:
         bracket_df = st.session_state.finalized_bracket
 
-
     if bracket_df is None or bracket_df.empty:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
         st.stop()
+
 
     # --- Load Bracket Progression ---
     bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
