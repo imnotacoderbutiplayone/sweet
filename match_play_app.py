@@ -1151,19 +1151,19 @@ with tabs[3]:
                 return []
         return raw or []
 
-    # --- Load and cache latest bracket progression ---
-    def load_or_refresh_bracket_data():
-        bracket_data = st.session_state.get("bracket_data", {})
-        bracket_id = bracket_data.get("id")
+# --- Load and cache latest bracket progression ---
+def load_or_refresh_bracket_data():
+    bracket_data = st.session_state.get("bracket_data", {})
+    bracket_id = bracket_data.get("id")
 
-        # Refresh if missing or invalid ID
-        if not bracket_id:
-            bracket_data = load_bracket_progression_from_supabase()
-            if bracket_data and "id" in bracket_data:
-                st.session_state.bracket_data = bracket_data
-            else:
-                st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
-                st.stop()
+    # Refresh if missing or invalid ID
+    if not bracket_id:
+        bracket_data = load_bracket_progression_from_supabase()
+        if bracket_data and "id" in bracket_data:
+            st.session_state.bracket_data = bracket_data
+        else:
+            st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
+            st.stop()
     
     return st.session_state.bracket_data
 
