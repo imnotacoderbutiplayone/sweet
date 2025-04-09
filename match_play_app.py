@@ -332,7 +332,7 @@ def save_match_result(pod, player1, player2, winner, margin_str):
         st.error(f"❌ Error saving match result: {str(e)}")
 
 # Define the function to load bracket data from Supabase
-ddef load_bracket_data_from_supabase():
+def load_bracket_data_from_supabase():
     try:
         response = supabase.table("bracket_data").select("json_data").order("created_at", desc=True).limit(1).execute()
         if response.data and len(response.data) > 0:
