@@ -928,7 +928,7 @@ tabs = st.tabs([
 
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
-    bracket_df = load_bracket_data()
+    bracket_df = load_bracket_data_from_supabase()
     st.session_state.finalized_bracket = bracket_df
 if "user_predictions" not in st.session_state:
     st.session_state.user_predictions = {}
