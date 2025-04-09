@@ -1224,7 +1224,7 @@ with tabs[3]:
                 r16_left_results.append(get_winner_player(p1, p2, winner))
 
             for i in range(0, len(r16_left_results), 2):
-                if i + 1 < len(r16_left_results) and all("name" in p for p in [r16_left_results[i], r16_left_results[i + 1]]):
+                if i + 1 < len(r16_left_results):
                     p1 = r16_left_results[i]
                     p2 = r16_left_results[i + 1]
                     default = sf_left[i // 2] if i // 2 < len(sf_left) else "Tie"
@@ -1242,13 +1242,14 @@ with tabs[3]:
                 r16_right_results.append(get_winner_player(p1, p2, winner))
 
             for i in range(0, len(r16_right_results), 2):
-                if i + 1 < len(r16_right_results) and all("name" in p for p in [r16_right_results[i], r16_right_results[i + 1]]):
+                if i + 1 < len(r16_right_results):
                     p1 = r16_right_results[i]
                     p2 = r16_right_results[i + 1]
                     default = sf_right[i // 2] if i // 2 < len(sf_right) else "Tie"
                     winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
                     qf_right_results.append(get_winner_player(p1, p2, winner))
 
+        # --- Save Button ---
         st.markdown("### 🏁 Save Progress")
         if st.button("📋 Save Bracket Progress"):
             try:
@@ -1264,6 +1265,7 @@ with tabs[3]:
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to save bracket: {e}")
+
     else:
         st.markdown("### 🔒 View-Only Bracket")
 
@@ -1286,7 +1288,6 @@ with tabs[3]:
 
         if champion:
             st.success(f"🏆 Champion: **{champion}**")
-
 
 
 
