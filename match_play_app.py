@@ -368,7 +368,7 @@ def load_bracket_data_from_supabase():
 # --- Initialize Bracket Data in Session State ---
 if "bracket_data" not in st.session_state:
     bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
-    st.session_state.bracket_data = bracket_df
+    st.session_state.finalized_bracket = bracket_df
 
 
 #-- winner data ---
@@ -929,7 +929,7 @@ tabs = st.tabs([
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
     bracket_df = load_bracket_data()
-    st.session_state.bracket_data = bracket_df
+    st.session_state.finalized_bracket = bracket_df
 if "user_predictions" not in st.session_state:
     st.session_state.user_predictions = {}
 
@@ -1086,13 +1086,20 @@ with tabs[1]:
                         "field_locked": False,
                         "created_at": datetime.utcnow().isoformat()
                     }
-                    result = supabase.table("bracket_progression").insert(record).execute()
-                    st.session_state.bracket_data = record
-                    st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
-                    st.dataframe(bracket_df)
+                    try:
+                        result = supabase.table("bracket_progression").insert(record).execute()
 
-                except Exception as e:
-                    st.error(f"❌ Failed to save bracket progression: {e}")
+                        if result.data and len(result.data) > 0:
+                            bracket_id = result.data[0]["id"]  # ✅ Grab the Supabase-generated UUID
+                            # Merge the inserted record with its new ID
+                            st.session_state.bracket_data = {**record, "id": bracket_id}
+                            st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
+                            st.dataframe(bracket_df)
+                        else:
+                            st.error("❌ Bracket was inserted, but no ID was returned.")
+
+                    except Exception as e:
+                        st.error(f"❌ Failed to save bracket progression: {e}")
 
 
 
