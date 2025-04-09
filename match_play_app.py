@@ -1177,8 +1177,11 @@ with tabs[3]:
         if st.button("🏁 Finalize Bracket and Save", key="finalize_bracket_button"):
             try:
                 save_bracket_progression_to_supabase({
-                    "r16_left": [(left[i]["name"], left[i + 1]["name"]) for i in range(0, len(left), 2)],
-                    "r16_right": [(right[i]["name"], right[i + 1]["name"]) for i in range(0, len(right), 2)],
+                    # ✅ FULL Round of 16 pulled directly from original bracket_df
+                    "r16_left": [(bracket_df.iloc[i]["name"], bracket_df.iloc[i + 1]["name"]) for i in range(0, 8, 2)],
+                    "r16_right": [(bracket_df.iloc[i]["name"], bracket_df.iloc[i + 1]["name"]) for i in range(8, 16, 2)],
+
+                    # ✅ Actual winners from later rounds
                     "qf_left": [p["name"] for p in qf_left],
                     "qf_right": [p["name"] for p in qf_right],
                     "sf_left": [p["name"] for p in sf_left],
@@ -1190,6 +1193,7 @@ with tabs[3]:
                 st.success("✅ Bracket progression saved to Supabase.")
             except Exception as e:
                 st.error(f"❌ Failed to save: {e}")
+
 
     else:
         st.markdown("### 🏆 Finalized Bracket (Read-Only)")
