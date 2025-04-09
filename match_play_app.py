@@ -1190,7 +1190,7 @@ with tabs[3]:
         else:
             champion = None
 
-        if st.button("💾 Save Bracket Progress"):
+        if st.button("📋 Save Bracket Progress"):
             try:
                 updates = {}
 
@@ -1213,7 +1213,6 @@ with tabs[3]:
 
             except Exception as e:
                 st.error(f"❌ Failed to save: {e}")
-
 
         if field_locked:
             if st.button("🔓 Unlock R16 (Admin Only)", type="primary"):
@@ -1259,7 +1258,6 @@ with tabs[3]:
 
         if bracket_data.get("champion"):
             st.success(f"🏆 Champion: **{bracket_data['champion']}**")
-
 
 
 
