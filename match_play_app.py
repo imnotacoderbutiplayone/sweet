@@ -1165,9 +1165,15 @@ with tabs[3]:
             champion = None
 
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
+            # Show what’s being saved
+            st.subheader("🧪 DEBUG: Saving R16 Matchups")
+            r16_left_debug = [(left[i]["name"], left[i + 1]["name"]) for i in range(0, len(left), 2)]
+            r16_right_debug = [(right[i]["name"], right[i + 1]["name"]) for i in range(0, len(right), 2)]
+            st.json({"r16_left_matchups": r16_left_debug, "r16_right_matchups": r16_right_debug})
+
             save_bracket_progression_to_supabase({
-                "r16_left_matchups": json.dumps([(left[i]["name"], left[i + 1]["name"]) for i in range(0, len(left), 2)]),
-                "r16_right_matchups": json.dumps([(right[i]["name"], right[i + 1]["name"]) for i in range(0, len(right), 2)]),
+                "r16_left_matchups": json.dumps(r16_left_debug),
+                "r16_right_matchups": json.dumps(r16_right_debug),
                 "qf_left": json.dumps([p["name"] for p in qf_left]),
                 "qf_right": json.dumps([p["name"] for p in qf_right]),
                 "sf_left": json.dumps([p["name"] for p in sf_left]),
@@ -1183,10 +1189,17 @@ with tabs[3]:
 
         bracket_progression = load_bracket_progression_from_supabase() or {}
 
+        st.subheader("🧪 DEBUG: Loaded Bracket Progression")
+        st.json(bracket_progression)
+
         def safe_load(key):
             try:
-                return json.loads(bracket_progression.get(key, "[]"))
-            except Exception:
+                raw = bracket_progression.get(key, "[]")
+                if isinstance(raw, str):
+                    return json.loads(raw)
+                return raw
+            except Exception as e:
+                st.error(f"Failed to load {key}: {e}")
                 return []
 
         r16_left_matchups = safe_load("r16_left_matchups")
@@ -1198,6 +1211,10 @@ with tabs[3]:
         finalist_left = bracket_progression.get("finalist_left", "")
         finalist_right = bracket_progression.get("finalist_right", "")
         champion = bracket_progression.get("champion", "")
+
+        st.subheader("🧪 DEBUG: Parsed R16 Matchups")
+        st.write("Left:", r16_left_matchups)
+        st.write("Right:", r16_right_matchups)
 
         col1, col2 = st.columns(2)
 
