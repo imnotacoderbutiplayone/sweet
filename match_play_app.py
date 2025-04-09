@@ -1147,16 +1147,17 @@ with tabs[2]:
     else:
         st.warning("No standings available yet.")
 
-# --- Bracket Tab (Clean + Working Version) ---
+# --- Bracket Tab ---
 with tabs[3]:
     st.subheader("🏆 Bracket Stage")
 
-    # --- Helpers ---
+    # --- Helper Functions ---
     def decode_if_json(raw):
         if isinstance(raw, str):
             try:
-                return json.loads(raw)
-            except:
+                while isinstance(raw, str):
+                    raw = json.loads(raw)
+            except Exception:
                 return []
         return raw or []
 
@@ -1175,31 +1176,25 @@ with tabs[3]:
         return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
     # --- Load Bracket Data ---
-    if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket is None or st.session_state.finalized_bracket.empty:
+    bracket_df = st.session_state.get("finalized_bracket")
+    if bracket_df is None or not isinstance(bracket_df, pd.DataFrame) or bracket_df.empty:
         bracket_df = load_bracket_data_from_supabase()
         st.session_state.finalized_bracket = bracket_df
-    else:
-        bracket_df = st.session_state.finalized_bracket
 
     if bracket_df is None or bracket_df.empty:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
         st.stop()
 
     # --- Load Bracket Progression ---
-    if not bracket_data or "id" not in bracket_data or not bracket_data["id"]:
-        bracket_data = load_bracket_progression_from_supabase()
-        if bracket_data and "id" in bracket_data:
-            st.session_state.bracket_data = bracket_data
-        else:
-            st.error("❌ Could not find a valid bracket progression record.")
-            st.stop()
-
+    bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
     st.session_state.bracket_data = bracket_data
     bracket_id = bracket_data.get("id")
+
     if not bracket_id:
         st.error("❌ No bracket record ID found. Cannot save progression.")
         st.stop()
 
+    # Decode each round
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
     qf_left = decode_if_json(bracket_data.get("qf_left"))
