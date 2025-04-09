@@ -1345,7 +1345,7 @@ with tabs[5]:
 
 
 # --- Leaderboard ---
-with tabs[7]:
+with tabs[6]:
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
