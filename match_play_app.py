@@ -1190,23 +1190,30 @@ with tabs[3]:
         else:
             champion = None
 
-        if st.button("🏋️ Finalize and Save", key="finalize_bracket_button"):
+        if st.button("💾 Save Bracket Progress"):
             try:
-                save_bracket_progression_to_supabase({
-                    "r16_left": bracket_data.get("r16_left", []),
-                    "r16_right": bracket_data.get("r16_right", []),
-                    "qf_left": [p["name"] for p in qf_left],
-                    "qf_right": [p["name"] for p in qf_right],
-                    "sf_left": [p["name"] for p in sf_left],
-                    "sf_right": [p["name"] for p in sf_right],
-                    "finalist_left": sf_left[0]["name"] if sf_left else "",
-                    "finalist_right": sf_right[0]["name"] if sf_right else "",
-                    "champion": champion["name"] if champion else "",
-                    "field_locked": True
-                })
-                st.success("✅ Bracket saved and field locked.")
+                updates = {}
+
+                if qf_left: updates["qf_left"] = [p["name"] for p in qf_left]
+                if qf_right: updates["qf_right"] = [p["name"] for p in qf_right]
+                if sf_left: updates["sf_left"] = [p["name"] for p in sf_left]
+                if sf_right: updates["sf_right"] = [p["name"] for p in sf_right]
+                if sf_left and sf_right:
+                    updates["finalist_left"] = sf_left[0]["name"]
+                    updates["finalist_right"] = sf_right[0]["name"]
+                if champion:
+                    updates["champion"] = champion["name"]
+
+                if updates:
+                    supabase.table("bracket_progression").update(updates).eq("id", bracket_data["id"]).execute()
+                    st.success("✅ Bracket progress saved.")
+                    st.rerun()
+                else:
+                    st.info("⚠️ Nothing new to save.")
+
             except Exception as e:
                 st.error(f"❌ Failed to save: {e}")
+
 
         if field_locked:
             if st.button("🔓 Unlock R16 (Admin Only)", type="primary"):
