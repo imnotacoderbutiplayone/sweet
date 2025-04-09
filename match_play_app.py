@@ -726,25 +726,29 @@ RESULTS_FILE = "match_results.json"
 def label(player):
     return f"{player['name']} ({player['handicap']})"
 
-# --- Bracket Progress ---
-def save_bracket_progression_to_supabase(data):
+# --- Update the bracket progression ---
+def update_bracket_progression(round_key, winners):
     try:
-        response = supabase.table("bracket_progression").insert(data).execute()
-        return response
+        # Update the bracket progression in Supabase
+        response = supabase.table("bracket_progression").update({round_key: json.dumps([w["name"] for w in winners])}).execute()
+        if response.status_code == 200:
+            st.success("✅ Bracket progression updated successfully.")
+        else:
+            st.error(f"❌ Error updating bracket progression: {response.status_code} - {response.error_message}")
     except Exception as e:
-        st.error("❌ Error saving bracket progression to Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error updating bracket progression: {str(e)}")
 
+# --- Load updated bracket progression ---
 def load_bracket_progression_from_supabase():
     try:
+        # Load the current bracket progression from Supabase
         response = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
         if response.data:
             return response.data[0]
         else:
             return None
     except Exception as e:
-        st.error("❌ Error loading bracket progression from Supabase")
-        st.code(str(e))
+        st.error(f"❌ Error loading bracket progression from Supabase: {str(e)}")
         return None
 
 # --- Bracket Margin Lookup ---
@@ -1089,7 +1093,8 @@ with tabs[2]:
         st.info("📭 No match results have been entered yet.")
 
 
-# --- Bracket Visualization ---
+# --- Admin View Rendering Bracket ---
+# --- Bracket ---
 with tabs[3]:
     # For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
@@ -1100,11 +1105,13 @@ with tabs[3]:
         else:
             st.session_state.finalized_bracket = bracket_df  # Save to session state for later use
 
-    # For non-admin users, we load and show the finalized bracket
     bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
+    # Icons for prettification
+    icon = "🏌️‍♂️"  # You can use any icon here, like golf ball or golf tee emoji
+
     if st.session_state.authenticated:
-        # For Admins: Allow interaction with the bracket (select winners for each round)
+        # Admin Mode: Allow admins to select winners
         st.info("🔐 Admin mode: Enter results and save")
 
         # Split bracket into left and right sides
@@ -1121,12 +1128,16 @@ with tabs[3]:
 
         with col1:
             st.markdown("### 🟦 Left Side")
-
             st.markdown("#### 🔹 Round of 16")
             r16_left = []
             for i in range(0, len(left), 2):
                 winner_name = render_match(left[i], left[i + 1], "", readonly=False, key_prefix=f"r16_left_{i}")
                 r16_left.append(get_winner_player(left[i], left[i + 1], winner_name))
+
+            # After Round of 16, save winners and update bracket progression
+            if st.button("🏁 Move to Quarterfinals (Left Side)", key="move_qf_left"):
+                update_bracket_progression("qf_left", r16_left)
+                save_match_result("group_stage", left[i]["name"], left[i+1]["name"], r16_left[0]["name"], "1 up")
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_left = []
@@ -1135,21 +1146,18 @@ with tabs[3]:
                     winner_name = render_match(r16_left[i], r16_left[i + 1], "", readonly=False, key_prefix=f"qf_left_{i}")
                     qf_left.append(get_winner_player(r16_left[i], r16_left[i + 1], winner_name))
 
-            st.markdown("#### 🥈 Semifinal")
-            sf_left = []
-            for i in range(0, len(qf_left), 2):
-                if i + 1 < len(qf_left):
-                    winner_name = render_match(qf_left[i], qf_left[i + 1], "", readonly=False, key_prefix=f"sf_left_{i}")
-                    sf_left.append(get_winner_player(qf_left[i], qf_left[i + 1], winner_name))
-
         with col2:
             st.markdown("### 🟥 Right Side")
-
             st.markdown("#### 🔹 Round of 16")
             r16_right = []
             for i in range(0, len(right), 2):
                 winner_name = render_match(right[i], right[i + 1], "", readonly=False, key_prefix=f"r16_right_{i}")
                 r16_right.append(get_winner_player(right[i], right[i + 1], winner_name))
+
+            # After Round of 16, save winners and update bracket progression
+            if st.button("🏁 Move to Quarterfinals (Right Side)", key="move_qf_right"):
+                update_bracket_progression("qf_right", r16_right)
+                save_match_result("group_stage", right[i]["name"], right[i+1]["name"], r16_right[0]["name"], "1 up")
 
             st.markdown("#### 🥉 Quarterfinals")
             qf_right = []
@@ -1157,13 +1165,6 @@ with tabs[3]:
                 if i + 1 < len(r16_right):
                     winner_name = render_match(r16_right[i], r16_right[i + 1], "", readonly=False, key_prefix=f"qf_right_{i}")
                     qf_right.append(get_winner_player(r16_right[i], r16_right[i + 1], winner_name))
-
-            st.markdown("#### 🥈 Semifinal")
-            sf_right = []
-            for i in range(0, len(qf_right), 2):
-                if i + 1 < len(qf_right):
-                    winner_name = render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix=f"sf_right_{i}")
-                    sf_right.append(get_winner_player(qf_right[i], qf_right[i + 1], winner_name))
 
         # Final match if both sides have semifinals
         if sf_left and sf_right:
@@ -1175,7 +1176,7 @@ with tabs[3]:
         else:
             champion = None
 
-        # Step 4: Save the bracket progression once the admin finalizes
+        # Save the bracket progression and update for non-admins
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
             save_bracket_progression_to_supabase({
                 "r16_left": json.dumps([p["name"] for p in r16_left]),
@@ -1191,35 +1192,40 @@ with tabs[3]:
             st.success("✅ Bracket progression saved!")
 
     else:
-        # For non-admins, only show the finalized bracket
-        # No 'Bracket' title at the top
+        # For non-admins, only show the finalized bracket (Read-Only)
         st.write("### 🏆 Finalized Bracket")
 
-        # Split bracket into left and right sides
-        left = bracket_df.iloc[0:8].to_dict("records")
-        right = bracket_df.iloc[8:16].to_dict("records")
+        # Display the finalized bracket for non-admins without interaction
+        left_side = bracket_df.iloc[0:8].reset_index(drop=True)
+        right_side = bracket_df.iloc[8:16].reset_index(drop=True)
 
-        col1, col2 = st.columns(2)
+        # Display bracket for left side
+        st.markdown("#### 🟦 Left Side")
+        st.markdown("##### Round of 16")
+        for i in range(0, len(left_side), 2):
+            player1 = left_side.iloc[i]
+            player2 = left_side.iloc[i + 1]
+            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
-        with col1:
-            st.markdown("### 🟦 Left Side")
+        st.markdown("##### Quarterfinals")
+        for i in range(0, len(left_side), 2):
+            player1 = left_side.iloc[i]
+            player2 = left_side.iloc[i + 1]
+            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
-            st.markdown("#### 🔹 Round of 16")
-            for i in range(0, len(left), 2):
-                p1 = left[i]
-                p2 = left[i + 1]
-                st.markdown(f"**Match {i//2 + 1}:**")
-                st.markdown(f"🏌️‍♂️ **{p1['name']}** vs 🏌️‍♂️ **{p2['name']}**")
+        # Display bracket for right side
+        st.markdown("#### 🟥 Right Side")
+        st.markdown("##### Round of 16")
+        for i in range(0, len(right_side), 2):
+            player1 = right_side.iloc[i]
+            player2 = right_side.iloc[i + 1]
+            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
-        with col2:
-            st.markdown("### 🟥 Right Side")
-
-            st.markdown("#### 🔹 Round of 16")
-            for i in range(0, len(right), 2):
-                p1 = right[i]
-                p2 = right[i + 1]
-                st.markdown(f"**Match {i//2 + 1}:**")
-                st.markdown(f"🏌️‍♂️ **{p1['name']}** vs 🏌️‍♂️ **{p2['name']}**")
+        st.markdown("##### Quarterfinals")
+        for i in range(0, len(right_side), 2):
+            player1 = right_side.iloc[i]
+            player2 = right_side.iloc[i + 1]
+            st.write(f"{label(player1)} {icon} vs {label(player2)} {icon}")
 
 
 
