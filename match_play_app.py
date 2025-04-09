@@ -981,168 +981,111 @@ with tabs[1]:
             updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
+    # --- Admin-Only Section: Tiebreakers and Finalize ---
     if st.session_state.authenticated:
-    st.header("🧠 Step 1: Review & Resolve Tiebreakers")
+        st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
-    if "tiebreak_selections" not in st.session_state:
-        st.session_state.tiebreak_selections = {}
-    if "tiebreaks_resolved" not in st.session_state:
-        st.session_state.tiebreaks_resolved = False
+        if "tiebreak_selections" not in st.session_state:
+            st.session_state.tiebreak_selections = {}
+        if "tiebreaks_resolved" not in st.session_state:
+            st.session_state.tiebreaks_resolved = False
 
-    unresolved = False
-    pod_scores = compute_pod_standings_from_results(pods, match_results)
+        unresolved = False
+        pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-    for pod_name, df in pod_scores.items():
-        if df.empty or "points" not in df.columns:
-            st.info(f"📭 No match results entered yet for {pod_name}.")
-            continue
+        for pod_name, df in pod_scores.items():
+            if df.empty or "points" not in df.columns:
+                st.info(f"📭 No match results entered yet for {pod_name}.")
+                continue
 
-        sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
+            sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
-        # Resolve tiebreakers for first place
-        top_score = sorted_players.iloc[0]["points"]
-        top_margin = sorted_players.iloc[0]["margin"]
-        tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
+            # Resolve 1st place tiebreaker
+            top_score = sorted_players.iloc[0]["points"]
+            top_margin = sorted_players.iloc[0]["margin"]
+            tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
 
-        if len(tied_first) > 1:
-            st.warning(f"🔁 Tie for 1st in {pod_name}")
-            options = tied_first["name"].tolist()
-            selected = st.radio(f"Select 1st place in {pod_name}:", options, key=f"{pod_name}_1st")
-            if selected:
-                st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
+            if len(tied_first) > 1:
+                st.warning(f"🔁 Tie for 1st in {pod_name}")
+                options = tied_first["name"].tolist()
+                selected = st.radio(f"Select 1st place in {pod_name}:", options, key=f"{pod_name}_1st")
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
+                else:
+                    unresolved = True
             else:
-                unresolved = True
-        else:
-            st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
+                st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
 
-        winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
-        remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
+            # Resolve 2nd place
+            winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
+            remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
 
-        if remaining.empty:
-            st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
-            continue
+            if remaining.empty:
+                st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
+                continue
 
-        second_score = remaining.iloc[0]["points"]
-        second_margin = remaining.iloc[0]["margin"]
-        tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
+            second_score = remaining.iloc[0]["points"]
+            second_margin = remaining.iloc[0]["margin"]
+            tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
 
-        if len(tied_second) > 1:
-            st.warning(f"🔁 Tie for 2nd in {pod_name}")
-            options = tied_second["name"].tolist()
-            selected = st.radio(f"Select 2nd place in {pod_name}:", options, key=f"{pod_name}_2nd")
-            if selected:
-                st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
+            if len(tied_second) > 1:
+                st.warning(f"🔁 Tie for 2nd in {pod_name}")
+                options = tied_second["name"].tolist()
+                selected = st.radio(f"Select 2nd place in {pod_name}:", options, key=f"{pod_name}_2nd")
+                if selected:
+                    st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
+                else:
+                    unresolved = True
             else:
-                unresolved = True
+                st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
+
+        if unresolved:
+            st.error("⛔ Please resolve all tiebreakers before finalizing.")
+            st.session_state.tiebreaks_resolved = False
         else:
-            st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
+            st.success("✅ All tiebreakers selected.")
+            st.session_state.tiebreaks_resolved = True
 
-    if unresolved:
-        st.error("⛔ Please resolve all tiebreakers before finalizing.")
-        st.session_state.tiebreaks_resolved = False
-    else:
-        st.success("✅ All tiebreakers selected.")
-        st.session_state.tiebreaks_resolved = True
+        # --- Finalize Bracket and Seed Field ---
+        if st.session_state.get("tiebreaks_resolved", False):
+            if st.button("🏁 Finalize Bracket and Seed Field"):
+                bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
+                st.session_state.finalized_bracket = bracket_df
 
-    # ✅ Finalize bracket and generate R16
-    if st.session_state.get("tiebreaks_resolved", False):
-        if st.button("🏁 Finalize Bracket and Seed Field"):
-            bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-            st.session_state.finalized_bracket = bracket_df
+                # Save bracket to Supabase (for prediction tab, etc.)
+                save_bracket_data(bracket_df)
 
-            # Save bracket to Supabase (for prediction tab, etc.)
-            save_bracket_data(bracket_df)
+                # --- Build Round of 16 matchups ---
+                r16_left = [
+                    [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
+                    [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
+                    [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
+                    [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
+                ]
+                r16_right = [
+                    [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
+                    [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
+                    [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
+                    [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
+                ]
 
-            # --- Build Round of 16 matchups ---
-            r16_left = [
-                [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
-                [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
-                [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
-                [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
-            ]
-            r16_right = [
-                [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
-                [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
-                [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
-                [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
-            ]
+                # Save R16 matchups to bracket_progression
+                try:
+                    supabase.table("bracket_progression").insert({
+                        "r16_left": json.dumps(r16_left),
+                        "r16_right": json.dumps(r16_right),
+                        "field_locked": True,  # Lock after seeding
+                        "created_at": datetime.utcnow().isoformat()
+                    }).execute()
 
-            # Save R16 matchups to bracket_progression
-            try:
-                supabase.table("bracket_progression").insert({
-                    "r16_left": json.dumps(r16_left),
-                    "r16_right": json.dumps(r16_right),
-                    "field_locked": True,
-                    "created_at": datetime.utcnow().isoformat()
-                }).execute()
+                    st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
+                except Exception as e:
+                    st.error(f"❌ Failed to save R16 matchups: {e}")
 
-                st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
-            except Exception as e:
-                st.error(f"❌ Failed to save R16 matchups: {e}")
+                # Display bracket confirmation
+                st.write("📊 Final Bracket")
+                st.dataframe(bracket_df)
 
-            st.write("📊 Final Bracket")
-            st.dataframe(bracket_df)
-
-
-# --- Standings ---
-with tabs[2]:
-    st.subheader("📋 Standings")
-
-    # Fetch the most recent match results from Supabase
-    match_results = load_match_results()
-
-    # Initialize an empty dictionary to store the standings for each pod
-    pod_results = {}
-
-    # Process each pod and calculate points and margin for each player
-    for pod_name, players in pods.items():
-        updated_players = []
-        for player in players:
-            name = player['name']
-            total_points = 0
-            total_margin = 0
-
-            # Iterate through all match results and calculate points and margins
-            for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|"):
-                    if name in key:
-                        # Debugging: Print the result to check its structure
-                        print(f"Result for {key}: {result}")
-                        
-                        if isinstance(result, dict):  # Ensure result is a dictionary
-                            if result.get("winner") == name:
-                                total_points += 1
-                                total_margin += result.get("margin", 0)  # Safely access margin
-                            elif result.get("winner") == "Tie":
-                                total_points += 0.5
-                            else:
-                                total_margin -= result.get("margin", 0)  # Safely access margin
-                        else:
-                            print(f"Unexpected data type for result: {type(result)}")
-                            total_margin -= 0  # Default to subtracting 0 if result is not a dictionary
-
-            # Store the player's updated stats
-            updated_players.append({
-                "name": name,
-                "handicap": player["handicap"],
-                "Points": total_points,
-                "Margin": total_margin
-            })
-
-        # Sort players within the pod by points and margin
-        df = pd.DataFrame(updated_players)
-        if not df.empty:
-            df = df.sort_values(by=["Points", "Margin"], ascending=False)
-            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-            pod_results[pod_name] = df
-
-    # Display standings for each pod
-    if pod_results:
-        for pod_name, df in pod_results.items():
-            with st.expander(f"📦 {pod_name} Standings", expanded=True):
-                st.dataframe(df, use_container_width=True)
-    else:
-        st.info("📭 No match results have been entered yet.")
 
 # --- Bracket Visualization ---
 with tabs[3]:
