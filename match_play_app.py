@@ -182,12 +182,6 @@ def load_match_result_log():
         st.code(str(e))  # Display the error if any
 
 
-# --- Initialize Bracket Data in Session State ---
-if "bracket_data" not in st.session_state:
-    bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
-    st.session_state.bracket_data = bracket_df
-
-
 # --- Display the most recent match result ---
 def display_most_recent_result():
     most_recent_result = load_most_recent_match_results()
@@ -345,6 +339,11 @@ def load_bracket_data_from_supabase():
         st.error("❌ Error loading bracket data from Supabase.")
         st.code(str(e))  # Display the error if any
         return pd.DataFrame()  # Return an empty DataFrame in case of an error
+
+# --- Initialize Bracket Data in Session State ---
+if "bracket_data" not in st.session_state:
+    bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
+    st.session_state.bracket_data = bracket_df
 
 
 #-- winner data ---
