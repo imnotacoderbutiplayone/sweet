@@ -1,4 +1,5 @@
 import streamlit as st
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 import pandas as pd
 from collections import defaultdict
 import io
@@ -731,7 +732,6 @@ def save_prediction_to_supabase(name, finalist_left, finalist_right, champion):
         return None
 
 # --- Streamlit App Config and File Paths ---
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 BRACKET_FILE = "bracket_data.json"
 RESULTS_FILE = "match_results.json"
 
