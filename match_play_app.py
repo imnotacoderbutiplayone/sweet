@@ -893,7 +893,6 @@ tabs = st.tabs([
     "🏆 Bracket", 
     "📤 Export", 
     "🔮 Predict Bracket", 
-    #"🗃️ Results Log",
     "🏅 Leaderboard"
 ])
 
