@@ -1187,6 +1187,8 @@ with tabs[3]:
 
     # --- Load Bracket Progression ---
     bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
+    st.write("🧪 Raw bracket_data loaded from Supabase:", bracket_data)
+
     st.session_state.bracket_data = bracket_data
     bracket_id = bracket_data.get("id")
 
@@ -1261,7 +1263,7 @@ with tabs[3]:
                 }
                 supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
                 st.success("✅ Bracket progression saved.")
-                st.session_state.bracket_data = load_bracket_progression_from_supabase()
+                st.session_state.finalized_bracket = bracket_df
                 st.rerun()
             except Exception as e:
                 st.error(f"❌ Failed to save bracket: {e}")
