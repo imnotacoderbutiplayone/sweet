@@ -967,7 +967,7 @@ with tabs[1]:
 
     # Show loading spinner while loading match results
     with st.spinner('Loading match results...'):
-        match_results = load_match_results()
+        match_results = st.session_state.get("match_results") or load_match_results()
 
     st.session_state.match_results = match_results
 
