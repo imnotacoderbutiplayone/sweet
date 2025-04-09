@@ -1044,7 +1044,7 @@ with tabs[1]:
             st.success("✅ All tiebreakers selected.")
             st.session_state.tiebreaks_resolved = True
 
-        iif st.session_state.get("tiebreaks_resolved", False):
+        if st.session_state.get("tiebreaks_resolved", False):
     if st.button("🏁 Finalize Bracket and Seed Field"):
         bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
         st.session_state.finalized_bracket = bracket_df
