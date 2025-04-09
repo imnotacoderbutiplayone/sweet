@@ -1250,27 +1250,32 @@ with tabs[3]:
                     winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
                     qf_right_results.append(get_winner_player(p1, p2, winner))
 
-        # --- Save Button ---
-        st.markdown("### 🏁 Save Bracket Progress")
-        if st.button("📋 Save Bracket Progress"):
-            try:
-                updates = {
-                    "qf_left": json.dumps([p["name"] for p in qf_left_results]),
-                    "qf_right": json.dumps([p["name"] for p in qf_right_results]),
-                    "sf_left": json.dumps([p["name"] for p in qf_left_results[:2]]),
-                    "sf_right": json.dumps([p["name"] for p in qf_right_results[:2]]),
-                }
+# --- Save Button ---
+st.markdown("### 🏁 Save Bracket Progress")
+if st.button("📋 Save Bracket Progress"):
+    try:
+        updates = {
+            # Save R16 pairings again (important to persist original bracket!)
+            "r16_left": json.dumps(r16_left),
+            "r16_right": json.dumps(r16_right),
+            
+            # Save QF winners
+            "qf_left": json.dumps([p["name"] for p in qf_left_results]),
+            "qf_right": json.dumps([p["name"] for p in qf_right_results]),
+            
+            # Save SF winners if available
+            "sf_left": json.dumps([p["name"] for p in qf_left_results[:2]]),
+            "sf_right": json.dumps([p["name"] for p in qf_right_results[:2]]),
+        }
 
-                supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
-                st.success("✅ Bracket progression saved.")
-                st.session_state.bracket_data = load_bracket_progression_from_supabase()
-                st.rerun()
+        supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
 
-            except Exception as e:
-                st.error(f"❌ Failed to save bracket: {e}")
+        st.success("✅ Bracket progression saved.")
+        st.session_state.bracket_data = load_bracket_progression_from_supabase()
+        st.rerun()
 
-    else:
-        st.markdown("### 🔒 View-Only Bracket")
+    except Exception as e:
+        st.error(f"❌ Failed to save bracket: {e}")
 
         def render_matchups(title, matchups):
             st.markdown(f"**{title}**")
