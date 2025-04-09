@@ -1103,12 +1103,13 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Check if the bracket is finalized
-    if "finalized_bracket" not in st.session_state:
+    # Fetch the finalized bracket from Supabase if it exists
+    bracket_df = load_bracket_data_from_supabase()
+
+    # If no bracket data is available yet, show a warning
+    if bracket_df.empty:
         st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
         st.stop()
-
-    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
     # Split bracket into left and right sides
     left = bracket_df.iloc[0:8].to_dict("records")
@@ -1196,8 +1197,6 @@ with tabs[3]:
             st.success("✅ Bracket progression saved!")
     else:
         st.warning("Bracket progression not set yet.")
-
-
 
 # --- Predict Bracket ---
 with tabs[4]:
