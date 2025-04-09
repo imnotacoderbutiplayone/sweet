@@ -1313,7 +1313,7 @@ with tabs[4]:
     if bracket_df.empty or len(bracket_df) < 16:
         st.warning("Bracket prediction will be available once the field of 16 is set.")
     else:
-        bracket_df = st.session_state.bracket_data
+        bracket_df = st.session_state.finalized_bracket
         left = bracket_df.iloc[0:8].reset_index(drop=True)
         right = bracket_df.iloc[8:16].reset_index(drop=True)
 
