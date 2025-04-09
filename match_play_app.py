@@ -244,7 +244,6 @@ margin_lookup = {
 }
 
 def save_match_result(pod, player1, player2, winner, margin_str):
-    """Save match result directly to Supabase and update results log immediately."""
     # Convert margin string to numeric value
     if margin_str != "Tie":
         margin_value = margin_lookup.get(margin_str, 0)  # Get corresponding numeric value, default to 0 if not found
@@ -262,19 +261,37 @@ def save_match_result(pod, player1, player2, winner, margin_str):
     }
 
     try:
+        # Print data for debugging purposes
+        print("Saving match result:", data)
+
         # Perform insert operation to save the result in Supabase
         response = supabase.table("tournament_matches").insert(data).execute()
 
-        # Check for response
-        if response.error:
-            st.error(f"❌ Failed to save match result: {response.error}")
-            return None
+        # Log the response object to check its structure
+        print("Supabase response:", response)
+
+        # Directly check if the response contains 'data' (usually the successful insert response)
+        if hasattr(response, 'data'):
+            if response.data:
+                st.success(f"Match result saved: {winner} wins {margin_str}")
+                return response.data  # Return the inserted data
+            else:
+                st.error("❌ Error: No data in the response.")
+                print("No data in the response:", response)
+                return None
         else:
-            st.success(f"Match result saved for {player1} vs {player2} ({winner} wins {margin_str})")
-            return response.data  # Return the inserted data or a success indicator
+            # If response doesn't have 'data', log the whole response
+            st.error("❌ Unexpected response from Supabase.")
+            print("Unexpected Supabase response:", response)
+            return None
+
     except Exception as e:
         st.error(f"❌ Error saving match result: {str(e)}")
+        print(f"Error: {str(e)}")  # Log exception for debugging
         return None
+
+
+
 
 
 
