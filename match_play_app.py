@@ -1135,6 +1135,28 @@ with tabs[2]:
 
 # --- Bracket Visualization ---
 with tabs[3]:
+
+    # Helper to safely decode list or JSON string from Supabase
+    def decode_if_json(raw):
+        if isinstance(raw, str):
+            return json.loads(raw)
+        return raw if raw else []
+
+    # Load bracket progression from Supabase
+    def load_bracket_progression_from_supabase():
+        try:
+            response = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
+            if response.data:
+                return response.data[0]
+            else:
+                return {}
+        except Exception as e:
+            st.error(f"❌ Failed to load bracket progression: {e}")
+            return {}
+
+    # Always load latest bracket progression on rerun
+    bracket_data = load_bracket_progression_from_supabase()
+
     if "finalized_bracket" not in st.session_state:
         bracket_df = load_bracket_data_from_supabase()
         if bracket_df.empty:
@@ -1145,18 +1167,9 @@ with tabs[3]:
 
     bracket_df = st.session_state.finalized_bracket
     icon = "🏌️‍♂️"
-
-    # Load latest bracket progression
-    records = supabase.table("bracket_progression").select("*").order("created_at", desc=True).limit(1).execute()
-    bracket_data = records.data[0] if records.data else {}
     field_locked = bracket_data.get("field_locked", False)
 
-    # --- Fix: Smart JSON decoding ---
-    def decode_if_json(raw):
-        if isinstance(raw, str):
-            return json.loads(raw)
-        return raw if raw else []
-
+    # Decode bracket progression fields
     r16_left = decode_if_json(bracket_data.get("r16_left", []))
     r16_right = decode_if_json(bracket_data.get("r16_right", []))
     qf_left = decode_if_json(bracket_data.get("qf_left", []))
@@ -1169,9 +1182,6 @@ with tabs[3]:
 
     if st.session_state.authenticated:
         st.info("🔐 Admin mode")
-
-        if field_locked:
-            st.warning("🔒 The Round of 16 field is locked and cannot be edited.")
 
         left = bracket_df.iloc[0:8].reset_index(drop=True).to_dict("records")
         right = bracket_df.iloc[8:16].reset_index(drop=True).to_dict("records")
@@ -1257,6 +1267,7 @@ with tabs[3]:
                 if updates:
                     supabase.table("bracket_progression").update(updates).eq("id", bracket_data["id"]).execute()
                     st.success("✅ Bracket progress saved.")
+                    bracket_data = load_bracket_progression_from_supabase()  # 🔁 Refresh after save
                     st.rerun()
                 else:
                     st.info("⚠️ Nothing new to save.")
@@ -1307,6 +1318,7 @@ with tabs[3]:
 
         if bracket_data.get("champion"):
             st.success(f"🏆 Champion: **{bracket_data['champion']}**")
+
 
 
 
