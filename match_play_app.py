@@ -1186,7 +1186,14 @@ with tabs[3]:
         st.stop()
 
     # --- Load Bracket Progression ---
-    bracket_data = st.session_state.get("bracket_data", load_bracket_progression_from_supabase())
+    if not bracket_data or "id" not in bracket_data or not bracket_data["id"]:
+        bracket_data = load_bracket_progression_from_supabase()
+        if bracket_data and "id" in bracket_data:
+            st.session_state.bracket_data = bracket_data
+        else:
+            st.error("❌ Could not find a valid bracket progression record.")
+            st.stop()
+
     st.session_state.bracket_data = bracket_data
     bracket_id = bracket_data.get("id")
     if not bracket_id:
