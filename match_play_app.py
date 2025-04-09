@@ -1103,8 +1103,8 @@ with tabs[3]:
     # For non-admin users, we load and show the finalized bracket
     bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
-    # For Admins: Allow interaction with the bracket (select winners for each round)
     if st.session_state.authenticated:
+        # For Admins: Allow interaction with the bracket (select winners for each round)
         st.info("🔐 Admin mode: Enter results and save")
 
         # Split bracket into left and right sides
@@ -1192,6 +1192,7 @@ with tabs[3]:
 
     else:
         # For non-admins, only show the finalized bracket
+        # No 'Bracket' title at the top
         st.write("### 🏆 Finalized Bracket")
 
         # Split bracket into left and right sides
@@ -1219,6 +1220,7 @@ with tabs[3]:
                 p2 = right[i + 1]
                 st.markdown(f"**Match {i//2 + 1}:**")
                 st.markdown(f"🏌️‍♂️ **{p1['name']}** vs 🏌️‍♂️ **{p2['name']}**")
+
 
 
 
