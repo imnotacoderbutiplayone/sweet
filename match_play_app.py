@@ -762,22 +762,25 @@ def update_bracket_progression(round_key, winners):
 # --- Load updated bracket progression ---
 def load_bracket_progression_from_supabase():
     try:
-        response = supabase.table("bracket_progression") \
-            .select("id, r16_left, r16_right, qf_left, qf_right, sf_left, sf_right, finalist_left, finalist_right, champion, field_locked") \
-            .order("created_at", desc=True) \
-            .limit(1) \
-            .execute()
+        res = supabase.table("bracket_progression") \
+                      .select("*") \
+                      .order("created_at", desc=True) \
+                      .limit(1).execute()
 
-        if response.data:
-            bracket_data = response.data[0]
-            st.session_state.bracket_data = bracket_data  # save to session
-            return bracket_data
-        else:
-            st.warning("⚠️ No bracket progression record found.")
+        if not res.data:
+            st.warning("📭 No bracket progression data found.")
             return {}
+
+        record = res.data[0]
+
+        # Debug dump
+        st.write("📦 Full Raw Bracket Progression Record:", record)
+
+        return record
     except Exception as e:
-        st.error(f"❌ Error loading bracket progression: {e}")
+        st.error(f"❌ Failed to load bracket progression: {e}")
         return {}
+
 
 
 # --- Bracket Margin Lookup ---
@@ -1199,8 +1202,9 @@ with tabs[3]:
     champion = bracket_data.get("champion")
     field_locked = bracket_data.get("field_locked", False)
 
-    st.write("🔎 r16_left loaded:", r16_left)
-    st.write("🔎 r16_right loaded:", r16_right)
+    # Debug output
+    st.write("✅ Decoded r16_left:", r16_left)
+    st.write("✅ Decoded r16_right:", r16_right)
 
     icon = "🏌️"
 
