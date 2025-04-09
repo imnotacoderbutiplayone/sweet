@@ -1034,7 +1034,6 @@ with tabs[1]:
         st.warning("Bracket cannot be finalized until all tiebreakers are resolved.")
 
 # --- Standings ---
-# --- Standings ---
 with tabs[2]:
     st.subheader("📋 Standings")
 
@@ -1197,7 +1196,7 @@ with tabs[3]:
 
 
 # --- Predict Bracket ---
-with tabs[5]:
+with tabs[4]:
     st.subheader("🔮 Predict Bracket")
 
     # --- Clear the full_name input if a prediction was just submitted ---
@@ -1345,7 +1344,7 @@ with tabs[5]:
 
 
 # --- Leaderboard ---
-with tabs[6]:
+with tabs[5]:
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
