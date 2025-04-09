@@ -710,7 +710,7 @@ RESULTS_FILE = "match_results.json"
 def label(player):
     return f"{player['name']} ({player['handicap']})"
 
-# --- Load bracket data ---
+# --- Load bracket data from Supabase ---
 def load_bracket_data():
     try:
         # Fetch bracket data from Supabase
@@ -723,12 +723,12 @@ def load_bracket_data():
             return bracket_df
         else:
             st.info("ℹ️ No bracket data found in Supabase.")
-            return pd.DataFrame()
+            return pd.DataFrame()  # Return an empty DataFrame if no data is found
 
     except Exception as e:
-        st.error("❌ Supabase error loading bracket data")
-        st.code(str(e))
-        return pd.DataFrame()
+        st.error(f"❌ Error loading bracket data from Supabase: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame in case of error
+
 
 
 # --- Bracket Progress ---
