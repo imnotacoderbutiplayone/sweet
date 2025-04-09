@@ -725,11 +725,13 @@ def load_bracket_data_from_supabase():
             bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
             return bracket_df
         else:
-            return pd.DataFrame()  # Return an empty DataFrame if no bracket data found
+            st.warning("No bracket data found.")
+            return pd.DataFrame()  # Return an empty DataFrame if no bracket data is found
     except Exception as e:
         st.error("❌ Error loading bracket data from Supabase.")
         st.code(str(e))  # Display the error if any
-        return pd.DataFrame()  # Return an empty DataFrame in case of error
+        return pd.DataFrame()  # Return an empty DataFrame in case of an error
+
 
 
 # --- Bracket Progress ---
@@ -1100,78 +1102,34 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Check if the bracket is finalized in session state
+    # Step 2: For non-admins, load the finalized bracket if not in session state
     if "finalized_bracket" not in st.session_state:
-        # Load bracket data from Supabase if not present in session state
-        bracket_df = load_bracket_data_from_supabase()
+        bracket_df = load_bracket_data_from_supabase()  # Load from Supabase if not in session state
         if bracket_df.empty:
-            st.warning("No finalized bracket data found. Please finalize the bracket in Group Stage.")
+            st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
             st.stop()  # Stop further processing if there's no bracket data
         else:
             st.session_state.finalized_bracket = bracket_df  # Save to session state for later use
 
-    # Use the bracket data from session state
-    bracket_df = st.session_state.finalized_bracket
+    # For non-admin users, we load and show the bracket
+    bracket_df = st.session_state.finalized_bracket  # Load finalized bracket data from session state
 
-    # Split bracket into left and right sides
-    left = bracket_df.iloc[0:8].to_dict("records")
-    right = bracket_df.iloc[8:16].to_dict("records")
-
-    col1, col2 = st.columns(2)
-
-    def get_winner_safe(round_list, index):
-        try:
-            return round_list[index]["name"]
-        except (IndexError, TypeError, KeyError):
-            return ""
-
-    # Non-admin users can see the bracket, but can't edit it
-    if not st.session_state.authenticated:  # Non-admin (read-only view)
-        st.markdown("### 🟦 Left Side")
-
-        st.markdown("#### 🔹 Round of 16")
-        # Display left side bracket
-        for i in range(0, len(left), 2):
-            st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
-
-        st.markdown("#### 🥉 Quarterfinals")
-        # Display quarterfinals for left side
-        for i in range(0, len(left), 2):
-            if i + 1 < len(left):
-                st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
-
-        st.markdown("#### 🥈 Semifinal")
-        # Display semifinals for left side
-        for i in range(0, len(left), 2):
-            if i + 1 < len(left):
-                st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
-
-        st.markdown("### 🟥 Right Side")
-
-        st.markdown("#### 🔹 Round of 16")
-        # Display right side bracket
-        for i in range(0, len(right), 2):
-            st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
-
-        st.markdown("#### 🥉 Quarterfinals")
-        # Display quarterfinals for right side
-        for i in range(0, len(right), 2):
-            if i + 1 < len(right):
-                st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
-
-        st.markdown("#### 🥈 Semifinal")
-        # Display semifinals for right side
-        for i in range(0, len(right), 2):
-            if i + 1 < len(right):
-                st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
-
-        # Display the final match
-        st.markdown("### 🏁 Final Match")
-        st.write(f"Champion: {get_winner_safe(left, 0)} vs {get_winner_safe(right, 0)}")
-    else:
-        # Admin mode: show editable bracket for results input
+    # Step 3: If the user is authenticated as an admin, they can interact with the bracket
+    if st.session_state.authenticated:
         st.info("🔐 Admin mode: Enter results and save")
-        
+
+        # Split bracket into left and right sides
+        left = bracket_df.iloc[0:8].to_dict("records")
+        right = bracket_df.iloc[8:16].to_dict("records")
+
+        col1, col2 = st.columns(2)
+
+        def get_winner_safe(round_list, index):
+            try:
+                return round_list[index]["name"]
+            except (IndexError, TypeError, KeyError):
+                return ""
+
         with col1:
             st.markdown("### 🟦 Left Side")
 
@@ -1218,6 +1176,7 @@ with tabs[3]:
                     winner_name = render_match(qf_right[i], qf_right[i + 1], "", readonly=False, key_prefix=f"sf_right_{i}")
                     sf_right.append(get_winner_player(qf_right[i], qf_right[i + 1], winner_name))
 
+        # Final match if both sides have semifinals
         if sf_left and sf_right:
             st.markdown("### 🏁 Final Match")
             champ_choice = st.radio("🏆 Select the Champion",
@@ -1227,7 +1186,7 @@ with tabs[3]:
         else:
             champion = None
 
-        # Save the bracket progression once the admin finalizes
+        # Step 4: Save the bracket progression once the admin finalizes
         if st.button("🏁 Finalize Bracket and Seed Field", key="finalize_bracket_button"):
             save_bracket_progression_to_supabase({
                 "r16_left": json.dumps([p["name"] for p in r16_left]),
@@ -1241,6 +1200,11 @@ with tabs[3]:
                 "champion": champion["name"] if champion else ""
             })
             st.success("✅ Bracket progression saved!")
+    else:
+        # For non-admins, only show the finalized bracket
+        st.write("### 🏆 Finalized Bracket")
+        st.dataframe(bracket_df)  # Display the finalized bracket for non-admins
+
 
 # --- Predict Bracket ---
 with tabs[4]:
