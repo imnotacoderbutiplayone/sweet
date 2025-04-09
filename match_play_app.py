@@ -975,12 +975,9 @@ with tabs[1]:
     # Show loading spinner while loading match results
     with st.spinner('Loading match results...'):
         match_results = st.session_state.get("match_results") or load_match_results()
-
     st.session_state.match_results = match_results
 
     pod_results = {}
-
-    # Display match results for all users (both admins and non-admins)
     display_match_result_log()
 
     for pod_name, players in pods.items():
@@ -988,7 +985,7 @@ with tabs[1]:
             updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
             pod_results[pod_name] = pd.DataFrame(updated_players)
 
-    # --- Admin-Only Section: Tiebreakers and Finalize ---
+    # --- Admin-only Tiebreaker and Finalize Logic ---
     if st.session_state.authenticated:
         st.header("🧠 Step 1: Review & Resolve Tiebreakers")
 
@@ -1007,7 +1004,7 @@ with tabs[1]:
 
             sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
 
-            # Resolve 1st place tiebreaker
+            # Resolve 1st place
             top_score = sorted_players.iloc[0]["points"]
             top_margin = sorted_players.iloc[0]["margin"]
             tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
@@ -1053,53 +1050,50 @@ with tabs[1]:
             st.success("✅ All tiebreakers selected.")
             st.session_state.tiebreaks_resolved = True
 
-# --- Finalize Bracket and Seed Field ---
-if st.session_state.get("tiebreaks_resolved", False):
-    if st.button("🏁 Finalize Bracket and Seed Field"):
-        bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-        st.session_state.finalized_bracket = bracket_df
+        # --- Finalize Bracket ---
+        st.header("🏁 Step 2: Finalize Bracket and Seed Field")
+        if st.session_state.get("tiebreaks_resolved", False):
+            if st.button("🏁 Finalize Bracket and Seed Field"):
+                bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
+                st.session_state.finalized_bracket = bracket_df
+                save_bracket_data(bracket_df)
 
-        # Save bracket to Supabase (for prediction tab, etc.)
-        save_bracket_data(bracket_df)
+                # Build R16 Matchups
+                r16_left = [
+                    [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
+                    [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
+                    [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
+                    [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
+                ]
+                r16_right = [
+                    [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
+                    [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
+                    [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
+                    [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
+                ]
 
-        # --- Build Round of 16 matchups ---
-        r16_left = [
-            [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
-            [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
-            [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
-            [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
-        ]
-        r16_right = [
-            [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
-            [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
-            [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
-            [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
-        ]
+                try:
+                    record = {
+                        "r16_left": json.dumps(r16_left),
+                        "r16_right": json.dumps(r16_right),
+                        "qf_left": json.dumps([]),
+                        "qf_right": json.dumps([]),
+                        "sf_left": json.dumps([]),
+                        "sf_right": json.dumps([]),
+                        "finalist_left": None,
+                        "finalist_right": None,
+                        "champion": None,
+                        "field_locked": True,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                    result = supabase.table("bracket_progression").insert(record).execute()
+                    st.session_state.bracket_data = record
+                    st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
+                    st.dataframe(bracket_df)
 
-        # Save R16 matchups to bracket_progression
-        try:
-            record = {
-                "r16_left": json.dumps(r16_left),
-                "r16_right": json.dumps(r16_right),
-                "qf_left": json.dumps([]),
-                "qf_right": json.dumps([]),
-                "sf_left": json.dumps([]),
-                "sf_right": json.dumps([]),
-                "finalist_left": None,
-                "finalist_right": None,
-                "champion": None,
-                "field_locked": True,
-                "created_at": datetime.utcnow().isoformat()
-            }
+                except Exception as e:
+                    st.error(f"❌ Failed to save bracket progression: {e}")
 
-            result = supabase.table("bracket_progression").insert(record).execute()
-            st.success("✅ Bracket finalized, seeded, and Round of 16 matchups saved.")
-        except Exception as e:
-            st.error(f"❌ Failed to save bracket progression: {e}")
-
-        # Display bracket confirmation
-        st.write("📊 Final Bracket")
-        st.dataframe(bracket_df)
 
 
 # --- Standings ---
