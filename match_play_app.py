@@ -1222,7 +1222,6 @@ with tabs[3]:
 
 
 
-
 # --- Predict Bracket ---
 with tabs[4]:
     st.subheader("🔮 Predict Bracket")
