@@ -714,6 +714,7 @@ RESULTS_FILE = "match_results.json"
 def label(player):
     return f"{player['name']} ({player['handicap']})"
 
+# Define the function to load bracket data from Supabase
 def load_bracket_data_from_supabase():
     try:
         # Fetch bracket data from Supabase
@@ -729,7 +730,6 @@ def load_bracket_data_from_supabase():
         st.error("❌ Error loading bracket data from Supabase.")
         st.code(str(e))  # Display the error if any
         return pd.DataFrame()  # Return an empty DataFrame in case of error
-
 
 
 # --- Bracket Progress ---
@@ -1100,13 +1100,18 @@ with tabs[2]:
 with tabs[3]:
     st.subheader("🏆 Bracket")
 
-    # Fetch the finalized bracket from Supabase if it exists
-    bracket_df = load_bracket_data_from_supabase()
+    # Check if the bracket is finalized in session state
+    if "finalized_bracket" not in st.session_state:
+        # Load bracket data from Supabase if not present in session state
+        bracket_df = load_bracket_data_from_supabase()
+        if bracket_df.empty:
+            st.warning("No finalized bracket data found. Please finalize the bracket in Group Stage.")
+            st.stop()  # Stop further processing if there's no bracket data
+        else:
+            st.session_state.finalized_bracket = bracket_df  # Save to session state for later use
 
-    # If no bracket data is available yet, show a warning
-    if bracket_df.empty:
-        st.warning("Bracket progression not set yet. Please finalize the bracket in Group Stage.")
-        st.stop()
+    # Use the bracket data from session state
+    bracket_df = st.session_state.finalized_bracket
 
     # Split bracket into left and right sides
     left = bracket_df.iloc[0:8].to_dict("records")
@@ -1120,9 +1125,53 @@ with tabs[3]:
         except (IndexError, TypeError, KeyError):
             return ""
 
-    if st.session_state.authenticated:
-        st.info("🔐 Admin mode: Enter results and save")
+    # Non-admin users can see the bracket, but can't edit it
+    if not st.session_state.authenticated:  # Non-admin (read-only view)
+        st.markdown("### 🟦 Left Side")
 
+        st.markdown("#### 🔹 Round of 16")
+        # Display left side bracket
+        for i in range(0, len(left), 2):
+            st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
+
+        st.markdown("#### 🥉 Quarterfinals")
+        # Display quarterfinals for left side
+        for i in range(0, len(left), 2):
+            if i + 1 < len(left):
+                st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
+
+        st.markdown("#### 🥈 Semifinal")
+        # Display semifinals for left side
+        for i in range(0, len(left), 2):
+            if i + 1 < len(left):
+                st.write(f"{left[i]['name']} vs {left[i + 1]['name']}")
+
+        st.markdown("### 🟥 Right Side")
+
+        st.markdown("#### 🔹 Round of 16")
+        # Display right side bracket
+        for i in range(0, len(right), 2):
+            st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
+
+        st.markdown("#### 🥉 Quarterfinals")
+        # Display quarterfinals for right side
+        for i in range(0, len(right), 2):
+            if i + 1 < len(right):
+                st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
+
+        st.markdown("#### 🥈 Semifinal")
+        # Display semifinals for right side
+        for i in range(0, len(right), 2):
+            if i + 1 < len(right):
+                st.write(f"{right[i]['name']} vs {right[i + 1]['name']}")
+
+        # Display the final match
+        st.markdown("### 🏁 Final Match")
+        st.write(f"Champion: {get_winner_safe(left, 0)} vs {get_winner_safe(right, 0)}")
+    else:
+        # Admin mode: show editable bracket for results input
+        st.info("🔐 Admin mode: Enter results and save")
+        
         with col1:
             st.markdown("### 🟦 Left Side")
 
@@ -1192,8 +1241,6 @@ with tabs[3]:
                 "champion": champion["name"] if champion else ""
             })
             st.success("✅ Bracket progression saved!")
-    else:
-        st.warning("Bracket progression not set yet.")
 
 # --- Predict Bracket ---
 with tabs[4]:
