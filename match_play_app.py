@@ -1186,7 +1186,7 @@ with tabs[3]:
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default_winner = qf_left[i // 2] if i // 2 < len(qf_left) else None
-                winner_name = render_match(p1, p2, default_winner, readonly=field_locked, key_prefix=f"r16_left_{i}", stage="bracket_r16")
+                winner_name = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_left_{i}", stage="bracket_r16")
                 r16_left_results.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🥉 Quarterfinals")
@@ -1207,7 +1207,7 @@ with tabs[3]:
                 p1 = get_player_by_name(p1_name, bracket_df)
                 p2 = get_player_by_name(p2_name, bracket_df)
                 default_winner = qf_right[i // 2] if i // 2 < len(qf_right) else None
-                winner_name = render_match(p1, p2, default_winner, readonly=field_locked, key_prefix=f"r16_right_{i}", stage="bracket_r16")
+                winner_name = render_match(p1, p2, default_winner, readonly=(field_locked and not st.session_state.authenticated), key_prefix=f"r16_right_{i}", stage="bracket_r16")
                 r16_right_results.append(get_winner_player(p1, p2, winner_name))
 
             st.markdown("#### 🥉 Quarterfinals")
