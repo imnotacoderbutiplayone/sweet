@@ -1194,6 +1194,9 @@ with tabs[3]:
     champion = bracket_data.get("champion")
     field_locked = bracket_data.get("field_locked", False)
 
+    st.write("🔎 r16_left loaded:", r16_left)
+    st.write("🔎 r16_right loaded:", r16_right)
+
     icon = "🏌️"
 
     if st.session_state.authenticated:
