@@ -134,7 +134,7 @@ def load_most_recent_match_results():
         return None
 
 
-# --- Fetch the entire match result log ---
+# --- Load all match results from Supabase ---
 def load_match_result_log():
     try:
         # Fetch all match results, ordered by created_at
@@ -143,17 +143,61 @@ def load_match_result_log():
             .order("created_at", desc=True) \
             .execute()
 
-        st.write("Response from Supabase:", response)  # Debugging line
-        
+        # Log the response for debugging
+        st.write("Supabase response:", response)
+
         if response.data:
-            return response.data  # Return all match results
+            match_results = {f"{r['pod']}|{r['player1']} vs {r['player2']}": {
+                "winner": r["winner"],
+                "margin": r["margin"]
+            } for r in response.data}
+            st.write("Match results:", match_results)  # Debug the parsed match results
+
+            # Convert match results into a DataFrame for display
+            data = []
+            for key, result in match_results.items():
+                st.write(f"Key: {key}, Result: {result}")  # Log the key and result
+                if "|" not in key:
+                    continue  # Skip malformed or legacy keys
+
+                pod_name, match_str = key.split("|", 1)
+                try:
+                    player1, player2 = match_str.split(" vs ")
+                except ValueError:
+                    continue  # Skip malformed match strings
+
+                winner = result.get("winner", "Tie")
+                margin = result.get("margin", 0)
+                margin_text = next(
+                    (k for k, v in margin_lookup.items() if v == margin),
+                    "Tie" if winner == "Tie" else "1 up"
+                )
+
+                data.append({
+                    "Pod": pod_name,
+                    "Player 1": player1.strip(),
+                    "Player 2": player2.strip(),
+                    "Winner": winner,
+                    "Margin": margin_text
+                })
+
+            # Create a DataFrame and display the match results
+            df = pd.DataFrame(data)
+            st.write("Dataframe content:", df)  # Debug the dataframe content before displaying
+            df = df.sort_values(by=["Pod", "Player 1"])
+            st.dataframe(df, use_container_width=True)
+
+            # Allow the user to download match results as CSV
+            csv = df.to_csv(index=False).encode("utf-8")
+            st.download_button("📥 Download Match Results CSV", csv, "match_results.csv", "text/csv")
+
         else:
-            st.warning("No match results found.")
-            return []
+            st.write("No match results available.")
 
     except Exception as e:
-        st.error(f"❌ Error loading match results: {e}")
-        return []
+        st.error(f"❌ Error loading match results from Supabase: {e}")
+        st.code(str(e))  # Display the error if any
+
 
 
 # --- Display the most recent match result ---
