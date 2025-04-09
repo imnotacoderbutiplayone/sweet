@@ -1141,11 +1141,14 @@ with tabs[3]:
     if st.session_state.authenticated:
         st.info("🔐 Admin mode")
 
+        st.subheader("🧪 Bracket Data Preview")
+        st.dataframe(bracket_df)
+
         if field_locked:
             st.error("⚠️ The Round of 16 field is locked and cannot be edited.")
 
-        left = bracket_df.iloc[0:8].to_dict("records")
-        right = bracket_df.iloc[8:16].to_dict("records")
+        left = bracket_df.iloc[0:8].reset_index(drop=True).to_dict("records")
+        right = bracket_df.iloc[8:16].reset_index(drop=True).to_dict("records")
 
         col1, col2 = st.columns(2)
 
