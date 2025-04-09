@@ -349,11 +349,11 @@ def load_bracket_data_from_supabase():
             .execute()
         )
 
-        st.write("📦 Raw Supabase response:", response.data)  # <--- DEBUG LINE
+        #st.write("📦 Raw Supabase response:", response.data)  # <--- DEBUG LINE
 
         if response.data and len(response.data) > 0:
             bracket_df = pd.read_json(response.data[0]["json_data"], orient="split")
-            st.write("✅ Parsed Bracket DataFrame:", bracket_df)  # <--- DEBUG LINE
+            #st.write("✅ Parsed Bracket DataFrame:", bracket_df)  # <--- DEBUG LINE
             return bracket_df
         else:
             st.warning("No bracket data found.")
