@@ -380,13 +380,14 @@ def get_winner_player(player1, player2, winner_name):
     return {"name": winner_name, "handicap": "N/A"}  # fallback if no match
 
 # --- Render Match ----
-def render_match(player1, player2, winner, readonly=False, key_prefix=""):
+def render_match(player1, player2, winner, readonly=False, key_prefix="", stage="group_stage"):
     """
     Renders the match between two players.
     - player1, player2: dictionaries containing player info (e.g., name, handicap)
     - winner: the current winner (or "Tie")
     - readonly: if True, makes the match readonly (admin-only input)
     - key_prefix: ensures that each checkbox/radio button has a unique key
+    - stage: match stage identifier (e.g., 'group_stage', 'bracket_r16')
     """
     # Check if both players have valid data
     if not player1 or not player2:
@@ -406,14 +407,12 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
     # Show the winner (if known)
     st.write(f"**Current Winner**: {winner if winner != 'Tie' else 'No winner yet'}")
 
-    # If readonly is False, allow the admin to select the winner
     if not readonly:
         winner_key = f"{key_prefix}_winner"
         margin_key = f"{key_prefix}_margin"
 
-        # Radio button to choose the winner (or tie)
         options = [player1['name'], player2['name'], "Tie"]
-        default_index = options.index(winner) if winner in options else 2  # Default to "Tie" if winner is invalid
+        default_index = options.index(winner) if winner in options else 2  # Default to "Tie"
 
         selected_winner = st.radio(
             "Select winner",
@@ -422,7 +421,6 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
             key=winner_key
         )
 
-        # Select margin if there is a winner
         if selected_winner != "Tie":
             margin = st.selectbox(
                 "Select win margin",
@@ -430,18 +428,17 @@ def render_match(player1, player2, winner, readonly=False, key_prefix=""):
                 key=margin_key
             )
         else:
-            margin = "Tie"  # Ensure margin is "Tie" when winner is "Tie"
-        
-        # Display result button
+            margin = "Tie"
+
         if st.button(f"Save result for {player1['name']} vs {player2['name']}", key=f"submit_{key_prefix}"):
-            # Save the result to Supabase
-            save_match_result("group_stage", player1['name'], player2['name'], selected_winner, margin)
-            st.success(f"Result saved: {selected_winner} wins {margin}")
+            # Save the result with the correct stage
+            save_match_result(stage, player1['name'], player2['name'], selected_winner, margin)
+            st.success(f"Result saved for {stage}: {selected_winner} wins {margin}")
             return selected_winner
     else:
-        # If readonly is True, just display the result
         st.write(f"Match result: {winner}")
         return winner
+
 
 #--- resolve tiebreakers --
 def resolve_tiebreakers(pod_scores):
