@@ -471,16 +471,6 @@ def render_match(player1, player2, winner, readonly=False, key_prefix="", stage=
 
     return selected_winner  # Always return winner, even if not "saved"
 
-
-def decode_if_json(raw):
-    if isinstance(raw, str):
-        try:
-            return json.loads(raw)
-        except Exception:
-            return raw
-    return raw
-
-
 #--- new render match ui ---
 def render_bracket_match_ui(match_id, round_name, player1, player2):
     saved_result = load_bracket_match_result(match_id)
@@ -1224,58 +1214,114 @@ if st.session_state.get("tiebreaks_resolved", False):
 
 # --- Standings ---
 with tabs[3]:
-    st.subheader("📊 Group Stage Standings (with Debug)")
+    st.subheader("🏆 Bracket Stage")
 
-    try:
-        response = supabase.table("tournament_matches").select("*").execute()
-        if response.data:
-            df = pd.DataFrame(response.data)
-            st.write("✅ Raw match data from Supabase:", df)
+    def decode_if_json(raw):
+        if isinstance(raw, str):
+            try:
+                while isinstance(raw, str):
+                    raw = json.loads(raw)
+            except Exception:
+                return []
+        return raw or []
 
-            # Fallback if 'round' column doesn't exist
-            if 'round' not in df.columns:
-                df['round'] = 'Group A'
+    bracket_data = load_bracket_progression_from_supabase()
+    bracket_id = bracket_data.get("id")
+    if not bracket_id:
+        st.warning("❌ No bracket record ID found. Cannot render bracket.")
+        st.stop()
 
-            st.write("✅ Unique round values:", df['round'].unique())
+    r16_left = decode_if_json(bracket_data.get("r16_left"))
+    r16_right = decode_if_json(bracket_data.get("r16_right"))
 
-            # Clean & filter for group stage matches
-            df['round'] = df['round'].astype(str).str.strip()
-            group_stage_df = df[df['round'].str.lower().str.contains("group", na=False)]
-            st.write("✅ Filtered Group Stage Matches:", group_stage_df)
+    st.success("🔐 Admin Mode Enabled" if st.session_state.authenticated else "🔒 View Only")
 
-            if not group_stage_df.empty:
-                from collections import defaultdict
-                pod_groups = defaultdict(list)
+    r16_winners, qf_winners, sf_winners = [], [], []
 
-                for _, row in group_stage_df.iterrows():
-                    pod_name = row['round']
-                    pod_groups[pod_name].append(row)
+    col1, col2 = st.columns(2)
 
-                for pod_name, matches in pod_groups.items():
-                    st.markdown(f"### {pod_name}")
-                    standings = {}
+    # --- LEFT SIDE ---
+    with col1:
+        st.markdown("### 🟦 Round of 16 (Left)")
 
-                    for row in matches:
-                        for player in [row["player1"], row["player2"]]:
-                            if player not in standings:
-                                standings[player] = {"Wins": 0, "Matches": 0, "Margin": 0}
+        for i, (p1, p2) in enumerate(r16_left):
+            render_bracket_match_ui(100 + i, "Round of 16", p1, p2)
+            winner = load_bracket_match_result(100 + i).get("winner")
+            if winner:
+                r16_winners.append(winner)
 
-                        standings[row["player1"]]["Matches"] += 1
-                        standings[row["player2"]]["Matches"] += 1
+        st.markdown("### 🟦 Quarterfinals (Left)")
+        for i in range(0, len(r16_winners[:4]), 2):
+            p1 = r16_winners[i]
+            p2 = r16_winners[i + 1]
+            render_bracket_match_ui(200 + i, "Quarterfinal", p1, p2)
+            winner = load_bracket_match_result(200 + i).get("winner")
+            if winner:
+                qf_winners.append(winner)
 
-                        if row["winner"] in standings:
-                            standings[row["winner"]]["Wins"] += 1
-                            standings[row["winner"]]["Margin"] += row.get("margin", 0)
+        if len(qf_winners) >= 1:
+            st.markdown("### 🟦 Semifinal (Left)")
+            p1 = qf_winners[0]
+            p2 = qf_winners[1] if len(qf_winners) > 1 else "TBD"
+            render_bracket_match_ui(300, "Semifinal", p1, p2)
+            if p2 != "TBD":
+                winner = load_bracket_match_result(300).get("winner")
+                if winner:
+                    sf_winners.append(winner)
 
-                    standings_df = pd.DataFrame.from_dict(standings, orient="index")
-                    standings_df = standings_df.sort_values(by=["Wins", "Margin"], ascending=False)
-                    st.dataframe(standings_df)
-            else:
-                st.warning("No group stage match results found. Check 'round' values.")
-        else:
-            st.warning("No match data found in Supabase.")
-    except Exception as e:
-        st.error(f"💥 Error loading standings: {e}")
+    # --- RIGHT SIDE ---
+    with col2:
+        st.markdown("### 🟥 Round of 16 (Right)")
+
+        for i, (p1, p2) in enumerate(r16_right):
+            render_bracket_match_ui(110 + i, "Round of 16", p1, p2)
+            winner = load_bracket_match_result(110 + i).get("winner")
+            if winner:
+                r16_winners.append(winner)
+
+        st.markdown("### 🟥 Quarterfinals (Right)")
+        for i in range(0, 4, 2):  # Right QFs are matches 210 + i
+            idx1 = 4 + i
+            idx2 = 4 + i + 1
+            if idx1 < len(r16_winners) and idx2 < len(r16_winners):
+                p1 = r16_winners[idx1]
+                p2 = r16_winners[idx2]
+                render_bracket_match_ui(210 + i, "Quarterfinal", p1, p2)
+                winner = load_bracket_match_result(210 + i).get("winner")
+                if winner:
+                    qf_winners.append(winner)
+
+        if len(qf_winners) >= 4:
+            st.markdown("### 🟥 Semifinal (Right)")
+            p1 = qf_winners[2]
+            p2 = qf_winners[3]
+            render_bracket_match_ui(310, "Semifinal", p1, p2)
+            winner = load_bracket_match_result(310).get("winner")
+            if winner:
+                sf_winners.append(winner)
+
+    # --- FINAL MATCH ---
+    if len(sf_winners) == 2:
+        st.markdown("### 🏁 Final Match")
+        render_bracket_match_ui(400, "Final", sf_winners[0], sf_winners[1])
+
+        if st.session_state.authenticated:
+            champ = load_bracket_match_result(400).get("winner")
+            if champ:
+                if st.button("💾 Save Final Results to Leaderboard"):
+                    final_data = {
+                        "r16_left": json.dumps([p1 for p1, p2 in r16_left]),
+                        "r16_right": json.dumps([p1 for p1, p2 in r16_right]),
+                        "qf_left": json.dumps(qf_winners[:2]),
+                        "qf_right": json.dumps(qf_winners[2:]),
+                        "sf_left": json.dumps([sf_winners[0]]),
+                        "sf_right": json.dumps([sf_winners[1]]),
+                        "finalist_left": sf_winners[0],
+                        "finalist_right": sf_winners[1],
+                        "champion": champ,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                    save_final_results_to_supabase(final_data)
 
 
 # --- Predict Bracket ---
