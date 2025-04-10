@@ -76,9 +76,26 @@ def visualize_bracket(r16, qf, sf, final):
 
 # --- Group Stage Helpers ---
 def render_pod_matches(pod_name, players, editable, session_results):
+    import streamlit as st
     from collections import defaultdict
+    from app_helpers import sanitize_key, render_match  # make sure this works
+
+    margin_lookup = {
+        "1 up": 1,
+        "2&1": 2,
+        "3&2": 3,
+        "4&3": 4,
+        "5&4": 5,
+    }
+
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
+
+    if num_players < 2:
+        st.warning(f"Not enough players in {pod_name} to generate matches.")
+        return session_results
+
+    st.markdown(f"<h3 style='color:#1f77b4'>📋 {pod_name}</h3>", unsafe_allow_html=True)
 
     for i in range(num_players):
         for j in range(i + 1, num_players):
@@ -88,17 +105,28 @@ def render_pod_matches(pod_name, players, editable, session_results):
             base_key = sanitize_key(match_key)
 
             if editable:
-                st.write(f"### Match: {p1['name']} vs {p2['name']}")
-                prev = session_results.get(match_key, {})
-                winner = prev.get("winner", "Tie")
-                margin = prev.get("margin", 0)
-                margin_str = next((k for k, v in margin_lookup.items() if v == margin), "1 up")
-                result = render_match(p1, p2, winner, readonly=False, key_prefix=base_key, stage="group_stage")
-                session_results[match_key] = {"winner": result, "margin": margin_lookup.get(margin_str, 0)}
+                with st.expander(f"🆚 {p1['name']} vs {p2['name']}", expanded=True):
+                    prev = session_results.get(match_key, {})
+                    winner = prev.get("winner", "Tie")
+                    margin = prev.get("margin", 0)
+                    margin_str = next((k for k, v in margin_lookup.items() if v == margin), "1 up")
+
+                    # Render input
+                    selected_winner = render_match(
+                        p1, p2, winner,
+                        readonly=False,
+                        key_prefix=base_key,
+                        stage="group_stage"
+                    )
+                    session_results[match_key] = {
+                        "winner": selected_winner,
+                        "margin": margin_lookup.get(margin_str, 0)
+                    }
             else:
-                st.info("🔒 Admin only")
+                st.info(f"🔒 Admin login required to score matches in {pod_name}")
 
     return session_results
+
 
 def compute_standings_from_results(pods, match_results):
     import pandas as pd
