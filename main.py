@@ -5,7 +5,8 @@ import sys
 sys.path.append(os.path.dirname(__file__))
 
 # Debugging line to check contents of current directory
-st.write("🗂️ Current directory contents:", os.listdir())
+current_dir_contents = os.listdir()
+st.write("🗂️ Current directory contents:", current_dir_contents)
 
 # Try importing app_helpers and bracket_helpers
 try:
