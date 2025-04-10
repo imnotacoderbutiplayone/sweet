@@ -1041,9 +1041,13 @@ tabs = st.tabs([
     "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
-with tabs[5]:
-    st.warning("🚨 ENTERED Leaderboard tab")
-    st.write("👋 Hello, world!")
+try:
+    data = supabase.table("predictions").select("*").limit(5).execute()
+    st.write("📦 Predictions sample:", data.data)
+except Exception as e:
+    st.error("❌ Supabase read failed.")
+    st.code(str(e))
+
 
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
