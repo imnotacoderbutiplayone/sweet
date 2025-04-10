@@ -1042,7 +1042,7 @@ tabs = st.tabs([
     "🏅 Leaderboard"
 ])
 # --- Leaderboard Tab ---
-# --- Leaderboard Tab ---
+# --- Leaderboard ---
 with tabs[5]:
     st.subheader("🏅 Prediction Leaderboard")
 
@@ -1060,101 +1060,78 @@ with tabs[5]:
         final_results_data = final_results_response.data
 
         if not predictions:
-            st.info("📭 No predictions submitted yet.")
+            st.warning("⚠️ No predictions submitted.")
             st.stop()
         if not final_results_data:
-            st.warning("📭 Final results not yet available.")
+            st.warning("⚠️ Final results not available yet.")
             st.stop()
 
-        final_result = final_results_data[0]
+        # Final results parsed
+        final = final_results_data[0]
+        def parse(field): return json.loads(field) if isinstance(field, str) else field
+        def norm(name): return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
 
-        # Helpers
-        def parse_json_field(field):
-            try:
-                if isinstance(field, str):
-                    return json.loads(field)
-                elif isinstance(field, list):
-                    return field
-                return []
-            except Exception:
-                return []
-
-        def normalize(name):
-            return name.strip().lower().replace("’", "'").replace("\xa0", " ")
-
-        # Parse actual results
         actual = {
-            "r16_left": parse_json_field(final_result.get("r16_left", [])),
-            "r16_right": parse_json_field(final_result.get("r16_right", [])),
-            "qf_left": parse_json_field(final_result.get("qf_left", [])),
-            "qf_right": parse_json_field(final_result.get("qf_right", [])),
-            "sf_left": parse_json_field(final_result.get("sf_left", [])),
-            "sf_right": parse_json_field(final_result.get("sf_right", [])),
-            "champion": normalize(final_result.get("champion", ""))
+            "r16_left": parse(final.get("r16_left", "[]")),
+            "r16_right": parse(final.get("r16_right", "[]")),
+            "qf_left": parse(final.get("qf_left", "[]")),
+            "qf_right": parse(final.get("qf_right", "[]")),
+            "sf_left": parse(final.get("sf_left", "[]")),
+            "sf_right": parse(final.get("sf_right", "[]")),
+            "champion": norm(final.get("champion", ""))
         }
 
-        # Score each prediction
         leaderboard = []
         for row in predictions:
             name = row.get("name", "Unknown")
             ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
-            score = 0
 
-            # Parse predictions
-            pred = {
-                "r16_left": parse_json_field(row.get("r16_left", [])),
-                "r16_right": parse_json_field(row.get("r16_right", [])),
-                "qf_left": parse_json_field(row.get("qf_left", [])),
-                "qf_right": parse_json_field(row.get("qf_right", [])),
-                "sf_left": parse_json_field(row.get("sf_left", [])),
-                "sf_right": parse_json_field(row.get("sf_right", [])),
-                "champion": normalize(row.get("champion", ""))
-            }
+            r16 = qf = sf = champ = 0
 
-            # Scoring
-            for actual_list, pred_list, pts in [
-                (actual["r16_left"], pred["r16_left"], 1),
-                (actual["r16_right"], pred["r16_right"], 1),
-                (actual["qf_left"], pred["qf_left"], 3),
-                (actual["qf_right"], pred["qf_right"], 3),
-                (actual["sf_left"], pred["sf_left"], 5),
-                (actual["sf_right"], pred["sf_right"], 5)
-            ]:
-                for a, p in zip(actual_list, pred_list):
-                    if normalize(a) == normalize(p):
-                        score += pts
+            def score_round(pred_list, actual_list, pts):
+                return sum(pts for a, p in zip(actual_list, pred_list) if norm(a) == norm(p))
 
-            if pred["champion"] == actual["champion"]:
-                score += 10
+            # Score per round
+            r16 += score_round(parse(row.get("r16_left", "[]")), actual["r16_left"], 1)
+            r16 += score_round(parse(row.get("r16_right", "[]")), actual["r16_right"], 1)
+            qf  += score_round(parse(row.get("qf_left", "[]")), actual["qf_left"], 3)
+            qf  += score_round(parse(row.get("qf_right", "[]")), actual["qf_right"], 3)
+            sf  += score_round(parse(row.get("sf_left", "[]")), actual["sf_left"], 5)
+            sf  += score_round(parse(row.get("sf_right", "[]")), actual["sf_right"], 5)
+            champ = 10 if norm(row.get("champion", "")) == actual["champion"] else 0
+
+            total = r16 + qf + sf + champ
 
             leaderboard.append({
                 "Name": name,
-                "Score": score,
+                "R16": r16,
+                "QF": qf,
+                "SF": sf,
+                "Champion": champ,
+                "Total": total,
                 "Submitted At": ts
             })
 
-        if not leaderboard:
-            st.warning("😶 No valid predictions scored.")
-        else:
-            # DataFrame and styling
-            df = pd.DataFrame(leaderboard)
-            df = df.sort_values(by=["Score", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
-            df.insert(0, "Rank", df.index + 1)
+        df = pd.DataFrame(leaderboard)
+        df = df.sort_values(by=["Total", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
+        df.insert(0, "Rank", df.index + 1)
 
-            def highlight_podium(row):
-                if row["Rank"] == 1:
-                    return ["background-color: gold; font-weight: bold"] * len(row)
-                elif row["Rank"] == 2:
-                    return ["background-color: silver; font-weight: bold"] * len(row)
-                elif row["Rank"] == 3:
-                    return ["background-color: #cd7f32; font-weight: bold"] * len(row)
+        def style_podium(row):
+            if row["Rank"] == 1:
+                return ["background-color: gold; font-weight: bold"] * len(row)
+            elif row["Rank"] == 2:
+                return ["background-color: silver; font-weight: bold"] * len(row)
+            elif row["Rank"] == 3:
+                return ["background-color: #cd7f32; font-weight: bold"] * len(row)
+            else:
                 return [""] * len(row)
 
-            styled_df = df.style.apply(highlight_podium, axis=1)
-            st.dataframe(styled_df, use_container_width=True)
+        styled_df = df.style.apply(style_podium, axis=1)
+
+        st.dataframe(styled_df, use_container_width=True)
 
     except Exception as e:
-        st.error("❌ Error loading leaderboard.")
+        st.error("❌ Leaderboard failed to load.")
         st.code(str(e))
 
 
