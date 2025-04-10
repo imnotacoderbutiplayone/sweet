@@ -37,10 +37,11 @@ def save_bracket_result(match_id, round_name, player1, player2, winner, margin, 
             .upsert(data, on_conflict="match_id") \
             .execute()
 
-        if response.status_code in [200, 201]:
-            st.success(f"✅ Match {match_id} saved: {winner} wins")
+        if response.error:
+            st.error(f"❌ Failed to save match {match_id}: {response.error.message}")
         else:
-            st.error(f"❌ Failed to save match {match_id}: {response}")
+            st.success(f"✅ Match {match_id} saved: {winner} wins")
+
     except Exception as e:
         st.error(f"❌ Exception saving match result: {e}")
 
