@@ -1,4 +1,3 @@
-# main.py (Clean and Modular)
 import streamlit as st
 from supabase import create_client
 import pandas as pd
@@ -72,26 +71,29 @@ else:
         st.rerun()  # Refresh to show logged-out state
 
 # --- Tabs ---
-tabs = st.tabs(["📁 Pods Overview", "📊 Group Stage", "📋 Standings", "🏆 Bracket", "🔮 Predict Bracket", "🏅 Leaderboard", "📘 How It Works"])
+tabs = st.tabs([
+    "📁 Pods Overview",
+    "📊 Group Stage",
+    "📋 Standings",
+    "🏆 Bracket",
+    "🔮 Predict Bracket",
+    "🏅 Leaderboard",
+    "📘 How It Works"
+])
 
 # --- Shared Data ---
 players_response = supabase.table("players").select("*").execute()
 players_df = pd.DataFrame(players_response.data)
 pods = group_players_by_pod(players_df)
 
-
 # --- Tab 0: Pods Overview ---
 with tabs[0]:
     st.subheader("📁 Pods Overview")
     render_pod_table(players_df)
 
-
-
 # --- Tab 1: Group Stage ---
 with tabs[1]:
-    if "group_stage_results" not in st.session_state:
-        st.session_state.group_stage_results = load_match_results(supabase)
-
+    run_group_stage(pods, supabase)
 
 # --- Tab 2: Standings ---
 with tabs[2]:
