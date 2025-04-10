@@ -18,17 +18,17 @@ def render_match(p1, p2, default="Tie", readonly=False, key_prefix="", stage="")
     key = f"{stage}_{key_prefix}_winner"
     options = [p1["name"], p2["name"], "Tie"]
     if readonly:
-        st.write(f"**{p1['name']} vs {p2['name']}** — Winner: **{default}**")
-        return default
+    st.write(f"**{p1['name']} vs {p2['name']}** — Winner: **{default}**")
+    return default
     return st.radio(f"{p1['name']} vs {p2['name']}", options, index=options.index(default), key=key)
 
 def get_winner_player(p1, p2, winner_name):
     if winner_name == p1["name"]:
-        return p1
+    return p1
     elif winner_name == p2["name"]:
-        return p2
+    return p2
     else:
-        return {"name": "Tie"}
+    return {"name": "Tie"}
 
 
 # --- App + Bracket + Group Stage Functions ---
@@ -58,32 +58,32 @@ def get_winner_name(match):
 def render_stage_matches(matches, bracket_df, stage):
     results = []
     for match in matches:
-        p1 = get_player_by_name(match["player1"], bracket_df)
-        p2 = get_player_by_name(match["player2"], bracket_df)
-        default = match.get("winner") or "Tie"
-        winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
-        results.append(get_winner_player(p1, p2, winner))
+    p1 = get_player_by_name(match["player1"], bracket_df)
+    p2 = get_player_by_name(match["player2"], bracket_df)
+    default = match.get("winner") or "Tie"
+    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
+    results.append(get_winner_player(p1, p2, winner))
     return results
 
 def advance_round(current_matches, bracket_df, next_stage, supabase):
     for i in range(0, len(current_matches), 2):
-        if i + 1 >= len(current_matches):
-            continue
-        w1 = get_winner_name(current_matches[i])
-        w2 = get_winner_name(current_matches[i + 1])
-        if not w1 or not w2:
-            continue
-        p1 = get_player_by_name(w1, bracket_df)
-        p2 = get_player_by_name(w2, bracket_df)
-        update = {
-            "player1": p1["name"], "player2": p2["name"],
-            "handicap1": p1.get("handicap"), "handicap2": p2.get("handicap")
-        }
-        supabase.table("tournament_bracket_matches") \
-            .update(update) \
-            .eq("stage", next_stage) \
-            .eq("match_index", i // 2) \
-            .execute()
+    if i + 1 >= len(current_matches):
+    continue
+    w1 = get_winner_name(current_matches[i])
+    w2 = get_winner_name(current_matches[i + 1])
+    if not w1 or not w2:
+    continue
+    p1 = get_player_by_name(w1, bracket_df)
+    p2 = get_player_by_name(w2, bracket_df)
+    update = {
+    "player1": p1["name"], "player2": p2["name"],
+    "handicap1": p1.get("handicap"), "handicap2": p2.get("handicap")
+    }
+    supabase.table("tournament_bracket_matches") \
+    .update(update) \
+    .eq("stage", next_stage) \
+    .eq("match_index", i // 2) \
+    .execute()
 
 # --- Bracket Visualization ---
 def visualize_bracket(r16, qf, sf, final):
@@ -170,29 +170,29 @@ def compute_standings_from_results(pods, match_results):
     import pandas as pd
     pod_scores = {}
     for pod_name, players in pods.items():
-        records = []
-        for player in players:
-            name = player["name"]
-            points = 0
-            margin = 0
-            for key, result in match_results.items():
-                if key.startswith(f"{pod_name}|") and name in key:
-                    winner = result.get("winner")
-                    margin_val = result.get("margin", 0)
-                    if winner == name:
-                        points += 1
-                        margin += margin_val
-                    elif winner == "Tie":
-                        points += 0.5
-                    else:
-                        margin -= margin_val
-            records.append({
-                "name": name,
-                "handicap": player["handicap"],
-                "points": points,
-                "margin": margin
-            })
-        pod_scores[pod_name] = pd.DataFrame(records)
+    records = []
+    for player in players:
+    name = player["name"]
+    points = 0
+    margin = 0
+    for key, result in match_results.items():
+    if key.startswith(f"{pod_name}|") and name in key:
+    winner = result.get("winner")
+    margin_val = result.get("margin", 0)
+    if winner == name:
+    points += 1
+    margin += margin_val
+    elif winner == "Tie":
+    points += 0.5
+    else:
+    margin -= margin_val
+    records.append({
+    "name": name,
+    "handicap": player["handicap"],
+    "points": points,
+    "margin": margin
+    })
+    pod_scores[pod_name] = pd.DataFrame(records)
     return pod_scores
 
 # --- Moved from app_helpers.py ---
@@ -272,29 +272,29 @@ def render_pod_table(pods_df):
 
 def load_match_results(supabase):
     try:
-        response = supabase.table("tournament_matches").select("*").execute()
-        if response.data:
-            result_dict = {}
-            for row in response.data:
-                match_key = row.get("match_key") or f"{row['pod']}|{row['player1']} vs {row['player2']}"
-                result_dict[match_key] = {
-                    "winner": row.get("winner", "Tie"),
-                    "margin": row.get("margin", 0)
-                }
-            return result_dict
-        else:
-            st.warning("No match results found.")
-            return {}
+    response = supabase.table("tournament_matches").select("*").execute()
+    if response.data:
+    result_dict = {}
+    for row in response.data:
+    match_key = row.get("match_key") or f"{row['pod']}|{row['player1']} vs {row['player2']}"
+    result_dict[match_key] = {
+    "winner": row.get("winner", "Tie"),
+    "margin": row.get("margin", 0)
+    }
+    return result_dict
+    else:
+    st.warning("No match results found.")
+    return {}
     except Exception as e:
-        st.error(f"Error loading match results: {e}")
-        return {}
+    st.error(f"Error loading match results: {e}")
+    return {}
 
 
 
 def show_pods_table(pods):
     for pod_name, players in pods.items():
-        st.markdown(f"### \U0001F3CC️ Pod: {pod_name}")
-        pod_df = pd.DataFrame(players)
+    st.markdown(f"### \U0001F3CC️ Pod: {pod_name}")
+    pod_df = pd.DataFrame(players)
 
         if "name" not in pod_df.columns or "handicap" not in pod_df.columns:
             st.error(f"Data for {pod_name} missing 'name' or 'handicap'.")
@@ -322,8 +322,8 @@ def run_bracket_stage(players_df, supabase):
     st.subheader("\U0001F3C6 Bracket Stage")
     bracket_df = load_bracket_data_from_supabase(supabase)
     if bracket_df.empty:
-        st.warning("Field of 16 not finalized yet.")
-        return
+    st.warning("Field of 16 not finalized yet.")
+    return
 
     r16 = load_matches_by_stage(supabase, "r16")
     qf = load_matches_by_stage(supabase, "qf")
