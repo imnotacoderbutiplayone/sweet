@@ -1437,7 +1437,7 @@ with tabs[5]:
         if not predictions:
             st.info("No predictions submitted yet.")
         else:
-            # Load the latest final results (to compare with predictions)
+            # Load the most recent final results
             final_results_response = supabase.table("final_results") \
                 .select("*") \
                 .order("created_at", desc=True) \
