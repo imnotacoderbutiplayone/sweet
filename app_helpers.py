@@ -41,6 +41,44 @@ def run_group_stage(pods, supabase):
             # Success message after saving
             st.success("✅ Field of 16 saved!")
 
+def render_pod_table(pods_df):
+    import streamlit as st
+    import pandas as pd
+
+    grouped = pods_df.groupby("pod")
+    sorted_pods = sorted(grouped, key=lambda x: int(x[0].split()[-1]))
+
+    for pod_name, pod_group in sorted_pods:
+        pod_group = pod_group.sort_values(by="handicap", ascending=True)
+        st.markdown(f"### 🏌️ {pod_name}")
+
+        table_html = """
+            <style>
+                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                th { background-color: #004466; color: white; }
+                tr:nth-child(even) { background-color: #f2f2f2; }
+            </style>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Handicap</th>
+                    </tr>
+                </thead>
+                <tbody>
+        """
+
+        for _, player in pod_group.iterrows():
+            name = player.get("name", "N/A")
+            handicap = round(player.get("handicap", 0.0), 1) if pd.notna(player.get("handicap")) else "N/A"
+            table_html += f"<tr><td>{name}</td><td>{handicap}</td></tr>"
+
+        table_html += "</tbody></table>"
+
+        st.markdown(table_html, unsafe_allow_html=True)
+
+
 
 def load_match_results(supabase):
     """
