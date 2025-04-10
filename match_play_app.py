@@ -1218,27 +1218,22 @@ with tabs[3]:
 
     bracket_data = load_bracket_progression_from_supabase()
     bracket_id = bracket_data.get("id")
-
     if not bracket_id:
         st.warning("❌ No bracket record ID found. Cannot render bracket.")
         st.stop()
 
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
-    icon = "🏌️"
 
     st.success("🔐 Admin Mode Enabled" if st.session_state.authenticated else "🔒 View Only")
 
-    col1, col2 = st.columns(2)
+    r16_winners, qf_winners, sf_winners = [], [], []
 
-    # Store winners for QF → SF → Final calculation
-    r16_winners = []
-    qf_winners = []
-    sf_winners = []
+    col1, col2 = st.columns(2)
 
     # --- LEFT SIDE ---
     with col1:
-        st.markdown("### 🟦 Left Side")
+        st.markdown("### 🟦 Round of 16 (Left)")
 
         for i, (p1, p2) in enumerate(r16_left):
             render_bracket_match_ui(100 + i, "Round of 16", p1, p2)
@@ -1246,7 +1241,8 @@ with tabs[3]:
             if winner:
                 r16_winners.append(winner)
 
-        for i in range(0, len(r16_winners[:4]), 2):  # QF 0,1
+        st.markdown("### 🟦 Quarterfinals (Left)")
+        for i in range(0, len(r16_winners[:4]), 2):
             p1 = r16_winners[i]
             p2 = r16_winners[i + 1]
             render_bracket_match_ui(200 + i, "Quarterfinal", p1, p2)
@@ -1254,17 +1250,19 @@ with tabs[3]:
             if winner:
                 qf_winners.append(winner)
 
-        if len(qf_winners) >= 2:
+        if len(qf_winners) >= 1:
+            st.markdown("### 🟦 Semifinal (Left)")
             p1 = qf_winners[0]
-            p2 = qf_winners[1]
+            p2 = qf_winners[1] if len(qf_winners) > 1 else "TBD"
             render_bracket_match_ui(300, "Semifinal", p1, p2)
-            winner = load_bracket_match_result(300).get("winner")
-            if winner:
-                sf_winners.append(winner)
+            if p2 != "TBD":
+                winner = load_bracket_match_result(300).get("winner")
+                if winner:
+                    sf_winners.append(winner)
 
     # --- RIGHT SIDE ---
     with col2:
-        st.markdown("### 🟥 Right Side")
+        st.markdown("### 🟥 Round of 16 (Right)")
 
         for i, (p1, p2) in enumerate(r16_right):
             render_bracket_match_ui(110 + i, "Round of 16", p1, p2)
@@ -1272,15 +1270,20 @@ with tabs[3]:
             if winner:
                 r16_winners.append(winner)
 
-        for i in range(0, len(r16_winners[4:]), 2):  # QF 2,3
-            p1 = r16_winners[4 + i]
-            p2 = r16_winners[4 + i + 1]
-            render_bracket_match_ui(210 + i, "Quarterfinal", p1, p2)
-            winner = load_bracket_match_result(210 + i).get("winner")
-            if winner:
-                qf_winners.append(winner)
+        st.markdown("### 🟥 Quarterfinals (Right)")
+        for i in range(0, 4, 2):  # Right QFs are matches 210 + i
+            idx1 = 4 + i
+            idx2 = 4 + i + 1
+            if idx1 < len(r16_winners) and idx2 < len(r16_winners):
+                p1 = r16_winners[idx1]
+                p2 = r16_winners[idx2]
+                render_bracket_match_ui(210 + i, "Quarterfinal", p1, p2)
+                winner = load_bracket_match_result(210 + i).get("winner")
+                if winner:
+                    qf_winners.append(winner)
 
         if len(qf_winners) >= 4:
+            st.markdown("### 🟥 Semifinal (Right)")
             p1 = qf_winners[2]
             p2 = qf_winners[3]
             render_bracket_match_ui(310, "Semifinal", p1, p2)
@@ -1310,7 +1313,6 @@ with tabs[3]:
                         "created_at": datetime.utcnow().isoformat()
                     }
                     save_final_results_to_supabase(final_data)
-
 
 
 # --- Predict Bracket ---
