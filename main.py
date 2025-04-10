@@ -17,13 +17,12 @@ from app_helpers import (
 
 from bracket_helpers import (
     run_bracket_stage,
-    compute_standings_from_results,
     render_pod_matches,
+    compute_standings_from_results,
     resolve_tiebreakers,
     build_bracket_df_from_pod_scores,
     save_bracket_data
 )
-
 
 # --- Config ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
