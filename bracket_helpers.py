@@ -1,9 +1,9 @@
+from shared_helpers import render_match, get_winner_player, sanitize_key
+
 # bracket_helpers.py (Cleaned and Modular)
 import graphviz
 from datetime import datetime
 import streamlit as st
-from app_helpers import render_match, get_winner_player, sanitize_key
-from ui_helpers import sanitize_key, render_match, get_winner_player
 from shared_helpers import sanitize_key, render_match
 
 
@@ -80,8 +80,7 @@ def visualize_bracket(r16, qf, sf, final):
 def render_pod_matches(pod_name, players, editable, session_results):
     import streamlit as st
     from collections import defaultdict
-    from app_helpers import sanitize_key, render_match  # make sure this works
-
+    
     margin_lookup = {
         "1 up": 1,
         "2&1": 2,
