@@ -1522,10 +1522,10 @@ with tabs[4]:
 
 
 
-st.warning("🚨 About to enter Leaderboard Tab")
+    st.warning("🚨 About to enter Leaderboard Tab")
 # --- Leaderboard Tab ---
 with tabs[5]:
-st.warning("🚨 ENTERED Leaderboard Tab")
+    st.warning("🚨 ENTERED Leaderboard Tab")
 
 
 
