@@ -1658,13 +1658,13 @@ with tabs[5]:
         st.code(str(e))
 # --- Leaderboard Scoring Ends Here ---
 
-# --- FINAL SANITY CHECK ---
-st.subheader("🔁 Final Supabase Sanity Check")
+st.subheader("🧪 test_read Table Check")
 
 try:
-    result = supabase.table("predictions").select("*").execute()
-    st.write("✅ Fetched predictions:", result)
+    test = supabase.table("test_read").select("*").execute()
+    st.write("📋 test_read result:", test)
 except Exception as e:
-    st.error("❌ Failed to read predictions")
+    st.error("❌ test_read query failed:")
     st.code(str(e))
+
 
