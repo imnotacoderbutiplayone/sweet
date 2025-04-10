@@ -86,7 +86,7 @@ def load_match_results(supabase):
     try:
         response = supabase.table("tournament_matches").select("*").execute()
         if response.data:
-            return pd.DataFrame(response.data)
+            return {row["match_key"]: row for row in response.data}
         else:
             st.warning("No match results found.")
             return pd.DataFrame()
