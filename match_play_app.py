@@ -1224,50 +1224,59 @@ if st.session_state.get("tiebreaks_resolved", False):
 
 # --- Standings ---
 with tabs[3]:
-    st.subheader("📊 Group Stage Standings")
+    st.subheader("📊 Group Stage Standings (with Debug)")
 
     try:
         response = supabase.table("tournament_matches").select("*").execute()
         if response.data:
             df = pd.DataFrame(response.data)
+            st.write("✅ Raw match data from Supabase:", df)
 
-            if 'round' in df.columns:
-                group_stage_df = df[df['round'].str.lower().str.contains("group")]
+            # Fallback if 'round' column doesn't exist
+            if 'round' not in df.columns:
+                df['round'] = 'Group A'
 
-                if not group_stage_df.empty:
-                    pod_groups = defaultdict(list)
+            st.write("✅ Unique round values:", df['round'].unique())
 
-                    for _, row in group_stage_df.iterrows():
-                        pod_name = row['round'].strip()
-                        pod_groups[pod_name].append(row)
+            # Clean & filter for group stage matches
+            df['round'] = df['round'].astype(str).str.strip()
+            group_stage_df = df[df['round'].str.lower().str.contains("group", na=False)]
+            st.write("✅ Filtered Group Stage Matches:", group_stage_df)
 
-                    for pod_name, matches in pod_groups.items():
-                        st.markdown(f"### {pod_name}")
-                        standings = {}
+            if not group_stage_df.empty:
+                from collections import defaultdict
+                pod_groups = defaultdict(list)
 
-                        for row in matches:
-                            for player in [row["player1"], row["player2"]]:
-                                if player not in standings:
-                                    standings[player] = {"Wins": 0, "Matches": 0, "Margin": 0}
+                for _, row in group_stage_df.iterrows():
+                    pod_name = row['round']
+                    pod_groups[pod_name].append(row)
 
-                            standings[row["player1"]]["Matches"] += 1
-                            standings[row["player2"]]["Matches"] += 1
+                for pod_name, matches in pod_groups.items():
+                    st.markdown(f"### {pod_name}")
+                    standings = {}
 
-                            if row["winner"] in standings:
-                                standings[row["winner"]]["Wins"] += 1
-                                standings[row["winner"]]["Margin"] += row.get("margin", 0)
+                    for row in matches:
+                        for player in [row["player1"], row["player2"]]:
+                            if player not in standings:
+                                standings[player] = {"Wins": 0, "Matches": 0, "Margin": 0}
 
-                        standings_df = pd.DataFrame.from_dict(standings, orient="index")
-                        standings_df = standings_df.sort_values(by=["Wins", "Margin"], ascending=False)
-                        st.dataframe(standings_df)
-                else:
-                    st.info("No group stage match results found.")
+                        standings[row["player1"]]["Matches"] += 1
+                        standings[row["player2"]]["Matches"] += 1
+
+                        if row["winner"] in standings:
+                            standings[row["winner"]]["Wins"] += 1
+                            standings[row["winner"]]["Margin"] += row.get("margin", 0)
+
+                    standings_df = pd.DataFrame.from_dict(standings, orient="index")
+                    standings_df = standings_df.sort_values(by=["Wins", "Margin"], ascending=False)
+                    st.dataframe(standings_df)
             else:
-                st.warning("❌ 'round' column missing from tournament_matches data.")
+                st.warning("No group stage match results found. Check 'round' values.")
         else:
-            st.warning("No match data found in tournament_matches.")
+            st.warning("No match data found in Supabase.")
     except Exception as e:
-        st.error(f"Error loading standings: {e}")
+        st.error(f"💥 Error loading standings: {e}")
+
 
 # --- Predict Bracket ---
 with tabs[4]:
