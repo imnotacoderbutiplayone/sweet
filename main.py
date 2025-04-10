@@ -1,20 +1,24 @@
 # main.py (Clean and Modular)
 
+# First, import os and sys for path management
 import os, sys
 sys.path.append(os.path.dirname(__file__))
 
-# **First Streamlit command must be st.set_page_config**
+# **Set page config as the absolute first Streamlit call**
 import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-# Now, you can safely use other streamlit commands
-st.write("🗂️ Current directory contents:", os.listdir())
+# Now, other Streamlit commands can follow
+st.write("🗂️ Current directory contents:", os.listdir())  # This will work now
 
 # Proceed with other imports after set_page_config
 from supabase import create_client
 import pandas as pd
 import json
 from datetime import datetime
+# Uncomment when needed
+# from bracket_helpers import *
+# from app_helpers import *  # where render_match and get_winner_player live
 
 # --- Config ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
