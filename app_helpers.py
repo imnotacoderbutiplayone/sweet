@@ -23,6 +23,21 @@ def run_group_stage(pods, supabase):
             st.success("✅ Field of 16 saved!")
 
 
+import streamlit as st
+
+def show_pods_table(pods):
+    """
+    Display a table of players grouped by pods.
+    
+    Args:
+    - pods (dict): A dictionary with pod names as keys and lists of player records as values.
+    """
+    for pod_name, players in pods.items():
+        st.subheader(f"📦 {pod_name} Players")
+        players_data = [{"Name": player["name"], "Handicap": player["handicap"]} for player in players]
+        st.write(players_data)  # Display the player list in a table format
+
+
 def group_players_by_pod(players_df):
     """
     Groups players by the 'pod' field in the players DataFrame.
