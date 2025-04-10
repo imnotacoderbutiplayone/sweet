@@ -1658,25 +1658,13 @@ with tabs[5]:
         st.code(str(e))
 # --- Leaderboard Scoring Ends Here ---
 
-st.subheader("🧪 Supabase Insert + Read Test")
-
-from datetime import datetime
-
-test_row = {
-    "name": "test_read_" + datetime.utcnow().isoformat(),
-    "champion": "John Doe",
-    "timestamp": datetime.utcnow().isoformat()
-}
+# --- FINAL SANITY CHECK ---
+st.subheader("🔁 Final Supabase Sanity Check")
 
 try:
-    # 1. Insert test row
-    insert_result = supabase.table("predictions").insert(test_row).execute()
-    st.write("✅ Inserted test row:", insert_result.data)
-
-    # 2. Read it back
-    read_result = supabase.table("predictions").select("id, name, champion, timestamp").order("timestamp", desc=True).limit(5).execute()
-    st.write("📥 Recently Read Predictions:", read_result.data)
-
+    result = supabase.table("predictions").select("*").execute()
+    st.write("✅ Fetched predictions:", result)
 except Exception as e:
-    st.error("❌ Insert/Read test failed:")
+    st.error("❌ Failed to read predictions")
     st.code(str(e))
+
