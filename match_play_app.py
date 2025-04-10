@@ -19,6 +19,33 @@ def init_supabase():
 
 supabase = init_supabase()
 
+#--- new save bracket function to shared table --
+def save_bracket_result(match_id, round_name, player1, player2, winner, margin, status="completed"):
+    try:
+        data = {
+            "match_id": match_id,
+            "round": round_name,
+            "player1": player1,
+            "player2": player2,
+            "winner": winner,
+            "margin": margin,
+            "status": status,
+            "updated_at": datetime.utcnow().isoformat()
+        }
+
+        response = supabase.table("tournament_matches") \
+            .upsert(data, on_conflict="match_id") \
+            .execute()
+
+        if response.status_code in [200, 201]:
+            st.success(f"✅ Match {match_id} saved: {winner} wins")
+        else:
+            st.error(f"❌ Failed to save match {match_id}: {response}")
+    except Exception as e:
+        st.error(f"❌ Exception saving match result: {e}")
+
+
+
 # --- Save bracket data to Supabase ---
 def save_bracket_data(df):
     try:
@@ -420,6 +447,34 @@ def render_match(player1, player2, winner, readonly=False, key_prefix="", stage=
         st.success(f"Result saved: {selected_winner} wins {margin}")
 
     return selected_winner  # Always return winner, even if not "saved"
+
+#--- new render match ui ---
+def render_bracket_match_ui(match_id, round_name, player1, player2):
+    st.markdown(f"### {round_name} – Match {match_id}")
+    st.write(f"**{player1} vs {player2}**")
+
+    winner = st.selectbox(
+        "Select winner",
+        options=["", player1, player2],
+        key=f"winner_select_{match_id}"
+    )
+
+    if winner and winner != "":
+        margin = st.selectbox(
+            "Select win margin",
+            options=["1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4", "6 and 5", "7 and 6", "8 and 7", "9 and 8"],
+            key=f"margin_select_{match_id}"
+        )
+
+        if st.button("Submit Result", key=f"submit_btn_{match_id}"):
+            save_bracket_result(
+                match_id=match_id,
+                round_name=round_name,
+                player1=player1,
+                player2=player2,
+                winner=winner,
+                margin=margin_lookup.get(margin, 1)  # Use numeric margin value
+            )
 
 
 #--- resolve tiebreakers --
@@ -1217,38 +1272,48 @@ with tabs[3]:
             r16_left_results, qf_left_results = [], []
 
             for i, (p1_name, p2_name) in enumerate(r16_left):
-                p1 = get_player_by_name(p1_name, bracket_df)
-                p2 = get_player_by_name(p2_name, bracket_df)
-                default = qf_left[i // 2] if i // 2 < len(qf_left) else "Tie"
-                winner = render_match(p1, p2, default, readonly=False, key_prefix=f"r16_left_{i}", stage="bracket_r16")
-                r16_left_results.append(get_winner_player(p1, p2, winner))
+                render_bracket_match_ui(
+                    match_id=100 + i,
+                    round_name="Round of 16",
+                    player1=p1_name,
+                    player2=p2_name
+                )
+                # You can fetch result later if needed, or reload from Supabase
 
-            for i in range(0, len(r16_left_results), 2):
-                if i + 1 < len(r16_left_results):
-                    p1 = r16_left_results[i]
-                    p2 = r16_left_results[i + 1]
-                    default = sf_left[i // 2] if i // 2 < len(sf_left) else "Tie"
-                    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_left_{i}", stage="bracket_qf")
-                    qf_left_results.append(get_winner_player(p1, p2, winner))
+            for i in range(0, len(r16_left), 2):
+                if i + 1 < len(r16_left):
+                    p1 = r16_left[i][0]  # winner of Match 100+i
+                    p2 = r16_left[i+1][0]  # winner of Match 100+i+1
+                    render_bracket_match_ui(
+                        match_id=200 + i,
+                        round_name="Quarterfinals",
+                        player1=p1,
+                        player2=p2
+                    )
 
-        with col2:
-            st.markdown("### 🟥 Right Side")
-            r16_right_results, qf_right_results = [], []
+            with col2:
+                st.markdown("### 🟥 Right Side")
+                r16_right_results, qf_right_results = [], []
 
-            for i, (p1_name, p2_name) in enumerate(r16_right):
-                p1 = get_player_by_name(p1_name, bracket_df)
-                p2 = get_player_by_name(p2_name, bracket_df)
-                default = qf_right[i // 2] if i // 2 < len(qf_right) else "Tie"
-                winner = render_match(p1, p2, default, readonly=False, key_prefix=f"r16_right_{i}", stage="bracket_r16")
-                r16_right_results.append(get_winner_player(p1, p2, winner))
+                for i, (p1_name, p2_name) in enumerate(r16_right):
+                    render_bracket_match_ui(
+                        match_id=300 + i,
+                        round_name="Round of 16",
+                        player1=p1_name,
+                        player2=p2_name
+                    )
 
-            for i in range(0, len(r16_right_results), 2):
-                if i + 1 < len(r16_right_results):
-                    p1 = r16_right_results[i]
-                    p2 = r16_right_results[i + 1]
-                    default = sf_right[i // 2] if i // 2 < len(sf_right) else "Tie"
-                    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"qf_right_{i}", stage="bracket_qf")
-                    qf_right_results.append(get_winner_player(p1, p2, winner))
+                for i in range(0, len(r16_right), 2):
+                    if i + 1 < len(r16_right):
+                        p1 = r16_right[i][0]
+                        p2 = r16_right[i+1][0]
+                        render_bracket_match_ui(
+                            match_id=400 + i,
+                            round_name="Quarterfinals",
+                            player1=p1,
+                            player2=p2
+                        )
+
 
 # --- Save Button ---
 st.markdown("### 🏁 Save Bracket Progress")
