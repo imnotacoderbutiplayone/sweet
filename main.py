@@ -58,7 +58,7 @@ else:
 tabs = st.tabs(["📁 Pods Overview", "📊 Group Stage", "📋 Standings", "🏆 Bracket", "🔮 Predict Bracket", "🏅 Leaderboard", "📘 How It Works"])
 
 # --- Shared Data ---
-players_response = supabase.table("tournament_players").select("*").execute()
+players_response = supabase.table("players").select("*").execute()
 players_df = pd.DataFrame(players_response.data)
 pods = group_players_by_pod(players_df)
 
