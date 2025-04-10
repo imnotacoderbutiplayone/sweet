@@ -9,20 +9,25 @@ from shared_helpers import sanitize_key, render_match
 def run_group_stage(pods, supabase):
     st.subheader("📊 Group Stage - Match Entry")
 
-    match_results = load_match_results(supabase)
+    # Initialize results once per session
+    if "group_stage_results" not in st.session_state:
+        st.session_state.group_stage_results = load_match_results(supabase)
 
+    # Show each pod's matches
     for pod_name, players in pods.items():
-        with st.expander(pod_name):
+        with st.expander(pod_name, expanded=True):
             st.session_state.group_stage_results = render_pod_matches(
                 pod_name,
                 players,
                 editable=st.session_state.authenticated,
-                session_results=st.session_state.get("group_stage_results", {})
+                session_results=st.session_state.group_stage_results
             )
 
+    # If admin, allow tiebreak resolution and bracket finalization
     if st.session_state.authenticated:
         pod_scores = compute_standings_from_results(pods, st.session_state.group_stage_results)
         unresolved = resolve_tiebreakers(pod_scores)
+
         if not unresolved and st.button("Finalize Bracket Field"):
             bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
             save_bracket_data(bracket_df, supabase)
@@ -86,13 +91,21 @@ def load_match_results(supabase):
     try:
         response = supabase.table("tournament_matches").select("*").execute()
         if response.data:
-            return {row["match_key"]: row for row in response.data}
+            result_dict = {}
+            for row in response.data:
+                match_key = row.get("match_key") or f"{row['pod']}|{row['player1']} vs {row['player2']}"
+                result_dict[match_key] = {
+                    "winner": row.get("winner", "Tie"),
+                    "margin": row.get("margin", 0)
+                }
+            return result_dict
         else:
             st.warning("No match results found.")
-            return pd.DataFrame()
+            return {}
     except Exception as e:
         st.error(f"Error loading match results: {e}")
-        return pd.DataFrame()
+        return {}
+
 
 
 def show_pods_table(pods):
