@@ -136,4 +136,20 @@ def show_leaderboard(supabase):
 def show_how_it_works():
     st.header("📘 How It Works")
 
-    st.markdown(\"\"\"\n    ### 🏌️ Tournament Format\n    - Round Robin (Group Stage) → Bracket of 16\n    - Single Elimination: R16 → QF → SF → Final\n\n    ### 🧠 Prediction Scoring\n    | Round      | Points |\n    |------------|--------|\n    | R16 Pick   | 1 pt   |\n    | QF Pick    | 3 pts  |\n    | SF Pick    | 5 pts  |\n    | Champion   | 10 pts |\n\n    - Correct position matters — picking a name in the wrong spot won’t earn points.\n    - Tie goes to earlier submission.\n    - You can only submit once.\n    \"\"\")
+st.markdown("""
+    ### 🏌️ Tournament Format
+    - Round Robin (Group Stage) → Bracket of 16
+    - Single Elimination: R16 → QF → SF → Final
+
+    ### 🧠 Prediction Scoring
+    | Round      | Points |
+    |------------|--------|
+    | R16 Pick   | 1 pt   |
+    | QF Pick    | 3 pts  |
+    | SF Pick    | 5 pts  |
+    | Champion   | 10 pts |
+
+    - Correct position matters — picking a name in the wrong spot won’t earn points.
+    - Tie goes to earlier submission.
+    - You can only submit once.
+    """)
