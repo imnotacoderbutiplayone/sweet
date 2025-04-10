@@ -1041,11 +1041,17 @@ tabs = st.tabs([
     "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
+st.subheader("🏅 Leaderboard Debug - Step 2")
+
 try:
-    data = supabase.table("predictions").select("*").limit(5).execute()
-    st.write("📦 Predictions sample:", data.data)
+    preds = supabase.table("predictions").select("*").limit(5).execute()
+    st.write("✅ Predictions Sample:", preds.data)
+
+    finals = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute()
+    st.write("✅ Final Results Sample:", finals.data)
+
 except Exception as e:
-    st.error("❌ Supabase read failed.")
+    st.error("❌ Error querying Supabase.")
     st.code(str(e))
 
 
