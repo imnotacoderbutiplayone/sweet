@@ -1042,115 +1042,121 @@ tabs = st.tabs([
     "🏅 Leaderboard"
 ])
 # --- Leaderboard Tab ---
+# --- Leaderboard Tab ---
 with tabs[5]:
-    st.subheader("🏅 Leaderboard Debug - R16 Scoring Only")
+    st.subheader("🏅 Prediction Leaderboard")
 
-try:
-    preds = supabase.table("predictions").select("*").limit(10).execute().data
-    finals = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute().data
+    try:
+        # Load predictions
+        predictions_response = supabase.table("predictions").select("*").execute()
+        predictions = predictions_response.data
 
-    if not preds:
-        st.warning("No predictions found.")
-        st.stop()
+        # Load final results
+        final_results_response = supabase.table("final_results") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+        final_results_data = final_results_response.data
 
-    if not finals:
-        st.warning("Final results not available.")
-        st.stop()
+        if not predictions:
+            st.info("📭 No predictions submitted yet.")
+            st.stop()
+        if not final_results_data:
+            st.warning("📭 Final results not yet available.")
+            st.stop()
 
-    def parse_json_field(field):
-        try:
-            if isinstance(field, str):
-                return json.loads(field)
-            elif isinstance(field, list):
-                return field
-            return []
-        except:
-            return []
+        final_result = final_results_data[0]
 
-    def normalize(name):
-        return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
+        # Helpers
+        def parse_json_field(field):
+            try:
+                if isinstance(field, str):
+                    return json.loads(field)
+                elif isinstance(field, list):
+                    return field
+                return []
+            except Exception:
+                return []
 
-    actual = finals[0]
-    actual_r16_left = [normalize(x) for x in parse_json_field(actual.get("r16_left", []))]
-    actual_r16_right = [normalize(x) for x in parse_json_field(actual.get("r16_right", []))]
+        def normalize(name):
+            return name.strip().lower().replace("’", "'").replace("\xa0", " ")
 
-    leaderboard = []
+        # Parse actual results
+        actual = {
+            "r16_left": parse_json_field(final_result.get("r16_left", [])),
+            "r16_right": parse_json_field(final_result.get("r16_right", [])),
+            "qf_left": parse_json_field(final_result.get("qf_left", [])),
+            "qf_right": parse_json_field(final_result.get("qf_right", [])),
+            "sf_left": parse_json_field(final_result.get("sf_left", [])),
+            "sf_right": parse_json_field(final_result.get("sf_right", [])),
+            "champion": normalize(final_result.get("champion", ""))
+        }
 
-    for row in preds:
-        name = row.get("name", "Unknown")
-        ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
-        score = 0
+        # Score each prediction
+        leaderboard = []
+        for row in predictions:
+            name = row.get("name", "Unknown")
+            ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
+            score = 0
 
-        pred_r16_left = [normalize(x) for x in parse_json_field(row.get("r16_left", []))]
-        pred_r16_right = [normalize(x) for x in parse_json_field(row.get("r16_right", []))]
+            # Parse predictions
+            pred = {
+                "r16_left": parse_json_field(row.get("r16_left", [])),
+                "r16_right": parse_json_field(row.get("r16_right", [])),
+                "qf_left": parse_json_field(row.get("qf_left", [])),
+                "qf_right": parse_json_field(row.get("qf_right", [])),
+                "sf_left": parse_json_field(row.get("sf_left", [])),
+                "sf_right": parse_json_field(row.get("sf_right", [])),
+                "champion": normalize(row.get("champion", ""))
+            }
 
-        r16_matches = 0
-        for a, p in zip(actual_r16_left, pred_r16_left):
-            if a == p:
-                score += 1
-                r16_matches += 1
-        for a, p in zip(actual_r16_right, pred_r16_right):
-            if a == p:
-                score += 1
-                r16_matches += 1
+            # Scoring
+            for actual_list, pred_list, pts in [
+                (actual["r16_left"], pred["r16_left"], 1),
+                (actual["r16_right"], pred["r16_right"], 1),
+                (actual["qf_left"], pred["qf_left"], 3),
+                (actual["qf_right"], pred["qf_right"], 3),
+                (actual["sf_left"], pred["sf_left"], 5),
+                (actual["sf_right"], pred["sf_right"], 5)
+            ]:
+                for a, p in zip(actual_list, pred_list):
+                    if normalize(a) == normalize(p):
+                        score += pts
 
-        leaderboard.append({
-            "Name": name,
-            "R16 Matches": r16_matches,
-            "Score (R16 Only)": score,
-            "Submitted At": ts
-        })
+            if pred["champion"] == actual["champion"]:
+                score += 10
 
-    df = pd.DataFrame(leaderboard)
-    df = df.sort_values(by=["Score (R16 Only)", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
-    df.index += 1
-    st.dataframe(df)
+            leaderboard.append({
+                "Name": name,
+                "Score": score,
+                "Submitted At": ts
+            })
 
-except Exception as e:
-    st.error("❌ Error scoring leaderboard.")
-    st.code(str(e))
-    
+        if not leaderboard:
+            st.warning("😶 No valid predictions scored.")
+        else:
+            # DataFrame and styling
+            df = pd.DataFrame(leaderboard)
+            df = df.sort_values(by=["Score", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
+            df.insert(0, "Rank", df.index + 1)
 
-# Load shared bracket data
-if "bracket_data" not in st.session_state:
-    bracket_df = load_bracket_data_from_supabase()
-    st.session_state.finalized_bracket = bracket_df
-if "user_predictions" not in st.session_state:
-    st.session_state.user_predictions = {}
+            def highlight_podium(row):
+                if row["Rank"] == 1:
+                    return ["background-color: gold; font-weight: bold"] * len(row)
+                elif row["Rank"] == 2:
+                    return ["background-color: silver; font-weight: bold"] * len(row)
+                elif row["Rank"] == 3:
+                    return ["background-color: #cd7f32; font-weight: bold"] * len(row)
+                return [""] * len(row)
 
-# --- Main Tournament Tabs ---
-with tabs[0]:
-    st.subheader("📁 All Pods and Player Handicaps")
+            styled_df = df.style.apply(highlight_podium, axis=1)
+            st.dataframe(styled_df, use_container_width=True)
 
-    # Displaying pod data...
-    pod_names = list(pods.keys())
-    num_cols = 3  # You can adjust this to control the number of columns
-    cols = st.columns(num_cols)
+    except Exception as e:
+        st.error("❌ Error loading leaderboard.")
+        st.code(str(e))
 
-    # CSS style for headers and alternating rows
-    def style_table(df):
-        styled = df.style.set_table_styles([
-            {'selector': 'th',
-             'props': [('background-color', '#4CAF50'),
-                       ('color', 'white'),
-                       ('font-size', '16px')]},
-            {'selector': 'td',
-             'props': [('font-size', '14px')]}
-        ]).set_properties(**{
-            'text-align': 'left',
-            'padding': '6px'
-        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-        return styled.hide(axis='index')  # Hide the index explicitly here
-
-    for i, pod_name in enumerate(pod_names):
-        col = cols[i % num_cols]
-        with col:
-            st.markdown(f"##### {pod_name}")
-            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
-            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
-            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-            styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
 
 
 # --- Group Stage ---
