@@ -1272,11 +1272,10 @@ with tabs[3]:
     def decode_if_json(raw):
         if isinstance(raw, str):
             try:
-                while isinstance(raw, str):
-                    raw = json.loads(raw)
+                return json.loads(raw)
             except Exception:
-                return []
-        return raw or []
+                return raw
+        return raw
 
     def load_or_refresh_bracket_data():
         bracket_data = st.session_state.get("bracket_data", {})
@@ -1327,105 +1326,63 @@ with tabs[3]:
 
     col1, col2 = st.columns(2)
 
+    qf_left = []
+    qf_right = []
+    sf_left = []
+    sf_right = []
+    finalists = []
+    champion = None
+
     with col1:
         st.markdown("### 🟦 Left Side")
 
-        # R16
         for i, (p1_name, p2_name) in enumerate(r16_left):
-            render_bracket_match_ui(
-                match_id=100 + i,
-                round_name="Round of 16",
-                player1=p1_name,
-                player2=p2_name
-            )
+            render_bracket_match_ui(100 + i, "Round of 16", p1_name, p2_name)
 
-        # QF
         for i in range(0, len(r16_left), 2):
             if i + 1 < len(r16_left):
-                winner1 = get_bracket_winner(100 + i)
-                winner2 = get_bracket_winner(100 + i + 1)
-                if winner1 and winner2:
-                    render_bracket_match_ui(
-                        match_id=200 + i,
-                        round_name="Quarterfinals",
-                        player1=winner1,
-                        player2=winner2
-                    )
+                w1 = get_bracket_winner(100 + i)
+                w2 = get_bracket_winner(100 + i + 1)
+                if w1 and w2:
+                    render_bracket_match_ui(200 + i, "Quarterfinals", w1, w2)
+                    qf_left.append((w1, w2))
+
+        if len(qf_left) >= 2:
+            w1 = get_bracket_winner(200)
+            w2 = get_bracket_winner(202)
+            if w1 and w2:
+                render_bracket_match_ui(300, "Semifinal", w1, w2)
+                sf_left.append((w1, w2))
 
     with col2:
         st.markdown("### 🟥 Right Side")
 
-        # R16
         for i, (p1_name, p2_name) in enumerate(r16_right):
-            render_bracket_match_ui(
-                match_id=300 + i,
-                round_name="Round of 16",
-                player1=p1_name,
-                player2=p2_name
-            )
+            render_bracket_match_ui(110 + i, "Round of 16", p1_name, p2_name)
 
-        # QF
         for i in range(0, len(r16_right), 2):
             if i + 1 < len(r16_right):
-                winner1 = get_bracket_winner(300 + i)
-                winner2 = get_bracket_winner(300 + i + 1)
-                if winner1 and winner2:
-                    render_bracket_match_ui(
-                        match_id=400 + i,
-                        round_name="Quarterfinals",
-                        player1=winner1,
-                        player2=winner2
-                    )
+                w1 = get_bracket_winner(110 + i)
+                w2 = get_bracket_winner(110 + i + 1)
+                if w1 and w2:
+                    render_bracket_match_ui(210 + i, "Quarterfinals", w1, w2)
+                    qf_right.append((w1, w2))
 
+        if len(qf_right) >= 2:
+            w1 = get_bracket_winner(210)
+            w2 = get_bracket_winner(212)
+            if w1 and w2:
+                render_bracket_match_ui(310, "Semifinal", w1, w2)
+                sf_right.append((w1, w2))
 
-
-# --- Save Button ---
-st.markdown("### 🏁 Save Bracket Progress")
-if st.button("📋 Save Bracket Progress"):
-    try:
-        updates = {
-            # Save R16 pairings again (important to persist original bracket!)
-            "r16_left": json.dumps(r16_left),
-            "r16_right": json.dumps(r16_right),
-            
-            # Save QF winners
-            "qf_left": json.dumps([p["name"] for p in qf_left_results]),
-            "qf_right": json.dumps([p["name"] for p in qf_right_results]),
-            
-            # Save SF winners if available
-            "sf_left": json.dumps([p["name"] for p in qf_left_results[:2]]),
-            "sf_right": json.dumps([p["name"] for p in qf_right_results[:2]]),
-        }
-
-        supabase.table("bracket_progression").update(updates).eq("id", bracket_id).execute()
-
-        st.success("✅ Bracket progression saved.")
-        st.session_state.bracket_data = load_bracket_progression_from_supabase()
-        st.rerun()
-
-    except Exception as e:
-        st.error(f"❌ Failed to save bracket: {e}")
-
-        def render_matchups(title, matchups):
-            st.markdown(f"**{title}**")
-            for m in matchups:
-                if isinstance(m, list) and len(m) == 2:
-                    st.write(f"{m[0]} {icon} vs {m[1]} {icon}")
-                elif isinstance(m, str):
-                    st.write(m)
-
-        render_matchups("Round of 16 - Left", r16_left)
-        render_matchups("Quarterfinals - Left", qf_left)
-        render_matchups("Round of 16 - Right", r16_right)
-        render_matchups("Quarterfinals - Right", qf_right)
-
-        if finalist_left and finalist_right:
-            st.markdown("### 🏁 Final Match")
-            st.write(f"{finalist_left} {icon} vs {finalist_right} {icon}")
-
-        if champion:
-            st.success(f"🏆 Champion: **{champion}**")
-
+    if len(sf_left) == 1 and len(sf_right) == 1:
+        left_finalist = get_bracket_winner(300)
+        right_finalist = get_bracket_winner(310)
+        if left_finalist and right_finalist:
+            render_bracket_match_ui(400, "Final", left_finalist, right_finalist)
+            champion = get_bracket_winner(400)
+            if champion:
+                st.success(f"🏆 Champion: **{champion}**")
 
 
 # --- Predict Bracket ---
