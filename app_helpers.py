@@ -6,24 +6,27 @@ from bracket_helpers import *
 
 
 def run_group_stage(pods, supabase):
-    st.subheader("\U0001F4CA Group Stage - Match Entry")
+    st.subheader("📊 Group Stage - Match Entry")
 
     match_results = load_match_results(supabase)
-    pod_scores = compute_pod_standings_from_results(pods, match_results)
 
     for pod_name, players in pods.items():
         with st.expander(pod_name):
-            updated_players = simulate_matches(
-                players, pod_name, source="group_stage", editable=st.session_state.authenticated
+            st.session_state.group_stage_results = render_pod_matches(
+                pod_name,
+                players,
+                editable=st.session_state.authenticated,
+                session_results=st.session_state.get("group_stage_results", {})
             )
-            st.dataframe(pd.DataFrame(updated_players))
 
     if st.session_state.authenticated:
+        pod_scores = compute_standings_from_results(pods, st.session_state.group_stage_results)
         unresolved = resolve_tiebreakers(pod_scores)
         if not unresolved and st.button("Finalize Bracket Field"):
             bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
             save_bracket_data(bracket_df, supabase)
             st.success("✅ Field of 16 saved!")
+
 
 
 def render_pod_table(pods_df):
