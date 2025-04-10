@@ -35,16 +35,16 @@ def get_player_by_name(name, df):
     return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
-    return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
     # --- Bracket Stage Rendering ---
 def render_stage_matches(matches, bracket_df, stage):
     results = []
     for match in matches:
-    p1 = get_player_by_name(match["player1"], bracket_df)
-    p2 = get_player_by_name(match["player2"], bracket_df)
-    default = match.get("winner") or "Tie"
-    winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
-    results.append(get_winner_player(p1, p2, winner))
+        p1 = get_player_by_name(match["player1"], bracket_df)
+        p2 = get_player_by_name(match["player2"], bracket_df)
+        default = match.get("winner") or "Tie"
+        winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
+        results.append(get_winner_player(p1, p2, winner))
+    return results
     return results
         def advance_round(current_matches, bracket_df, next_stage, supabase):
     for i in range(0, len(current_matches), 2):
