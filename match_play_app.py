@@ -1421,11 +1421,9 @@ if st.button("📋 Save Bracket Progress"):
 with tabs[4]:
     st.subheader("🔮 Predict the Bracket")
 
-    # Lock prediction after deadline
     now = datetime.now(timezone.utc)
     predictions_locked = now > PREDICTION_DEADLINE
 
-    # Load finalized bracket progression (actual R16 matchups)
     bracket_data = load_bracket_progression_from_supabase()
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
@@ -1447,59 +1445,55 @@ with tabs[4]:
         st.warning("⛔ Predictions are locked or already submitted.")
         st.stop()
 
-    def pick_winners(matchups, round_label, key_prefix):
+    def pick_winners_with_dropdown(matchups, round_label, key_prefix):
         winners = []
         for i, match in enumerate(matchups):
             if isinstance(match, list) and len(match) == 2:
                 p1, p2 = match
-                winner = st.radio(
+                winner = st.selectbox(
                     f"{round_label} Match {i + 1}: {p1} vs {p2}",
-                    options=[p1, p2],
+                    options=["-- Select Winner --", p1, p2],
                     key=f"{key_prefix}_{i}"
                 )
+                if winner == "-- Select Winner --":
+                    st.warning(f"Please pick a winner for Match {i + 1} of {round_label}")
+                    st.stop()
                 winners.append(winner)
         return winners
 
     # --- R16 ---
     st.markdown("### 🏁 Round of 16")
-    pred_r16_left = pick_winners(r16_left, "R16 Left", "r16L")
-    pred_r16_right = pick_winners(r16_right, "R16 Right", "r16R")
+    pred_r16_left = pick_winners_with_dropdown(r16_left, "R16 Left", "r16L")
+    pred_r16_right = pick_winners_with_dropdown(r16_right, "R16 Right", "r16R")
 
     # --- QF ---
-    if len(pred_r16_left) == 4 and len(pred_r16_right) == 4:
-        st.markdown("### 🎯 Quarterfinals")
-        qf_left = [[pred_r16_left[i], pred_r16_left[i+1]] for i in range(0, 4, 2)]
-        qf_right = [[pred_r16_right[i], pred_r16_right[i+1]] for i in range(0, 4, 2)]
-
-        pred_qf_left = pick_winners(qf_left, "QF Left", "qfL")
-        pred_qf_right = pick_winners(qf_right, "QF Right", "qfR")
-    else:
-        st.stop()
+    st.markdown("### 🎯 Quarterfinals")
+    qf_left = [[pred_r16_left[i], pred_r16_left[i+1]] for i in range(0, 4, 2)]
+    qf_right = [[pred_r16_right[i], pred_r16_right[i+1]] for i in range(0, 4, 2)]
+    pred_qf_left = pick_winners_with_dropdown(qf_left, "QF Left", "qfL")
+    pred_qf_right = pick_winners_with_dropdown(qf_right, "QF Right", "qfR")
 
     # --- SF ---
-    if len(pred_qf_left) == 2 and len(pred_qf_right) == 2:
-        st.markdown("### 🥊 Semifinals")
-        sf_left = [[pred_qf_left[0], pred_qf_left[1]]]
-        sf_right = [[pred_qf_right[0], pred_qf_right[1]]]
-
-        pred_sf_left = pick_winners(sf_left, "SF Left", "sfL")
-        pred_sf_right = pick_winners(sf_right, "SF Right", "sfR")
-    else:
-        st.stop()
+    st.markdown("### 🥊 Semifinals")
+    sf_left = [[pred_qf_left[0], pred_qf_left[1]]]
+    sf_right = [[pred_qf_right[0], pred_qf_right[1]]]
+    pred_sf_left = pick_winners_with_dropdown(sf_left, "SF Left", "sfL")
+    pred_sf_right = pick_winners_with_dropdown(sf_right, "SF Right", "sfR")
 
     # --- Final ---
-    if len(pred_sf_left) == 1 and len(pred_sf_right) == 1:
-        st.markdown("### 🏆 Final Match")
-        finalist_left = pred_sf_left[0]
-        finalist_right = pred_sf_right[0]
-        champion = st.radio(
-            f"Final: {finalist_left} vs {finalist_right}",
-            options=[finalist_left, finalist_right],
-            key="champion"
-        )
-    else:
+    st.markdown("### 🏆 Final Match")
+    finalist_left = pred_sf_left[0]
+    finalist_right = pred_sf_right[0]
+    champion = st.selectbox(
+        f"Final: {finalist_left} vs {finalist_right}",
+        options=["-- Select Winner --", finalist_left, finalist_right],
+        key="champion"
+    )
+    if champion == "-- Select Winner --":
+        st.warning("Please select a Champion before submitting.")
         st.stop()
 
+    # --- Submit ---
     if st.button("🚀 Submit My Bracket Prediction"):
         try:
             data = {
@@ -1521,6 +1515,7 @@ with tabs[4]:
         except Exception as e:
             st.error("❌ Failed to submit your prediction.")
             st.code(str(e))
+
 
 
 # --- Leaderboard ---
