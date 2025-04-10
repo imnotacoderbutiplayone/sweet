@@ -1,6 +1,7 @@
 # main.py (Clean and Modular)
 
-import os, sys
+import os
+st.write("🗂️ Current directory contents:", os.listdir())
 sys.path.append(os.path.dirname(__file__))
 
 import streamlit as st
