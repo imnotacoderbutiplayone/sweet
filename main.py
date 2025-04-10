@@ -4,8 +4,11 @@ import os
 import sys
 sys.path.append(os.path.dirname(__file__))
 
-# Debugging: Print directory contents to the log
-current_dir_contents = os.listdir()
+# Print the current working directory
+print("Current working directory:", os.getcwd())
+
+# List all files in the directory
+current_dir_contents = os.listdir(os.getcwd())
 print("🗂️ Current directory contents:", current_dir_contents)
 
 # Try importing app_helpers
