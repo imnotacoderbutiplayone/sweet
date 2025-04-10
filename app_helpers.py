@@ -1,8 +1,4 @@
 # app_helpers.py
-import streamlit as st
-import pandas as pd
-import json
-
 from bracket_helpers import (
     compute_standings_from_results,
     render_pod_matches,
@@ -10,8 +6,9 @@ from bracket_helpers import (
     build_bracket_df_from_pod_scores,
     save_bracket_data
 )
+from ui_helpers import render_match, get_winner_player, sanitize_key
+# no importing from bracket_helpers!
 
-from ui_helpers import sanitize_key, render_match, get_winner_player
 
 
 
