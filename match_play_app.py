@@ -471,6 +471,16 @@ def render_match(player1, player2, winner, readonly=False, key_prefix="", stage=
 
     return selected_winner  # Always return winner, even if not "saved"
 
+
+def decode_if_json(raw):
+    if isinstance(raw, str):
+        try:
+            return json.loads(raw)
+        except Exception:
+            return raw
+    return raw
+
+
 #--- new render match ui ---
 def render_bracket_match_ui(match_id, round_name, player1, player2):
     saved_result = load_bracket_match_result(match_id)
