@@ -37,14 +37,13 @@ def save_bracket_result(match_id, round_name, player1, player2, winner, margin, 
             .upsert(data, on_conflict="match_id") \
             .execute()
 
-        if response.error:
-            st.error(f"❌ Failed to save match {match_id}: {response.error.message}")
-        else:
+        if response and response.data:
             st.success(f"✅ Match {match_id} saved: {winner} wins")
+        else:
+            st.warning(f"⚠️ No response data returned for match {match_id}")
 
     except Exception as e:
         st.error(f"❌ Exception saving match result: {e}")
-
 
 
 # --- Save bracket data to Supabase ---
