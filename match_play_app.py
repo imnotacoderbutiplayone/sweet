@@ -1658,27 +1658,25 @@ with tabs[5]:
         st.code(str(e))
 # --- Leaderboard Scoring Ends Here ---
 
-# 🔍 ADD THIS BELOW EVERYTHING
-st.subheader("🧪 RAW Supabase Table Check")
+st.subheader("🧪 Supabase Insert + Read Test")
+
+from datetime import datetime
+
+test_row = {
+    "name": "test_read_" + datetime.utcnow().isoformat(),
+    "champion": "John Doe",
+    "timestamp": datetime.utcnow().isoformat()
+}
 
 try:
-    pred_result = supabase.table("predictions").select("id, name, champion, timestamp").execute()
-    final_result = supabase.table("final_results").select("id, champion, created_at").execute()
+    # 1. Insert test row
+    insert_result = supabase.table("predictions").insert(test_row).execute()
+    st.write("✅ Inserted test row:", insert_result.data)
 
-    st.write("📋 Predictions Table:", pred_result)
-    st.write("📋 Final Results Table:", final_result)
-
-    if pred_result.data:
-        st.success(f"✅ {len(pred_result.data)} prediction(s) found")
-    else:
-        st.warning("⚠️ No prediction data returned from Supabase")
-
-    if final_result.data:
-        st.success(f"✅ {len(final_result.data)} final result(s) found")
-    else:
-        st.warning("⚠️ No final results returned from Supabase")
+    # 2. Read it back
+    read_result = supabase.table("predictions").select("id, name, champion, timestamp").order("timestamp", desc=True).limit(5).execute()
+    st.write("📥 Recently Read Predictions:", read_result.data)
 
 except Exception as e:
-    st.error("❌ Supabase query failed:")
+    st.error("❌ Insert/Read test failed:")
     st.code(str(e))
-
