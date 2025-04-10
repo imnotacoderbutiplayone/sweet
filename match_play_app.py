@@ -872,7 +872,7 @@ def load_bracket_progression_from_supabase():
         record = res.data[0]
 
         # Debug dump
-        st.write("📦 Full Raw Bracket Progression Record:", record)
+        #st.write("📦 Full Raw Bracket Progression Record:", record)
 
         return record
     except Exception as e:
@@ -1314,6 +1314,15 @@ with tabs[3]:
                     }
                     save_final_results_to_supabase(final_data)
 
+def save_final_results_to_supabase(final_data):
+    try:
+        response = supabase.table("final_results").insert(final_data).execute()
+        if response.data:
+            st.success("✅ Final results saved to Supabase.")
+        else:
+            st.error("❌ Failed to save final results.")
+    except Exception as e:
+        st.error(f"❌ Error saving final results: {e}")
 
 # --- Predict Bracket ---
 with tabs[4]:
