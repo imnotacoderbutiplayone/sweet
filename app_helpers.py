@@ -67,12 +67,17 @@ def load_match_results(supabase):
 
 def show_pods_table(pods):
     for pod_name, players in pods.items():
-        # Create a dataframe for players in the pod
+        # Create a DataFrame for players in the pod
         pod_df = pd.DataFrame(players)
         
+        # Ensure correct data structure: if players is a list of dicts
+        if 'Name' not in pod_df.columns or 'Handicap' not in pod_df.columns:
+            st.error("Data is missing 'Name' or 'Handicap' columns. Please check your data structure.")
+            return
+
         # Format the "Handicap" column to 1 decimal place
         pod_df['Handicap'] = pod_df['Handicap'].apply(lambda x: f"{x:.1f}")
-        
+
         # Styling for the table
         st.markdown(f"### 🏌️ Pod: {pod_name}")
         
