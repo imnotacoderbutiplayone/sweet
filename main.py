@@ -385,8 +385,8 @@ def run_predictions_tab(supabase):
         st.success("✅ Prediction submitted!")
 
 
-def show_leaderboard(supabase):
-        st.subheader("\U0001F3C5 Leaderboard")
+    def show_leaderboard(supabase):
+    st.subheader("\U0001F3C5 Leaderboard")
 
     predictions = supabase.table("predictions").select("*").execute().data
     final_result = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute().data
