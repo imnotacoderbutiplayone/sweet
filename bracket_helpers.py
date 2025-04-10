@@ -1,24 +1,23 @@
-# bracket_helpers.py
+# bracket_helpers.py (Cleaned and Modular)
 import graphviz
 from datetime import datetime
+import streamlit as st
+from app_helpers import render_match, get_winner_player, sanitize_key
+from ui_helpers import sanitize_key, render_match
 
 
+# --- Utility Functions ---
 def safe_name(name):
     return name if name and name != "" else "?"
-
 
 def get_player_by_name(name, df):
     return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
-
 def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
 
-
+# --- Bracket Stage Rendering ---
 def render_stage_matches(matches, bracket_df, stage):
-    import streamlit as st
-    from app_helpers import render_match, get_winner_player
-
     results = []
     for match in matches:
         p1 = get_player_by_name(match["player1"], bracket_df)
@@ -27,7 +26,6 @@ def render_stage_matches(matches, bracket_df, stage):
         winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
         results.append(get_winner_player(p1, p2, winner))
     return results
-
 
 def advance_round(current_matches, bracket_df, next_stage, supabase):
     for i in range(0, len(current_matches), 2):
@@ -49,7 +47,7 @@ def advance_round(current_matches, bracket_df, next_stage, supabase):
             .eq("match_index", i // 2) \
             .execute()
 
-
+# --- Bracket Visualization ---
 def visualize_bracket(r16, qf, sf, final):
     dot = graphviz.Digraph()
     dot.attr(rankdir="LR", size="8,5")
@@ -75,14 +73,9 @@ def visualize_bracket(r16, qf, sf, final):
 
     return dot
 
-
-# ------------------- GROUP STAGE HELPERS -------------------
-
+# --- Group Stage Helpers ---
 def render_pod_matches(pod_name, players, editable, session_results):
-    import streamlit as st
     from collections import defaultdict
-    from app_helpers import sanitize_key, render_match
-
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
 
@@ -105,7 +98,6 @@ def render_pod_matches(pod_name, players, editable, session_results):
                 st.info("🔒 Admin only")
 
     return session_results
-
 
 def compute_standings_from_results(pods, match_results):
     import pandas as pd
