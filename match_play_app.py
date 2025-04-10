@@ -472,46 +472,106 @@ def render_match(player1, player2, winner, readonly=False, key_prefix="", stage=
     return selected_winner  # Always return winner, even if not "saved"
 
 #--- new render match ui ---
-def render_bracket_match_ui(match_id, round_name, player1, player2):
-    saved_result = load_bracket_match_result(match_id)
-    saved_winner = saved_result.get("winner", "")
-    saved_margin_value = saved_result.get("margin", None)
-    saved_margin_label = next((k for k, v in margin_lookup.items() if v == saved_margin_value), "1 up")
+with tabs[3]:
+    st.subheader("🏆 Bracket Stage")
 
-    st.markdown(f"### {round_name} – Match {match_id}")
-    st.write(f"**{player1} vs {player2}**")
+    def decode_if_json(raw):
+        if isinstance(raw, str):
+            try:
+                while isinstance(raw, str):
+                    raw = json.loads(raw)
+            except Exception:
+                return []
+        return raw or []
 
-    if st.session_state.authenticated:
-        winner = st.selectbox(
-            "Select winner",
-            options=["", player1, player2],
-            index=["", player1, player2].index(saved_winner) if saved_winner in [player1, player2] else 0,
-            key=f"winner_select_{match_id}"
-        )
+    bracket_data = load_bracket_progression_from_supabase()
+    bracket_id = bracket_data.get("id")
 
-        if winner:
-            margin = st.selectbox(
-                "Select win margin",
-                options=list(margin_lookup.keys()),
-                index=list(margin_lookup.keys()).index(saved_margin_label) if saved_margin_label in margin_lookup else 0,
-                key=f"margin_select_{match_id}"
-            )
+    if not bracket_id:
+        st.warning("❌ No bracket record ID found. Cannot render bracket.")
+        st.stop()
 
-            if st.button("Submit Result", key=f"submit_btn_{match_id}"):
-                save_bracket_result(
-                    match_id=match_id,
-                    round_name=round_name,
-                    player1=player1,
-                    player2=player2,
-                    winner=winner,
-                    margin=margin_lookup.get(margin, 1)
-                )
-    else:
-        if saved_winner:
-            margin_label = saved_margin_label or "1 up"
-            st.success(f"🏆 **Winner: {saved_winner}** ({margin_label})")
-        else:
-            st.info("⏳ Match not yet decided.")
+    r16_left = decode_if_json(bracket_data.get("r16_left"))
+    r16_right = decode_if_json(bracket_data.get("r16_right"))
+
+    icon = "🏌️"
+
+    st.success("🔐 Admin Mode Enabled" if st.session_state.authenticated else "🔒 View Only")
+
+    col1, col2 = st.columns(2)
+
+    # --- LEFT SIDE ---
+    with col1:
+        st.markdown("### 🟦 Left Side")
+        qf_left_results = []
+        for i, (p1, p2) in enumerate(r16_left):
+            render_bracket_match_ui(100 + i, "Round of 16", p1, p2)
+
+        for i in range(0, len(r16_left), 2):
+            winner1 = load_bracket_match_result(100 + i).get("winner")
+            winner2 = load_bracket_match_result(100 + i + 1).get("winner")
+            if winner1 and winner2:
+                render_bracket_match_ui(200 + i, "Quarterfinal", winner1, winner2)
+                qf_left_results.append((winner1, winner2))
+
+        if len(qf_left_results) >= 2:
+            winner1 = load_bracket_match_result(200).get("winner")
+            winner2 = load_bracket_match_result(202).get("winner")
+            if winner1 and winner2:
+                render_bracket_match_ui(300, "Semifinal", winner1, winner2)
+
+    # --- RIGHT SIDE ---
+    with col2:
+        st.markdown("### 🟥 Right Side")
+        qf_right_results = []
+        for i, (p1, p2) in enumerate(r16_right):
+            render_bracket_match_ui(110 + i, "Round of 16", p1, p2)
+
+        for i in range(0, len(r16_right), 2):
+            winner1 = load_bracket_match_result(110 + i).get("winner")
+            winner2 = load_bracket_match_result(110 + i + 1).get("winner")
+            if winner1 and winner2:
+                render_bracket_match_ui(210 + i, "Quarterfinal", winner1, winner2)
+                qf_right_results.append((winner1, winner2))
+
+        if len(qf_right_results) >= 2:
+            winner1 = load_bracket_match_result(210).get("winner")
+            winner2 = load_bracket_match_result(212).get("winner")
+            if winner1 and winner2:
+                render_bracket_match_ui(310, "Semifinal", winner1, winner2)
+
+    # --- FINAL MATCH ---
+    finalist_left = load_bracket_match_result(300).get("winner")
+    finalist_right = load_bracket_match_result(310).get("winner")
+
+    if finalist_left and finalist_right:
+        st.markdown("### 🏁 Final Match")
+        render_bracket_match_ui(400, "Final", finalist_left, finalist_right)
+
+        # Save Final Results button (admin only)
+        if st.session_state.authenticated:
+            champion = load_bracket_match_result(400).get("winner")
+            if champion:
+                if st.button("💾 Save Final Results to Leaderboard"):
+                    final_data = {
+                        "r16_left": json.dumps([pair[0] for pair in r16_left]),
+                        "r16_right": json.dumps([pair[0] for pair in r16_right]),
+                        "qf_left": json.dumps([
+                            load_bracket_match_result(200).get("winner"),
+                            load_bracket_match_result(202).get("winner")
+                        ]),
+                        "qf_right": json.dumps([
+                            load_bracket_match_result(210).get("winner"),
+                            load_bracket_match_result(212).get("winner")
+                        ]),
+                        "sf_left": json.dumps([finalist_left]),
+                        "sf_right": json.dumps([finalist_right]),
+                        "finalist_left": finalist_left,
+                        "finalist_right": finalist_right,
+                        "champion": champion,
+                        "created_at": datetime.utcnow().isoformat()
+                    }
+                    save_final_results_to_supabase(final_data)
 
 
 # ---- Get winner from bracket ---
