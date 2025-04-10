@@ -507,6 +507,22 @@ def render_bracket_match_ui(match_id, round_name, player1, player2):
             st.info("⏳ Match not yet decided.")
 
 
+# ---- Get winner from bracket ---
+def get_bracket_winner(match_id):
+    try:
+        response = supabase.table("tournament_matches") \
+            .select("winner") \
+            .eq("match_id", match_id) \
+            .limit(1) \
+            .execute()
+        if response.data and len(response.data) > 0:
+            return response.data[0]["winner"]
+        return None
+    except Exception as e:
+        st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
+        return None
+
+
 #--- resolve tiebreakers --
 def resolve_tiebreakers(pod_scores):
     unresolved = False
@@ -1236,12 +1252,10 @@ with tabs[3]:
                 return []
         return raw or []
 
-    # --- Load and cache latest bracket progression ---
     def load_or_refresh_bracket_data():
         bracket_data = st.session_state.get("bracket_data", {})
         bracket_id = bracket_data.get("id")
 
-        # Refresh if missing or invalid ID
         if not bracket_id:
             bracket_data = load_bracket_progression_from_supabase()
             if bracket_data and "id" in bracket_data:
@@ -1249,17 +1263,26 @@ with tabs[3]:
             else:
                 st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
                 st.stop()
-        
+
         return st.session_state.bracket_data
 
-    # ✅ Use refreshed bracket data and extract ID
+    def get_bracket_winner(match_id):
+        try:
+            response = supabase.table("tournament_matches") \
+                .select("winner") \
+                .eq("match_id", match_id) \
+                .limit(1) \
+                .execute()
+            if response.data and len(response.data) > 0:
+                return response.data[0]["winner"]
+            return None
+        except Exception as e:
+            st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
+            return None
+
     bracket_data = load_or_refresh_bracket_data()
     bracket_id = bracket_data.get("id")
 
-    def get_player_by_name(name, df):
-        return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
-
-    # Load finalized bracket from session or fallback to Supabase
     if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket is None:
         st.session_state.finalized_bracket = load_bracket_data_from_supabase()
 
@@ -1268,81 +1291,66 @@ with tabs[3]:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
         st.stop()
 
-    # Load bracket progression
-    if "bracket_data" not in st.session_state:
-        st.session_state.bracket_data = load_bracket_progression_from_supabase()
-
-    bracket_data = st.session_state.bracket_data
-    bracket_id = bracket_data.get("id")
-
-    if not bracket_id:
-        st.warning("❌ No bracket record ID found. Cannot save progression.")
-        st.stop()
-
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
-    qf_left = decode_if_json(bracket_data.get("qf_left"))
-    qf_right = decode_if_json(bracket_data.get("qf_right"))
-    sf_left = decode_if_json(bracket_data.get("sf_left"))
-    sf_right = decode_if_json(bracket_data.get("sf_right"))
-    finalist_left = bracket_data.get("finalist_left")
-    finalist_right = bracket_data.get("finalist_right")
-    champion = bracket_data.get("champion")
-    field_locked = bracket_data.get("field_locked", False)
 
     icon = "🏌️"
 
     if st.session_state.authenticated:
         st.success("🔐 Admin Mode Enabled")
 
-        col1, col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
-        with col1:
-            st.markdown("### 🟦 Left Side")
-            r16_left_results, qf_left_results = [], []
+    with col1:
+        st.markdown("### 🟦 Left Side")
 
-            for i, (p1_name, p2_name) in enumerate(r16_left):
-                render_bracket_match_ui(
-                    match_id=100 + i,
-                    round_name="Round of 16",
-                    player1=p1_name,
-                    player2=p2_name
-                )
-                # You can fetch result later if needed, or reload from Supabase
+        # R16
+        for i, (p1_name, p2_name) in enumerate(r16_left):
+            render_bracket_match_ui(
+                match_id=100 + i,
+                round_name="Round of 16",
+                player1=p1_name,
+                player2=p2_name
+            )
 
-            for i in range(0, len(r16_left), 2):
-                if i + 1 < len(r16_left):
-                    p1 = r16_left[i][0]  # winner of Match 100+i
-                    p2 = r16_left[i+1][0]  # winner of Match 100+i+1
+        # QF
+        for i in range(0, len(r16_left), 2):
+            if i + 1 < len(r16_left):
+                winner1 = get_bracket_winner(100 + i)
+                winner2 = get_bracket_winner(100 + i + 1)
+                if winner1 and winner2:
                     render_bracket_match_ui(
                         match_id=200 + i,
                         round_name="Quarterfinals",
-                        player1=p1,
-                        player2=p2
+                        player1=winner1,
+                        player2=winner2
                     )
 
-            with col2:
-                st.markdown("### 🟥 Right Side")
-                r16_right_results, qf_right_results = [], []
+    with col2:
+        st.markdown("### 🟥 Right Side")
 
-                for i, (p1_name, p2_name) in enumerate(r16_right):
+        # R16
+        for i, (p1_name, p2_name) in enumerate(r16_right):
+            render_bracket_match_ui(
+                match_id=300 + i,
+                round_name="Round of 16",
+                player1=p1_name,
+                player2=p2_name
+            )
+
+        # QF
+        for i in range(0, len(r16_right), 2):
+            if i + 1 < len(r16_right):
+                winner1 = get_bracket_winner(300 + i)
+                winner2 = get_bracket_winner(300 + i + 1)
+                if winner1 and winner2:
                     render_bracket_match_ui(
-                        match_id=300 + i,
-                        round_name="Round of 16",
-                        player1=p1_name,
-                        player2=p2_name
+                        match_id=400 + i,
+                        round_name="Quarterfinals",
+                        player1=winner1,
+                        player2=winner2
                     )
 
-                for i in range(0, len(r16_right), 2):
-                    if i + 1 < len(r16_right):
-                        p1 = r16_right[i][0]
-                        p2 = r16_right[i+1][0]
-                        render_bracket_match_ui(
-                            match_id=400 + i,
-                            round_name="Quarterfinals",
-                            player1=p1,
-                            player2=p2
-                        )
 
 
 # --- Save Button ---
