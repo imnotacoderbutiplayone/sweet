@@ -1,9 +1,10 @@
+import streamlit as st
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 import os, sys
 sys.path.append(os.path.dirname(__file__))
 
 # **First Streamlit command must be st.set_page_config**
-import streamlit as st
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
+
 
 # Now we can import the rest
 from supabase import create_client
