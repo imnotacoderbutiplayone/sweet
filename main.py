@@ -8,8 +8,8 @@ st.write("🗂️ Current directory contents:", os.listdir())  # NOW this works
 
 import streamlit as st
 from supabase import create_client
-from bracket_helpers import *
-from app_helpers import *  # where render_match and get_winner_player live
+#from bracket_helpers import *
+#from app_helpers import *  # where render_match and get_winner_player live
 import pandas as pd
 import json
 from datetime import datetime
