@@ -4,9 +4,6 @@ import pandas as pd
 import json
 from shared_helpers import render_match, get_winner_player, sanitize_key
 
-
-
-
 def run_group_stage(pods, supabase):
     st.subheader("📊 Group Stage - Match Entry")
 
