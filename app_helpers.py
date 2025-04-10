@@ -6,39 +6,26 @@ import pandas as pd
 
 
 def run_group_stage(pods, supabase):
-    """
-    Run the group stage, simulate matches, show match entry UI, and save results.
-    
-    Args:
-    - pods (dict): Dictionary of players grouped by pods.
-    - supabase (object): The Supabase client.
-    """
+    import pandas as pd
+    import streamlit as st
+    from app_helpers import simulate_matches, resolve_tiebreakers, build_bracket_df_from_pod_scores, save_bracket_data
+    from bracket_helpers import load_match_results, compute_pod_standings_from_results
+
     st.subheader("📊 Group Stage - Match Entry")
 
-    # Load match results from Supabase
     match_results = load_match_results(supabase)
-
-    # Compute standings for each pod based on match results
     pod_scores = compute_pod_standings_from_results(pods, match_results)
 
-    # Loop over each pod and simulate matches
     for pod_name, players in pods.items():
         with st.expander(pod_name):
             updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
             st.dataframe(pd.DataFrame(updated_players))
 
-    # If the user is authenticated (admin), allow finalizing the bracket
     if st.session_state.authenticated:
         unresolved = resolve_tiebreakers(pod_scores)
-
         if not unresolved and st.button("Finalize Bracket Field"):
-            # Build bracket from pod scores and tiebreaker selections
             bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-
-            # Save the bracket data to Supabase
             save_bracket_data(bracket_df, supabase)
-            
-            # Success message after saving
             st.success("✅ Field of 16 saved!")
 
 def render_pod_table(pods_df):
