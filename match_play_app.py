@@ -1525,20 +1525,5 @@ with tabs[4]:
 
 # --- Leaderboard Tab ---
 with tabs[5]:
-    st.subheader("🔎 Raw Predictions Table Debug")
-
-    try:
-        response = supabase.table("predictions").select("*").execute()
-        predictions = response.data
-
-        if not predictions:
-            st.warning("📭 No predictions found.")
-        else:
-            st.success(f"✅ Pulled {len(predictions)} prediction(s)")
-            st.write("🧾 Full Data:", predictions)
-            df = pd.DataFrame(predictions)
-            st.dataframe(df, use_container_width=True)
-
-    except Exception as e:
-        st.error("❌ Failed to load predictions table.")
-        st.code(str(e))
+    st.warning("🚨 ENTERED tab[5]")
+    st.write("👋 Hello, world!")
