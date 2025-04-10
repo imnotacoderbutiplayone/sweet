@@ -66,16 +66,30 @@ def load_match_results(supabase):
         return pd.DataFrame()  # Return an empty DataFrame in case of error
 
 def show_pods_table(pods):
-    """
-    Display a table of players grouped by pods.
-    
-    Args:
-    - pods (dict): A dictionary with pod names as keys and lists of player records as values.
-    """
     for pod_name, players in pods.items():
-        st.subheader(f"📦 {pod_name} Players")
-        players_data = [{"Name": player["name"], "Handicap": player["handicap"]} for player in players]
-        st.write(players_data)  # Display the player list in a table format
+        # Create a dataframe for players in the pod
+        pod_df = pd.DataFrame(players)
+        
+        # Format the "Handicap" column to 1 decimal place
+        pod_df['Handicap'] = pod_df['Handicap'].apply(lambda x: f"{x:.1f}")
+        
+        # Styling for the table
+        st.markdown(f"### 🏌️ Pod: {pod_name}")
+        
+        # Apply color styling to the table for visual appeal
+        styled_table = pod_df.style.applymap(
+            lambda val: 'background-color: lightblue;' if isinstance(val, str) else '',
+            subset=['Name']
+        ).applymap(
+            lambda val: 'background-color: #f9f9f9;' if isinstance(val, str) else '',
+            subset=['Handicap']
+        ).set_table_styles([
+            {'selector': 'thead th', 'props': [('background-color', '#1f77b4'), ('color', 'white'), ('text-align', 'center')]},
+            {'selector': 'tbody td', 'props': [('text-align', 'center')]},
+        ])
+
+        # Display the styled dataframe
+        st.dataframe(styled_table)
 
 
 def group_players_by_pod(players_df):
