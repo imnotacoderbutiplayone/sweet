@@ -35,7 +35,6 @@ def get_player_by_name(name, df):
     return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
-        def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
     # --- Bracket Stage Rendering ---
 def render_stage_matches(matches, bracket_df, stage):
@@ -489,7 +488,6 @@ def safe_name(name):
     return name if name and name != "" else "?"
         def get_player_by_name(name, df):
     return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
-        def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
     # --- Bracket Stage Rendering ---
 def render_stage_matches(matches, bracket_df, stage):
