@@ -13,7 +13,7 @@ from collections import defaultdict
 # --- Shared Helpers ---
 def sanitize_key(key: str) -> str:
     return key.replace(" ", "_").replace("|", "_").replace("&", "and").replace(":", "_").lower()
-def render_match(p1, p2, default="Tie", readonly=False, key_prefix="", stage=""):
+    def render_match(p1, p2, default="Tie", readonly=False, key_prefix="", stage=""):
     key = f"{stage}_{key_prefix}_winner"
     options = [p1["name"], p2["name"], "Tie"]
     if readonly:
@@ -22,8 +22,8 @@ def render_match(p1, p2, default="Tie", readonly=False, key_prefix="", stage="")
     return st.radio(f"{p1['name']} vs {p2['name']}", options, index=options.index(default), key=key)
     return st.radio(f"{p1['name']} vs {p2['name']}", options, index=options.index(default), key=key)
 
-def get_winner_player(p1, p2, winner_name):
-    if winner_name == p1["name"]:
+    def get_winner_player(p1, p2, winner_name):
+        if winner_name == p1["name"]:
     return p1
     elif winner_name == p2["name"]:
     return p2
@@ -48,10 +48,10 @@ from shared_helpers import sanitize_key, render_match
 def safe_name(name):
     return name if name and name != "" else "?"
 
-def get_player_by_name(name, df):
+    def get_player_by_name(name, df):
     return next((p for p in df.to_dict("records") if p["name"] == name), {"name": name, "handicap": "N/A"})
 
-def get_winner_name(match):
+    def get_winner_name(match):
     return match.get("winner") if match.get("winner") and match["winner"] != "Tie" else ""
 
 # --- Bracket Stage Rendering ---
@@ -65,9 +65,9 @@ def render_stage_matches(matches, bracket_df, stage):
     results.append(get_winner_player(p1, p2, winner))
     return results
 
-def advance_round(current_matches, bracket_df, next_stage, supabase):
-    for i in range(0, len(current_matches), 2):
-    if i + 1 >= len(current_matches):
+    def advance_round(current_matches, bracket_df, next_stage, supabase):
+        for i in range(0, len(current_matches), 2):
+            if i + 1 >= len(current_matches):
     continue
     w1 = get_winner_name(current_matches[i])
     w2 = get_winner_name(current_matches[i + 1])
@@ -93,17 +93,17 @@ def visualize_bracket(r16, qf, sf, final):
     for match in r16:
         label = f"{safe_name(match.get('player1'))} vs {safe_name(match.get('player2'))}"
         dot.node(f"r16_{match['match_index']}", label, shape="box")
-    for match in qf:
+        for match in qf:
         dot.node(f"qf_{match['match_index']}", safe_name(match.get("winner") or "?"))
-    for match in sf:
+        for match in sf:
         dot.node(f"sf_{match['match_index']}", safe_name(match.get("winner") or "?"))
-    if final:
+        if final:
         dot.node("final_0", safe_name(final[0].get("winner") or "?"), shape="doublecircle")
 
-    for i in range(0, len(r16), 2):
+        for i in range(0, len(r16), 2):
         dot.edge(f"r16_{i}", f"qf_{i//2}")
         dot.edge(f"r16_{i+1}", f"qf_{i//2}")
-    for i in range(0, len(qf), 2):
+        for i in range(0, len(qf), 2):
         dot.edge(f"qf_{i}", f"sf_{i//2}")
         dot.edge(f"qf_{i+1}", f"sf_{i//2}")
     dot.edge("sf_0", "final_0")
@@ -118,11 +118,11 @@ def render_pod_matches(pod_name, players, editable, session_results):
     from shared_helpers import sanitize_key, render_match  # make sure this works
 
     margin_lookup = {
-        "1 up": 1,
-        "2&1": 2,
-        "3&2": 3,
-        "4&3": 4,
-        "5&4": 5,
+    "1 up": 1,
+    "2&1": 2,
+    "3&2": 3,
+    "4&3": 4,
+    "5&4": 5,
     }
 
     results = defaultdict(lambda: {"points": 0, "margin": 0})
@@ -150,23 +150,23 @@ def render_pod_matches(pod_name, players, editable, session_results):
 
                     # Render input
                     selected_winner = render_match(
-                        p1, p2, winner,
-                        readonly=False,
-                        key_prefix=base_key,
-                        stage="group_stage"
+                    p1, p2, winner,
+                    readonly=False,
+                    key_prefix=base_key,
+                    stage="group_stage"
                     )
                     session_results[match_key] = {
-                        "winner": selected_winner,
-                        "margin": margin_lookup.get(margin_str, 0)
+                    "winner": selected_winner,
+                    "margin": margin_lookup.get(margin_str, 0)
                     }
-            else:
+                    else:
                 st.info(f"🔒 Admin login required to score matches in {pod_name}")
 
     return session_results
 
 
 
-def compute_standings_from_results(pods, match_results):
+    def compute_standings_from_results(pods, match_results):
     import pandas as pd
     pod_scores = {}
     for pod_name, players in pods.items():
@@ -176,7 +176,7 @@ def compute_standings_from_results(pods, match_results):
     points = 0
     margin = 0
     for key, result in match_results.items():
-    if key.startswith(f"{pod_name}|") and name in key:
+        if key.startswith(f"{pod_name}|") and name in key:
     winner = result.get("winner")
     margin_val = result.get("margin", 0)
     if winner == name:
@@ -214,11 +214,11 @@ def run_group_stage(pods, supabase):
     for pod_name, players in pods.items():
         with st.expander(pod_name, expanded=True):
             st.markdown("Match entry UI goes here.")  # placeholder
-            
-    
 
 
-def render_pod_table(pods_df):
+
+
+            def render_pod_table(pods_df):
     grouped = pods_df.groupby("pod")
     sorted_pods = sorted(grouped, key=lambda x: int(x[0].split()[-1]))
 
@@ -236,42 +236,42 @@ def render_pod_table(pods_df):
 
         table_html = f"""
         <style>
-            .styled-table {{
-                border-collapse: collapse;
-                margin: 10px 0;
-                font-size: 16px;
-                width: 100%;
-                box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
-            }}
-            .styled-table th {{
-                background-color: #1f77b4;
-                color: white;
-                text-align: left;
-                padding: 8px;
-            }}
-            .styled-table td {{
-                padding: 8px;
-                border-bottom: 1px solid #ddd;
-            }}
-            .styled-table tr:nth-child(even) {{
-                background-color: #f2f2f2;
-            }}
+        .styled-table {{
+        border-collapse: collapse;
+        margin: 10px 0;
+        font-size: 16px;
+        width: 100%;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+        }}
+        .styled-table th {{
+        background-color: #1f77b4;
+        color: white;
+        text-align: left;
+        padding: 8px;
+        }}
+        .styled-table td {{
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+        }}
+        .styled-table tr:nth-child(even) {{
+        background-color: #f2f2f2;
+        }}
         </style>
         <table class="styled-table">
-            <thead>
-                <tr><th>Name</th><th>Handicap</th></tr>
-            </thead>
-            <tbody>
-                {rows_html}
-            </tbody>
+        <thead>
+        <tr><th>Name</th><th>Handicap</th></tr>
+        </thead>
+        <tbody>
+        {rows_html}
+        </tbody>
         </table>
         """
 
         st.markdown(table_html, unsafe_allow_html=True)
 
 
-def load_match_results(supabase):
-    try:
+        def load_match_results(supabase):
+            try:
     response = supabase.table("tournament_matches").select("*").execute()
     if response.data:
     result_dict = {}
@@ -291,23 +291,23 @@ def load_match_results(supabase):
 
 
 
-def show_pods_table(pods):
-    for pod_name, players in pods.items():
+    def show_pods_table(pods):
+        for pod_name, players in pods.items():
     st.markdown(f"### \U0001F3CC️ Pod: {pod_name}")
     pod_df = pd.DataFrame(players)
 
-        if "name" not in pod_df.columns or "handicap" not in pod_df.columns:
-            st.error(f"Data for {pod_name} missing 'name' or 'handicap'.")
-            continue
+    if "name" not in pod_df.columns or "handicap" not in pod_df.columns:
+        st.error(f"Data for {pod_name} missing 'name' or 'handicap'.")
+        continue
 
         render_pod_table(pod_df)
 
 
-def group_players_by_pod(players_df):
+        def group_players_by_pod(players_df):
     return players_df.groupby("pod").apply(lambda x: x.to_dict(orient="records")).to_dict()
 
 
-def show_standings(pods, supabase):
+    def show_standings(pods, supabase):
     st.subheader("📋 Group Stage Standings")
     match_results = load_match_results(supabase)
     pod_scores = compute_standings_from_results(pods, match_results)
@@ -318,7 +318,7 @@ def show_standings(pods, supabase):
             st.dataframe(df, use_container_width=True)
 
 
-def run_bracket_stage(players_df, supabase):
+            def run_bracket_stage(players_df, supabase):
     st.subheader("\U0001F3C6 Bracket Stage")
     bracket_df = load_bracket_data_from_supabase(supabase)
     if bracket_df.empty:
@@ -335,7 +335,7 @@ def run_bracket_stage(players_df, supabase):
         with col1:
             render_stage_matches(r16, bracket_df, "r16")
             render_stage_matches(qf, bracket_df, "qf")
-        with col2:
+            with col2:
             render_stage_matches(sf, bracket_df, "sf")
             render_stage_matches(final, bracket_df, "final")
 
@@ -347,8 +347,8 @@ def run_bracket_stage(players_df, supabase):
             advance_round(sf, bracket_df, "final", supabase)
 
 
-def run_predictions_tab(supabase):
-    
+            def run_predictions_tab(supabase):
+
     st.subheader("🔮 Predict the Bracket")
     bracket_df = load_bracket_data_from_supabase(supabase)
     if bracket_df.empty:
@@ -381,11 +381,11 @@ def run_predictions_tab(supabase):
 
     if st.button("Submit Prediction"):
         save_user_prediction(supabase, full_name, finalist_left, finalist_right, champion,
-                             pred_r16_left, pred_r16_right, pred_qf_left, pred_qf_right)
+        pred_r16_left, pred_r16_right, pred_qf_left, pred_qf_right)
         st.success("✅ Prediction submitted!")
 
 
-    def show_leaderboard(supabase):
+        def show_leaderboard(supabase):
     st.subheader("\U0001F3C5 Leaderboard")
 
     predictions = supabase.table("predictions").select("*").execute().data
@@ -397,22 +397,22 @@ def run_predictions_tab(supabase):
 
     actual = final_result[0]
     actual_results = {
-        "r16_left": json.loads(actual.get("r16_left", "[]")),
-        "r16_right": json.loads(actual.get("r16_right", "[]")),
-        "qf_left": json.loads(actual.get("qf_left", "[]")),
-        "qf_right": json.loads(actual.get("qf_right", "[]")),
-        "sf_left": json.loads(actual.get("sf_left", "[]")),
-        "sf_right": json.loads(actual.get("sf_right", "[]")),
-        "champion": actual.get("champion", "")
+    "r16_left": json.loads(actual.get("r16_left", "[]")),
+    "r16_right": json.loads(actual.get("r16_right", "[]")),
+    "qf_left": json.loads(actual.get("qf_left", "[]")),
+    "qf_right": json.loads(actual.get("qf_right", "[]")),
+    "sf_left": json.loads(actual.get("sf_left", "[]")),
+    "sf_right": json.loads(actual.get("sf_right", "[]")),
+    "champion": actual.get("champion", "")
     }
 
     leaderboard = [
-        {
-            "Name": row["name"],
-            "Score": score_prediction(row, actual_results),
-            "Submitted At": row["timestamp"].replace("T", " ")[:19] + " UTC"
-        }
-        for row in predictions
+    {
+    "Name": row["name"],
+    "Score": score_prediction(row, actual_results),
+    "Submitted At": row["timestamp"].replace("T", " ")[:19] + " UTC"
+    }
+    for row in predictions
     ]
 
     df = pd.DataFrame(leaderboard).sort_values(by=["Score", "Submitted At"], ascending=[False, True])
@@ -420,7 +420,7 @@ def run_predictions_tab(supabase):
     st.dataframe(df, use_container_width=True)
 
 
-def show_how_it_works():
+    def show_how_it_works():
     st.header("\U0001F4D8 How It Works")
     st.markdown("""
     ### 🏌️ Tournament Format
@@ -447,22 +447,22 @@ import json
 from datetime import datetime
 
 from app_helpers import (
-    run_group_stage,
-    render_pod_table,
-    show_standings,
-    run_predictions_tab,
-    show_leaderboard,
-    show_how_it_works,
-    group_players_by_pod
+run_group_stage,
+render_pod_table,
+show_standings,
+run_predictions_tab,
+show_leaderboard,
+show_how_it_works,
+group_players_by_pod
 )
 
 from bracket_helpers import (
-    run_bracket_stage,
-    render_pod_matches,
-    compute_standings_from_results,
-    resolve_tiebreakers,
-    build_bracket_df_from_pod_scores,
-    save_bracket_data
+run_bracket_stage,
+render_pod_matches,
+compute_standings_from_results,
+resolve_tiebreakers,
+build_bracket_df_from_pod_scores,
+save_bracket_data
 )
 
 # --- Config ---
@@ -482,7 +482,7 @@ general_password = st.secrets["general_password"]["password"]
 # Initialize session state variables
 if 'app_authenticated' not in st.session_state:
     st.session_state.app_authenticated = False
-if 'authenticated' not in st.session_state:
+    if 'authenticated' not in st.session_state:
     st.session_state.authenticated = False
 
 # Check if the user is authenticated
@@ -493,7 +493,7 @@ if not st.session_state.app_authenticated:
         if pwd == general_password:
             st.session_state.app_authenticated = True
             st.rerun()  # Refresh to show logged-in state
-        else:
+            else:
             st.error("Incorrect password.")
     st.stop()  # Stop further execution until the user is authenticated
 
@@ -505,22 +505,22 @@ if not st.session_state.authenticated:
         if pwd_input == admin_password:
             st.session_state.authenticated = True
             st.rerun()  # Refresh to show logged-in state
-        else:
+            else:
             st.sidebar.error("Wrong password.")
-else:
-    if st.sidebar.button("Logout"):
+            else:
+                if st.sidebar.button("Logout"):
         st.session_state.authenticated = False
         st.rerun()  # Refresh to show logged-out state
 
 # --- Tabs ---
 tabs = st.tabs([
-    "📁 Pods Overview",
-    "📊 Group Stage",
-    "📋 Standings",
-    "🏆 Bracket",
-    "🔮 Predict Bracket",
-    "🏅 Leaderboard",
-    "📘 How It Works"
+"📁 Pods Overview",
+"📊 Group Stage",
+"📋 Standings",
+"🏆 Bracket",
+"🔮 Predict Bracket",
+"🏅 Leaderboard",
+"📘 How It Works"
 ])
 
 # --- Shared Data ---
