@@ -72,7 +72,9 @@ with tabs[0]:
 
 # --- Tab 1: Group Stage ---
 with tabs[1]:
-    run_group_stage(pods, supabase)
+    if "group_stage_results" not in st.session_state:
+        st.session_state.group_stage_results = load_match_results(supabase)
+
 
 # --- Tab 2: Standings ---
 with tabs[2]:
