@@ -1542,4 +1542,3 @@ with tabs[5]:
     except Exception as e:
         st.error("❌ Error loading leaderboard.")
         st.code(str(e))
-
