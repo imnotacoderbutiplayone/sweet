@@ -1,3 +1,6 @@
+import os, sys
+sys.path.append(os.path.dirname(__file__))
+
 # main.py (Clean and Modular)
 import streamlit as st
 from supabase import create_client
