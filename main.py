@@ -531,6 +531,8 @@ pods = group_players_by_pod(players_df)
 with tabs[0]:
     st.subheader("📁 Pods Overview")
     render_pod_table(players_df)
+    st.subheader("📁 Pods Overview")
+    render_pod_table(players_df)
 
 # --- Tab 1: Group Stage ---
 with tabs[1]:
