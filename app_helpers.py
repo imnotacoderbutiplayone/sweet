@@ -8,7 +8,6 @@ import pandas as pd
 def run_group_stage(pods, supabase):
     import pandas as pd
     import streamlit as st
-    from app_helpers import simulate_matches, resolve_tiebreakers, build_bracket_df_from_pod_scores, save_bracket_data
     from bracket_helpers import load_match_results, compute_pod_standings_from_results
 
     st.subheader("📊 Group Stage - Match Entry")
