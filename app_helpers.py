@@ -50,31 +50,48 @@ def render_pod_table(pods_df):
 
     for pod_name, pod_group in sorted_pods:
         pod_group = pod_group.sort_values(by="handicap", ascending=True)
-        st.markdown(f"### 🏌️ {pod_name}")
 
-        table_html = """
-            <style>
-                table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #004466; color: white; }
-                tr:nth-child(even) { background-color: #f2f2f2; }
-            </style>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Handicap</th>
-                    </tr>
-                </thead>
-                <tbody>
-        """
+        st.markdown(f"<h3>🏌️ {pod_name}</h3>", unsafe_allow_html=True)
 
+        rows_html = ""
         for _, player in pod_group.iterrows():
             name = player.get("name", "N/A")
-            handicap = round(player.get("handicap", 0.0), 1) if pd.notna(player.get("handicap")) else "N/A"
-            table_html += f"<tr><td>{name}</td><td>{handicap}</td></tr>"
+            handicap = player.get("handicap", "N/A")
+            handicap = round(handicap, 1) if pd.notna(handicap) else "N/A"
+            rows_html += f"<tr><td>{name}</td><td>{handicap}</td></tr>"
 
-        table_html += "</tbody></table>"
+        table_html = f"""
+        <style>
+            .styled-table {{
+                border-collapse: collapse;
+                margin: 10px 0;
+                font-size: 16px;
+                width: 100%;
+                box-shadow: 0 0 10px rgba(0, 0, 0, 0.15);
+            }}
+            .styled-table th {{
+                background-color: #1f77b4;
+                color: white;
+                text-align: left;
+                padding: 8px;
+            }}
+            .styled-table td {{
+                padding: 8px;
+                border-bottom: 1px solid #ddd;
+            }}
+            .styled-table tr:nth-child(even) {{
+                background-color: #f2f2f2;
+            }}
+        </style>
+        <table class="styled-table">
+            <thead>
+                <tr><th>Name</th><th>Handicap</th></tr>
+            </thead>
+            <tbody>
+                {rows_html}
+            </tbody>
+        </table>
+        """
 
         st.markdown(table_html, unsafe_allow_html=True)
 
