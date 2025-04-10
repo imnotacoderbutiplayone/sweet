@@ -1522,11 +1522,11 @@ with tabs[4]:
 
 
 
-
+st.warning("🚨 About to enter Leaderboard Tab")
 # --- Leaderboard Tab ---
 with tabs[5]:
-    st.error("🎯 YOU ARE IN THE LEADERBOARD TAB — IT IS RUNNING.")
-    st.stop()
+st.warning("🚨 ENTERED Leaderboard Tab")
+
 
 
     try:
