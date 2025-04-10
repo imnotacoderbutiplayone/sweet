@@ -879,6 +879,15 @@ def load_bracket_progression_from_supabase():
         st.error(f"❌ Failed to load bracket progression: {e}")
         return {}
 
+def save_final_results_to_supabase(final_data):
+    try:
+        response = supabase.table("final_results").insert(final_data).execute()
+        if response.data:
+            st.success("✅ Final results saved to Supabase.")
+        else:
+            st.error("❌ Failed to save final results.")
+    except Exception as e:
+        st.error(f"❌ Error saving final results: {e}")
 
 
 # --- Bracket Margin Lookup ---
@@ -1390,16 +1399,6 @@ with tabs[4]:
     if champion == "-- Select Winner --":
         st.warning("Please select a Champion before submitting.")
         st.stop()
-
-def save_final_results_to_supabase(final_data):
-    try:
-        response = supabase.table("final_results").insert(final_data).execute()
-        if response.data:
-            st.success("✅ Final results saved to Supabase.")
-        else:
-            st.error("❌ Failed to save final results.")
-    except Exception as e:
-        st.error(f"❌ Error saving final results: {e}")
 
     # --- Submit ---
     if st.button("🚀 Submit My Bracket Prediction"):
