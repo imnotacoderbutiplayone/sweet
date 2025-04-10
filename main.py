@@ -1,15 +1,15 @@
 import os
+import sys
 
 # Add the current directory to sys.path so Python can find local modules
-import sys
 sys.path.append(os.path.dirname(__file__))
 
-# Print the current working directory
-print("Current working directory:", os.getcwd())
+# Debugging: Check the current working directory
+current_dir = os.getcwd()
+print(f"Current working directory: {current_dir}")
 
-# List all files in the directory
-current_dir_contents = os.listdir(os.getcwd())
-print("🗂️ Current directory contents:", current_dir_contents)
+# List the contents of the current directory to ensure app_helpers.py exists
+print("🗂️ Current directory contents:", os.listdir(current_dir))
 
 # Try importing app_helpers
 try:
@@ -18,13 +18,12 @@ try:
 except ImportError as e:
     print(f"Error importing app_helpers: {e}")
 
-# Streamlit and other necessary imports
+# Continue with your Streamlit app
 import streamlit as st
 from supabase import create_client
 import pandas as pd
 import json
 from datetime import datetime
 
-# Set up Streamlit configuration
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 st.title("Golf Match Play Tournament")
