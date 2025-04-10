@@ -7,5 +7,10 @@ import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # Test that page config is working
-current_dir = os.path.dirname(__file__)  # Gets the current directory
-st.write("🗂️ Current directory contents:", os.listdir(current_dir))  # Use the current directory explicitly
+try:
+    # Use a fallback for os.listdir() to get the files in the working directory
+    current_dir = os.getcwd()  # Get current working directory in Streamlit Cloud
+    directory_contents = os.listdir(current_dir)
+    st.write("🗂️ Current directory contents:", directory_contents)
+except Exception as e:
+    st.error(f"Error: {e}")
