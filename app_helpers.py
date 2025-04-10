@@ -22,8 +22,28 @@ def run_group_stage(pods, supabase):
             save_bracket_data(bracket_df, supabase)
             st.success("✅ Field of 16 saved!")
 
-
-import streamlit as st
+def load_match_results(supabase):
+    """
+    Load match results from Supabase.
+    
+    Args:
+    - supabase (object): The initialized Supabase client.
+    
+    Returns:
+    - pd.DataFrame: DataFrame containing match results.
+    """
+    try:
+        # Fetch match results from the "tournament_matches" table in Supabase
+        response = supabase.table("tournament_matches").select("*").execute()
+        if response.data:
+            match_results = pd.DataFrame(response.data)
+            return match_results
+        else:
+            st.warning("No match results found.")
+            return pd.DataFrame()  # Return an empty DataFrame if no data is found
+    except Exception as e:
+        st.error(f"Error loading match results: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame in case of error
 
 def show_pods_table(pods):
     """
