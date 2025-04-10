@@ -1,3 +1,5 @@
+# main.py
+
 import os, sys
 sys.path.append(os.path.dirname(__file__))
 
@@ -5,7 +7,7 @@ sys.path.append(os.path.dirname(__file__))
 import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-# Now we can import the rest
+# Proceed with the rest of your imports
 from supabase import create_client
 import pandas as pd
 import json
