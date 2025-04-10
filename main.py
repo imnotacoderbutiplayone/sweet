@@ -1,4 +1,4 @@
-# main.py (Minimal version to test Streamlit's page config)
+# main.py (Updated minimal version to test Streamlit's page config)
 
 import os
 import sys
@@ -8,8 +8,5 @@ sys.path.append(os.path.dirname(__file__))
 import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-# Now, add only the necessary imports
-from supabase import create_client
-import pandas as pd
-import json
-from datetime import datetime
+# Test the page configuration by displaying something
+st.title("Golf Match Play Tournament")  # Add a simple title to confirm it's rendering
