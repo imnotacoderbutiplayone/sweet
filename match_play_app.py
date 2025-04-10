@@ -1546,6 +1546,17 @@ with tabs[5]:
             else:
                 final_result = final_results_data[0]
 
+                def parse_json_field(field):
+                    try:
+                        if isinstance(field, str):
+                            return json.loads(field)
+                        elif isinstance(field, list):
+                            return field
+                        return []
+                    except Exception as e:
+                        st.warning(f"⚠️ Failed to parse field: {e}")
+                        return []
+
                 # Parse the actual results
                 actual_results = {
                     "r16_left": parse_json_field(final_result.get("r16_left", "[]")),
@@ -1560,58 +1571,56 @@ with tabs[5]:
 
                 leaderboard = []
 
-                # Calculate scores for each prediction
                 for row in predictions:
                     name = row.get("name", "Unknown")
                     score = 0
                     ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
 
-                    st.write(f"\n🔍 Scoring prediction for {name}")
+                    st.write(f"🔍 Scoring prediction for {name}")
 
-                    # Compare round of 16 predictions
                     pred_r16_left = parse_json_field(row.get("r16_left", "[]"))
                     pred_r16_right = parse_json_field(row.get("r16_right", "[]"))
-                    st.write("Pred R16 Left:", pred_r16_left)
-                    st.write("Actual R16 Left:", actual_results["r16_left"])
-
-                    for actual, predicted in zip(actual_results["r16_left"], pred_r16_left):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 1
-                    for actual, predicted in zip(actual_results["r16_right"], pred_r16_right):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 1
-
-                    # Compare quarterfinal predictions
                     pred_qf_left = parse_json_field(row.get("qf_left", "[]"))
                     pred_qf_right = parse_json_field(row.get("qf_right", "[]"))
-                    st.write("Pred QF Left:", pred_qf_left)
-                    st.write("Actual QF Left:", actual_results["qf_left"])
-
-                    for actual, predicted in zip(actual_results["qf_left"], pred_qf_left):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 3
-                    for actual, predicted in zip(actual_results["qf_right"], pred_qf_right):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 3
-
-                    # Compare semifinal predictions
                     pred_sf_left = parse_json_field(row.get("sf_left", "[]"))
                     pred_sf_right = parse_json_field(row.get("sf_right", "[]"))
+                    pred_champion = row.get("champion", "").strip().lower()
 
+                    # R16
+                    for actual, predicted in zip(actual_results["r16_left"], pred_r16_left):
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"R16 Left → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 1
+                    for actual, predicted in zip(actual_results["r16_right"], pred_r16_right):
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"R16 Right → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 1
+
+                    # QF
+                    for actual, predicted in zip(actual_results["qf_left"], pred_qf_left):
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"QF Left → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 3
+                    for actual, predicted in zip(actual_results["qf_right"], pred_qf_right):
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"QF Right → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 3
+
+                    # SF
                     for actual, predicted in zip(actual_results["sf_left"], pred_sf_left):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 5
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"SF Left → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 5
                     for actual, predicted in zip(actual_results["sf_right"], pred_sf_right):
-                        if actual.strip().lower() == predicted.strip().lower():
-                            score += 5
+                        match = actual.strip().lower() == predicted.strip().lower()
+                        st.write(f"SF Right → '{actual}' vs '{predicted}' → {match}")
+                        if match: score += 5
 
-                    # Compare champion prediction
-                    predicted_champion = row.get("champion", "").strip().lower()
+                    # Champion
                     actual_champion = actual_results["champion"].strip().lower()
-                    if predicted_champion == actual_champion:
-                        score += 10
-                    else:
-                        st.write(f"❌ Champion mismatch for {name}: predicted '{predicted_champion}', actual '{actual_champion}'")
+                    match = pred_champion == actual_champion
+                    st.write(f"🏆 Champion → '{pred_champion}' vs '{actual_champion}' → {match}")
+                    if match: score += 10
 
                     leaderboard.append({
                         "Name": name,
@@ -1619,17 +1628,13 @@ with tabs[5]:
                         "Submitted At": ts
                     })
 
-                # Create a dataframe for leaderboard
                 leaderboard_df = pd.DataFrame(leaderboard)
                 leaderboard_df = leaderboard_df.sort_values(
                     by=["Score", "Submitted At"],
                     ascending=[False, True]
                 ).reset_index(drop=True)
-
-                # Add rank column
                 leaderboard_df.insert(0, "Rank", leaderboard_df.index + 1)
 
-                # Highlight podium places
                 def highlight_podium(row):
                     color = ""
                     if row["Rank"] == 1:
@@ -1637,13 +1642,10 @@ with tabs[5]:
                     elif row["Rank"] == 2:
                         color = "background-color: silver; font-weight: bold"
                     elif row["Rank"] == 3:
-                        color = "background-color: #cd7f32; font-weight: bold"  # bronze
+                        color = "background-color: #cd7f32; font-weight: bold"
                     return [color] * len(row)
 
-                # Apply styles to the leaderboard
                 styled_df = leaderboard_df.style.apply(highlight_podium, axis=1)
-
-                # Display leaderboard
                 st.dataframe(styled_df, use_container_width=True)
 
     except Exception as e:
