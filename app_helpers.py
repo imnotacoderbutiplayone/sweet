@@ -3,7 +3,8 @@ import streamlit as st
 import pandas as pd
 import json
 from bracket_helpers import *
-from ui_helpers import sanitize_key, render_match
+from ui_helpers import sanitize_key, render_match, get_winner_player
+
 
 
 
