@@ -72,12 +72,9 @@ with tabs[0]:
         st.write(f"Players in {pod_name}:", players)  # This will show the raw player data
         
         for player in players:
-            # Debugging: Print each player to check structure
-            st.write(player)  # Print out the player data to check
-
-            # Check if the keys 'name' and 'handicap' are present
+            # Check if the keys 'name' and 'handicap' are present in the player data
             if 'name' in player and 'handicap' in player:
-                # Display the player info with correct keys
+                # Display the player's name and handicap with proper formatting
                 st.markdown(f"**{player['name']}** (Handicap: {player['handicap']:.1f})")
             else:
                 st.error(f"Player data is missing 'name' or 'handicap' for {player}")
