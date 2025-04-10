@@ -1266,6 +1266,7 @@ with tabs[2]:
 
 
 # --- Bracket Tab ---
+# --- Bracket Tab ---
 with tabs[3]:
     st.subheader("🏆 Bracket Stage")
 
@@ -1304,6 +1305,16 @@ with tabs[3]:
         except Exception as e:
             st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
             return None
+
+    def save_final_results_to_supabase(final_data):
+        try:
+            response = supabase.table("final_results").insert(final_data).execute()
+            if response.data:
+                st.success("✅ Final results saved to Supabase.")
+            else:
+                st.error("❌ Failed to save final results.")
+        except Exception as e:
+            st.error(f"❌ Error saving final results: {e}")
 
     bracket_data = load_or_refresh_bracket_data()
     bracket_id = bracket_data.get("id")
@@ -1383,6 +1394,22 @@ with tabs[3]:
             champion = get_bracket_winner(400)
             if champion:
                 st.success(f"🏆 Champion: **{champion}**")
+
+                if st.session_state.authenticated:
+                    if st.button("💾 Save Final Results to Leaderboard"):
+                        final_data = {
+                            "r16_left": json.dumps([p1 for p1, p2 in r16_left]),
+                            "r16_right": json.dumps([p1 for p1, p2 in r16_right]),
+                            "qf_left": json.dumps([p1 for p1, p2 in qf_left]),
+                            "qf_right": json.dumps([p1 for p1, p2 in qf_right]),
+                            "sf_left": json.dumps([p1 for p1, p2 in sf_left]),
+                            "sf_right": json.dumps([p1 for p1, p2 in sf_right]),
+                            "finalist_left": left_finalist,
+                            "finalist_right": right_finalist,
+                            "champion": champion,
+                            "created_at": datetime.utcnow().isoformat()
+                        }
+                        save_final_results_to_supabase(final_data)
 
 
 # --- Predict Bracket ---
