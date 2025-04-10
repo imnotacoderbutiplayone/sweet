@@ -508,19 +508,27 @@ def render_bracket_match_ui(match_id, round_name, player1, player2):
 
 
 # ---- Get winner from bracket ---
-def get_bracket_winner(match_id):
-    try:
-        response = supabase.table("tournament_matches") \
-            .select("winner") \
-            .eq("match_id", match_id) \
-            .limit(1) \
-            .execute()
-        if response.data and len(response.data) > 0:
-            return response.data[0]["winner"]
-        return None
-    except Exception as e:
-        st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
-        return None
+import time
+
+def get_bracket_winner(match_id, retries=3, delay=1):
+    for attempt in range(retries):
+        try:
+            response = supabase.table("tournament_matches") \
+                .select("winner") \
+                .eq("match_id", match_id) \
+                .limit(1) \
+                .execute()
+
+            if response.data and len(response.data) > 0:
+                return response.data[0]["winner"]
+            return None
+
+        except Exception as e:
+            if attempt < retries - 1:
+                time.sleep(delay)
+            else:
+                st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
+                return None
 
 
 #--- resolve tiebreakers --
