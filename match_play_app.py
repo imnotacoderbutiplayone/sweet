@@ -1041,19 +1041,75 @@ tabs = st.tabs([
     "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
-st.subheader("🏅 Leaderboard Debug - Step 2")
+# --- Leaderboard Tab ---
+with tabs[5]:
+    st.subheader("🏅 Leaderboard Debug - R16 Scoring Only")
 
 try:
-    preds = supabase.table("predictions").select("*").limit(5).execute()
-    st.write("✅ Predictions Sample:", preds.data)
+    preds = supabase.table("predictions").select("*").limit(10).execute().data
+    finals = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute().data
 
-    finals = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute()
-    st.write("✅ Final Results Sample:", finals.data)
+    if not preds:
+        st.warning("No predictions found.")
+        st.stop()
+
+    if not finals:
+        st.warning("Final results not available.")
+        st.stop()
+
+    def parse_json_field(field):
+        try:
+            if isinstance(field, str):
+                return json.loads(field)
+            elif isinstance(field, list):
+                return field
+            return []
+        except:
+            return []
+
+    def normalize(name):
+        return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
+
+    actual = finals[0]
+    actual_r16_left = [normalize(x) for x in parse_json_field(actual.get("r16_left", []))]
+    actual_r16_right = [normalize(x) for x in parse_json_field(actual.get("r16_right", []))]
+
+    leaderboard = []
+
+    for row in preds:
+        name = row.get("name", "Unknown")
+        ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
+        score = 0
+
+        pred_r16_left = [normalize(x) for x in parse_json_field(row.get("r16_left", []))]
+        pred_r16_right = [normalize(x) for x in parse_json_field(row.get("r16_right", []))]
+
+        r16_matches = 0
+        for a, p in zip(actual_r16_left, pred_r16_left):
+            if a == p:
+                score += 1
+                r16_matches += 1
+        for a, p in zip(actual_r16_right, pred_r16_right):
+            if a == p:
+                score += 1
+                r16_matches += 1
+
+        leaderboard.append({
+            "Name": name,
+            "R16 Matches": r16_matches,
+            "Score (R16 Only)": score,
+            "Submitted At": ts
+        })
+
+    df = pd.DataFrame(leaderboard)
+    df = df.sort_values(by=["Score (R16 Only)", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
+    df.index += 1
+    st.dataframe(df)
 
 except Exception as e:
-    st.error("❌ Error querying Supabase.")
+    st.error("❌ Error scoring leaderboard.")
     st.code(str(e))
-
+    
 
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
