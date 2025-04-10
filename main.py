@@ -1,5 +1,13 @@
 # main.py (Clean and Modular)
 import streamlit as st
+
+# Access the passwords from secrets.toml
+admin_password = st.secrets["admin_password"]["password"]
+general_password = st.secrets["general_password"]["password"]
+
+# Use the passwords in your app logic
+user_password = st.text_input("Enter password:", type="password")
+
 from supabase import create_client
 from bracket_helpers import *
 from app_helpers import *  # where render_match and get_winner_player live
