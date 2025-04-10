@@ -114,7 +114,7 @@ def group_players_by_pod(players_df):
 def show_standings(pods, supabase):
     st.subheader("📋 Group Stage Standings")
     match_results = load_match_results(supabase)
-    pod_scores = compute_pod_standings_from_results(pods, match_results)
+    pod_scores = compute_standings_from_results(pods, match_results)
 
     for pod_name, df in pod_scores.items():
         with st.expander(pod_name):
