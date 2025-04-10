@@ -9,7 +9,7 @@ from datetime import datetime
 from supabase import create_client
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import datetime
 
 PREDICTION_DEADLINE = datetime.fromisoformat(
     st.secrets["predictions"]["deadline"].replace("Z", "+00:00")
@@ -1419,103 +1419,109 @@ if st.button("📋 Save Bracket Progress"):
 
 # --- Predict Bracket ---
 with tabs[4]:
-    st.subheader("🔮 Predict Bracket")
+    st.subheader("🔮 Predict the Bracket")
 
+    # Lock prediction after deadline
     now = datetime.now(timezone.utc)
     predictions_locked = now > PREDICTION_DEADLINE
 
-    bracket_df = st.session_state.get("finalized_bracket")
-    if bracket_df is None or bracket_df.empty or len(bracket_df) < 16:
-        bracket_df = load_bracket_data_from_supabase()
-        st.session_state.finalized_bracket = bracket_df
+    # Load finalized bracket progression (actual R16 matchups)
+    bracket_data = load_bracket_progression_from_supabase()
+    r16_left = decode_if_json(bracket_data.get("r16_left"))
+    r16_right = decode_if_json(bracket_data.get("r16_right"))
 
-    if bracket_df.empty or len(bracket_df) < 16:
-        st.warning("Bracket prediction will be available once the field of 16 is set.")
+    if not r16_left or not r16_right or len(r16_left) < 4 or len(r16_right) < 4:
+        st.warning("Bracket is not finalized. Prediction will open once the field of 16 is set.")
         st.stop()
 
-    left = bracket_df.iloc[0:8].reset_index(drop=True)
-    right = bracket_df.iloc[8:16].reset_index(drop=True)
+    full_name = st.text_input("Enter your full name to submit your bracket:", key="predictor_name").strip()
+    if not full_name:
+        st.info("Enter your name to proceed.")
+        st.stop()
 
     user_predictions = load_predictions_from_supabase()
-    submitted_names = [row["name"].strip().lower() for row in user_predictions]
-
-    full_name = st.text_input("Enter your full name to submit a prediction:", key="predictor_name").strip()
-
-    if not full_name:
-        st.info("Please enter your name to proceed.")
-        st.stop()
-
+    existing_names = [p["name"].strip().lower() for p in user_predictions]
     user_name = full_name.lower()
 
-    if user_name in submitted_names or predictions_locked:
-        st.warning("⛔ You’ve already submitted a prediction or the deadline has passed.")
-        user_prediction = next((p for p in user_predictions if p["name"].strip().lower() == user_name), None)
-        if not user_prediction:
-            st.stop()
-
-        st.subheader("🧠 Your Predictions vs Actual Bracket")
-        actual_results = [get_bracket_winner(100 + i) for i in range(8)]
-        predicted_r16 = parse_json_field(user_prediction.get("r16_left", "[]"))
-
-        comparison = []
-        for i, (pred, actual) in enumerate(zip(predicted_r16, actual_results)):
-            comparison.append({
-                "Match": f"R16 Match {i+1}",
-                "Your Pick": pred,
-                "Actual Winner": actual or "TBD",
-                "Result": "✅" if actual and pred == actual else ("❌" if actual else "⏳")
-            })
-
-        st.dataframe(pd.DataFrame(comparison))
+    if predictions_locked or user_name in existing_names:
+        st.warning("⛔ Predictions are locked or already submitted.")
         st.stop()
 
-    all_r16_picks = [p for row in user_predictions for p in parse_json_field(row.get("r16_left", "[]"))]
-    total_picks = max(len(user_predictions), 1)  # prevent div by zero
+    def pick_winners(matchups, round_label, key_prefix):
+        winners = []
+        for i, match in enumerate(matchups):
+            if isinstance(match, list) and len(match) == 2:
+                p1, p2 = match
+                winner = st.radio(
+                    f"{round_label} Match {i + 1}: {p1} vs {p2}",
+                    options=[p1, p2],
+                    key=f"{key_prefix}_{i}"
+                )
+                winners.append(winner)
+        return winners
 
-    def pick_rate(player_name):
-        count = all_r16_picks.count(player_name)
-        return f"{(count / total_picks) * 100:.1f}%" if total_picks > 0 else "0.0%"
+    # --- R16 ---
+    st.markdown("### 🏁 Round of 16")
+    pred_r16_left = pick_winners(r16_left, "R16 Left", "r16L")
+    pred_r16_right = pick_winners(r16_right, "R16 Right", "r16R")
 
-    st.markdown("### 🟦 Left Side")
-    r16_left = []
-    for i in range(0, 8, 2):
-        p1, p2 = left.iloc[i], left.iloc[i + 1]
-        p1_label = f"{p1['name']} ({pick_rate(p1['name'])})"
-        p2_label = f"{p2['name']} ({pick_rate(p2['name'])})"
-        pick = st.radio(f"Match {i//2 + 1}: {p1['name']} vs {p2['name']}", [p1_label, p2_label], key=f"PL{i}")
-        r16_left.append(p1["name"] if pick.startswith(p1['name']) else p2["name"])
+    # --- QF ---
+    if len(pred_r16_left) == 4 and len(pred_r16_right) == 4:
+        st.markdown("### 🎯 Quarterfinals")
+        qf_left = [[pred_r16_left[i], pred_r16_left[i+1]] for i in range(0, 4, 2)]
+        qf_right = [[pred_r16_right[i], pred_r16_right[i+1]] for i in range(0, 4, 2)]
 
-    st.markdown("### 🟥 Right Side")
-    r16_right = []
-    for i in range(0, 8, 2):
-        p1, p2 = right.iloc[i], right.iloc[i + 1]
-        p1_label = f"{p1['name']} ({pick_rate(p1['name'])})"
-        p2_label = f"{p2['name']} ({pick_rate(p2['name'])})"
-        pick = st.radio(f"Match {i//2 + 5}: {p1['name']} vs {p2['name']}", [p1_label, p2_label], key=f"PR{i}")
-        r16_right.append(p1["name"] if pick.startswith(p1['name']) else p2["name"])
+        pred_qf_left = pick_winners(qf_left, "QF Left", "qfL")
+        pred_qf_right = pick_winners(qf_right, "QF Right", "qfR")
+    else:
+        st.stop()
 
-    finalist_left = st.selectbox("Who will win the left side?", r16_left)
-    finalist_right = st.selectbox("Who will win the right side?", r16_right)
+    # --- SF ---
+    if len(pred_qf_left) == 2 and len(pred_qf_right) == 2:
+        st.markdown("### 🥊 Semifinals")
+        sf_left = [[pred_qf_left[0], pred_qf_left[1]]]
+        sf_right = [[pred_qf_right[0], pred_qf_right[1]]]
 
-    champion = st.selectbox("🏆 Pick your champion", [finalist_left, finalist_right])
+        pred_sf_left = pick_winners(sf_left, "SF Left", "sfL")
+        pred_sf_right = pick_winners(sf_right, "SF Right", "sfR")
+    else:
+        st.stop()
 
-    if st.button("🚀 Submit My Prediction"):
+    # --- Final ---
+    if len(pred_sf_left) == 1 and len(pred_sf_right) == 1:
+        st.markdown("### 🏆 Final Match")
+        finalist_left = pred_sf_left[0]
+        finalist_right = pred_sf_right[0]
+        champion = st.radio(
+            f"Final: {finalist_left} vs {finalist_right}",
+            options=[finalist_left, finalist_right],
+            key="champion"
+        )
+    else:
+        st.stop()
+
+    if st.button("🚀 Submit My Bracket Prediction"):
         try:
-            prediction_data = {
+            data = {
                 "name": full_name,
                 "timestamp": datetime.utcnow().isoformat(),
-                "r16_left": json.dumps(r16_left),
-                "r16_right": json.dumps(r16_right),
+                "r16_left": json.dumps(pred_r16_left),
+                "r16_right": json.dumps(pred_r16_right),
+                "qf_left": json.dumps(pred_qf_left),
+                "qf_right": json.dumps(pred_qf_right),
+                "sf_left": json.dumps(pred_sf_left),
+                "sf_right": json.dumps(pred_sf_right),
                 "finalist_left": finalist_left,
                 "finalist_right": finalist_right,
                 "champion": champion
             }
-            supabase.table("predictions").insert(prediction_data).execute()
-            st.success("✅ Your prediction has been submitted!")
+            supabase.table("predictions").insert(data).execute()
+            st.success("✅ Your bracket has been submitted!")
             st.rerun()
         except Exception as e:
-            st.error("❌ Failed to submit prediction.")
+            st.error("❌ Failed to submit your prediction.")
             st.code(str(e))
+
 
 # --- Leaderboard ---
 with tabs[5]:
