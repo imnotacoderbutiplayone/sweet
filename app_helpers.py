@@ -1,6 +1,11 @@
 # app_helpers.py
-from bracket_helpers import compute_standings_from_results, render_pod_matches, resolve_tiebreakers, build_bracket_df_from_pod_scores, save_bracket_data
-from shared_helpers import render_match, get_winner_player, sanitize_key
+    compute_standings_from_results,
+    render_pod_matches,
+    resolve_tiebreakers,
+    build_bracket_df_from_pod_scores,
+    save_bracket_data
+)
+from ui_helpers import render_match, get_winner_player, sanitize_key
 # no importing from bracket_helpers!
 
 
@@ -165,8 +170,7 @@ def run_bracket_stage(players_df, supabase):
 
 
 def run_predictions_tab(supabase):
-    from bracket_helpers import predict_round, save_user_prediction
-
+    
     st.subheader("🔮 Predict the Bracket")
     bracket_df = load_bracket_data_from_supabase(supabase)
     if bracket_df.empty:
@@ -204,8 +208,7 @@ def run_predictions_tab(supabase):
 
 
 def show_leaderboard(supabase):
-    from bracket_helpers import score_prediction
-    st.subheader("\U0001F3C5 Leaderboard")
+        st.subheader("\U0001F3C5 Leaderboard")
 
     predictions = supabase.table("predictions").select("*").execute().data
     final_result = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute().data
