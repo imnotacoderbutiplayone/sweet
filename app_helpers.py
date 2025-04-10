@@ -76,7 +76,7 @@ def show_pods_table(pods):
             return
 
         # Format the "Handicap" column to 1 decimal place
-        pod_df['Handicap'] = pod_df['Handicap'].apply(lambda x: f"{x:.1f}")
+        pod_df['Handicap'] = pod_df['Handicap'].apply(lambda x: f"{x:.1f}" if isinstance(x, (int, float)) else "N/A")
 
         # Styling for the table
         st.markdown(f"### 🏌️ Pod: {pod_name}")
