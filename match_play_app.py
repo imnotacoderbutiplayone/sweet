@@ -89,15 +89,18 @@ def load_bracket_match_result(match_id):
 # --- Helper: Parse JSON field ---
 def parse_json_field(field):
     try:
+        st.write("👀 Field type:", type(field), "→", field)
         if isinstance(field, str):
             return json.loads(field)
         elif isinstance(field, list):
             return field
-        else:
-            return []
-    except Exception as e:
-        st.warning(f"⚠️ Could not parse JSON field: {e}")
+        elif isinstance(field, dict):  # Supabase jsonb might come as dict
+            return list(field.values())  # flatten if needed
         return []
+    except Exception as e:
+        st.warning(f"⚠️ Failed to parse field: {e}")
+        return []
+
 
 
 def get_player_by_name(name, source_df):
