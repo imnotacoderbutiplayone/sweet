@@ -3,13 +3,15 @@
 import os, sys
 sys.path.append(os.path.dirname(__file__))
 
+# **First Streamlit command must be st.set_page_config**
 import streamlit as st
-st.write("🗂️ Current directory contents:", os.listdir())  # NOW this works
+st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
-import streamlit as st
+# Now, you can safely use other streamlit commands
+st.write("🗂️ Current directory contents:", os.listdir())
+
+# Proceed with other imports after set_page_config
 from supabase import create_client
-#from bracket_helpers import *
-#from app_helpers import *  # where render_match and get_winner_player live
 import pandas as pd
 import json
 from datetime import datetime
