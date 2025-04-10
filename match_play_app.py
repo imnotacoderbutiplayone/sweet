@@ -9,7 +9,12 @@ from datetime import datetime
 from supabase import create_client
 import hashlib
 import re
-from datetime import datetime, timezone
+from datetime import datetime
+
+PREDICTION_DEADLINE = datetime.fromisoformat(
+    st.secrets["predictions"]["deadline"].replace("Z", "+00:00")
+)
+
 
 
 # --- Connect to Supabase ---
