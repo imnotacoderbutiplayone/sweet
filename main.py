@@ -1,16 +1,14 @@
 import os
-import sys
 
 # Add the current directory to sys.path so Python can find local modules
+import sys
 sys.path.append(os.path.dirname(__file__))
 
-# Debugging line to check contents of current directory
+# Debugging: Print directory contents to the log
 current_dir_contents = os.listdir()
-
-# Print directory contents to Streamlit log (console output)
 print("🗂️ Current directory contents:", current_dir_contents)
 
-# Try importing app_helpers and bracket_helpers
+# Try importing app_helpers
 try:
     import app_helpers
     print("app_helpers imported successfully")
