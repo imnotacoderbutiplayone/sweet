@@ -6,7 +6,9 @@ sys.path.append(os.path.dirname(__file__))
 
 # Debugging line to check contents of current directory
 current_dir_contents = os.listdir()
-st.write("🗂️ Current directory contents:", current_dir_contents)
+
+# Print directory contents to Streamlit log (console output)
+print("🗂️ Current directory contents:", current_dir_contents)
 
 # Try importing app_helpers and bracket_helpers
 try:
