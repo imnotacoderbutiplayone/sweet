@@ -213,6 +213,7 @@ def run_group_stage(pods, supabase):
     # Show each pod's matches
     for pod_name, players in pods.items():
         with st.expander(pod_name, expanded=True):
+            st.markdown("Match entry UI goes here.")  # placeholder
             
     
 
