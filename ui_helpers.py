@@ -13,3 +13,11 @@ def render_match(p1, p2, default="Tie", readonly=False, key_prefix="", stage="")
         index=options.index(default) if default in options else 2,
         key=f"{key_prefix}_{stage}"
     )
+
+def get_winner_player(p1, p2, winner_name):
+    if winner_name == p1["name"]:
+        return p1
+    elif winner_name == p2["name"]:
+        return p2
+    else:
+        return {"name": "Tie"}
