@@ -1656,4 +1656,29 @@ with tabs[5]:
     except Exception as e:
         st.error("❌ Error loading leaderboard.")
         st.code(str(e))
+# --- Leaderboard Scoring Ends Here ---
+
+# 🔍 ADD THIS BELOW EVERYTHING
+st.subheader("🧪 RAW Supabase Table Check")
+
+try:
+    pred_result = supabase.table("predictions").select("id, name, champion, timestamp").execute()
+    final_result = supabase.table("final_results").select("id, champion, created_at").execute()
+
+    st.write("📋 Predictions Table:", pred_result)
+    st.write("📋 Final Results Table:", final_result)
+
+    if pred_result.data:
+        st.success(f"✅ {len(pred_result.data)} prediction(s) found")
+    else:
+        st.warning("⚠️ No prediction data returned from Supabase")
+
+    if final_result.data:
+        st.success(f"✅ {len(final_result.data)} final result(s) found")
+    else:
+        st.warning("⚠️ No final results returned from Supabase")
+
+except Exception as e:
+    st.error("❌ Supabase query failed:")
+    st.code(str(e))
 
