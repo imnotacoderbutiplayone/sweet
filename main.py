@@ -1,4 +1,4 @@
-# main.py (Updated minimal version to test Streamlit's page config)
+# main.py (After adding helpers)
 
 import os
 import sys
@@ -9,4 +9,14 @@ import streamlit as st
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # Test the page configuration by displaying something
-st.title("Golf Match Play Tournament")  # Add a simple title to confirm it's rendering
+st.title("Golf Match Play Tournament")  # Simple title to confirm rendering
+
+# Now, add the helper imports one by one
+from supabase import create_client
+import pandas as pd
+import json
+from datetime import datetime
+
+# Import helpers (bracket_helpers and app_helpers)
+from bracket_helpers import *  # where render_match and get_winner_player live
+from app_helpers import *  # where other helper functions live
