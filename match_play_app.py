@@ -1525,9 +1525,9 @@ with tabs[4]:
 
 # --- Leaderboard Tab ---
 with tabs[5]:
-    st.error("💣 THE LEADERBOARD TAB IS RUNNING")
+    st.error("🎯 YOU ARE IN THE LEADERBOARD TAB — IT IS RUNNING.")
+    st.stop()
 
-    st.subheader("🏅 Prediction Leaderboard")
 
     try:
         # Load predictions from Supabase
