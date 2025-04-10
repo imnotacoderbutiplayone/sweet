@@ -128,6 +128,7 @@ def render_pod_matches(pod_name, players, editable, session_results):
     return session_results
 
 
+
 def compute_standings_from_results(pods, match_results):
     import pandas as pd
     pod_scores = {}
