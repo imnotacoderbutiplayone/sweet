@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import json
 from shared_helpers import render_match, get_winner_player, sanitize_key
-from bracket_helpers import render_pod_matches, compute_standings_from_results, resolve_tiebreakers, build_bracket_df_from_pod_scores, save_bracket_data
 
 def run_group_stage(pods, supabase):
     st.subheader("📊 Group Stage - Match Entry")
@@ -202,7 +201,7 @@ def run_predictions_tab(supabase):
 
 
 def show_leaderboard(supabase):
-    st.subheader("\U0001F3C5 Leaderboard")
+        st.subheader("\U0001F3C5 Leaderboard")
 
     predictions = supabase.table("predictions").select("*").execute().data
     final_result = supabase.table("final_results").select("*").order("created_at", desc=True).limit(1).execute().data
