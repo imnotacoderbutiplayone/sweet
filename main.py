@@ -62,6 +62,7 @@ players_response = supabase.table("players").select("*").execute()
 players_df = pd.DataFrame(players_response.data)
 pods = group_players_by_pod(players_df)
 
+
 # --- Tab 0: Pods Overview ---
 with tabs[0]:
     for pod_name, players in pods.items():
@@ -74,12 +75,13 @@ with tabs[0]:
             # Debugging: Print each player to check structure
             st.write(player)  # Print out the player data to check
 
-            # Check if the keys 'Name' and 'Handicap' are present
-            if 'Name' in player and 'Handicap' in player:
-                # Display the player info
-                st.markdown(f"**{player['Name']}** (Handicap: {player['Handicap']:.1f})")
+            # Check if the keys 'name' and 'handicap' are present
+            if 'name' in player and 'handicap' in player:
+                # Display the player info with correct keys
+                st.markdown(f"**{player['name']}** (Handicap: {player['handicap']:.1f})")
             else:
-                st.error(f"Player data is missing 'Name' or 'Handicap' for {player}")
+                st.error(f"Player data is missing 'name' or 'handicap' for {player}")
+
 
 # --- Tab 1: Group Stage ---
 with tabs[1]:
