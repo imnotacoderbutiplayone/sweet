@@ -1,3 +1,4 @@
+# main.py (Clean and Modular)
 import streamlit as st
 from supabase import create_client
 from bracket_helpers import *
@@ -6,7 +7,7 @@ import pandas as pd
 import json
 from datetime import datetime
 
-# --- Set Page Config (must be the first Streamlit command) ---
+# --- Config ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # --- Supabase Init ---
@@ -62,8 +63,35 @@ players_df = pd.DataFrame(players_response.data)
 pods = group_players_by_pod(players_df)
 
 # --- Tab 0: Pods Overview ---
+# --- Tab 0: Pods Overview ---
 with tabs[0]:
-    show_pods_table(pods)
+    st.title("🏌️ Pods Overview")
+    
+    # Example styling for a section title
+    st.markdown("### Grouped by Pods")
+
+    # Loop through each pod and display players
+    for pod_name, players in pods.items():
+        with st.expander(f"📦 {pod_name} Players", expanded=False):  # Use Expander for each Pod
+            # Prepare a DataFrame to display
+            players_df = pd.DataFrame(players)
+
+            # Display table with styling
+            st.dataframe(
+                players_df.style
+                    .set_properties(**{'background-color': '#f0f0f0', 'color': '#000'})
+                    .set_table_styles([{
+                        'selector': 'thead th', 
+                        'props': [('background-color', '#3E6B71'), ('color', 'white')]
+                    }])
+                    .hide(axis='index')
+            )
+
+            # Add some player info with markdown
+            for player in players:
+                st.markdown(f"**{player['Name']}** (Handicap: {player['Handicap']})")
+
+            st.write("---")  # A horizontal line to separate pods
 
 # --- Tab 1: Group Stage ---
 with tabs[1]:
