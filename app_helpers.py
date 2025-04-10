@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from bracket_helpers import *
+from bracket_helpers import render_pod_matches
 from ui_helpers import sanitize_key, render_match, get_winner_player
 from shared_helpers import sanitize_key, render_match
 
