@@ -76,6 +76,7 @@ def visualize_bracket(r16, qf, sf, final):
 
 # --- Group Stage Helpers ---
 def render_pod_matches(pod_name, players, editable, session_results):
+    st.write(f"🧪 Debug: Rendering matches for {pod_name} with {len(players)} players")
     from collections import defaultdict
     results = defaultdict(lambda: {"points": 0, "margin": 0})
     num_players = len(players)
