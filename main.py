@@ -65,30 +65,9 @@ pods = group_players_by_pod(players_df)
 
 # --- Tab 0: Pods Overview ---
 with tabs[0]:
-    # Loop through each pod and display players in a table
-    for pod_name, players in pods.items():
-        st.markdown(f"### 🏌️ Pod: {pod_name}")
-        
-        # Prepare data for display in a table format
-        pod_data = []
-        
-        for player in players:
-            # Collect player data, handling missing values if necessary
-            if 'name' in player and 'handicap' in player:
-                pod_data.append({
-                    'Name': player['name'],
-                    'Handicap': f"{player['handicap']:.1f}"  # Show handicap to one decimal place
-                })
-            else:
-                st.error(f"Player data is missing 'name' or 'handicap' for {player}")
-        
-        # If data exists, display in a table format
-        if pod_data:
-            # Create DataFrame from the pod data
-            df_pod = pd.DataFrame(pod_data)
+    st.subheader("📁 Pods Overview")
+    render_pod_table(players_df)
 
-            # Display the DataFrame as a table
-            st.table(df_pod)
 
 
 # --- Tab 1: Group Stage ---
