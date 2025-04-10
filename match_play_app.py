@@ -1525,6 +1525,7 @@ with tabs[4]:
 # --- Leaderboard ---
 # --- Leaderboard Tab ---
 with tabs[5]:
+    st.warning("🚨 Leaderboard tab is running")
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
