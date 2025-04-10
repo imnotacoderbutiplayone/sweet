@@ -6,27 +6,24 @@ from bracket_helpers import *
 from ui_helpers import sanitize_key, render_match, get_winner_player
 from shared_helpers import sanitize_key, render_match
 
+from bracket_helpers import render_pod_matches
+from shared_helpers import sanitize_key, render_match
+
 def run_group_stage(pods, supabase):
     st.subheader("📊 Group Stage - Match Entry")
 
-    match_results = load_match_results(supabase)
+    # ✅ Make sure results session state is initialized
+    if "group_stage_results" not in st.session_state:
+        st.session_state.group_stage_results = {}
 
+    # ✅ Loop over pods and render matches
     for pod_name, players in pods.items():
-        with st.expander(pod_name):
-            st.session_state.group_stage_results = render_pod_matches(
-                pod_name,
-                players,
-                editable=st.session_state.authenticated,
-                session_results=st.session_state.get("group_stage_results", {})
-            )
-
-    if st.session_state.authenticated:
-        pod_scores = compute_standings_from_results(pods, st.session_state.group_stage_results)
-        unresolved = resolve_tiebreakers(pod_scores)
-        if not unresolved and st.button("Finalize Bracket Field"):
-            bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-            save_bracket_data(bracket_df, supabase)
-            st.success("✅ Field of 16 saved!")
+        st.session_state.group_stage_results = render_pod_matches(
+            pod_name,
+            players,
+            editable=st.session_state.authenticated,
+            session_results=st.session_state.group_stage_results
+        )
 
 
 
