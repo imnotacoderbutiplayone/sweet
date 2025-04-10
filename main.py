@@ -13,14 +13,3 @@ try:
     print("app_helpers imported successfully")
 except ImportError as e:
     print(f"Error importing app_helpers: {e}")
-
-# Streamlit and other necessary imports
-import streamlit as st
-from supabase import create_client
-import pandas as pd
-import json
-from datetime import datetime
-
-# Set up Streamlit configuration
-st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
-st.title("Golf Match Play Tournament")
