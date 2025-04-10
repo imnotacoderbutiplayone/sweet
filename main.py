@@ -1,4 +1,3 @@
-# main.py (Clean and Modular)
 import streamlit as st
 from supabase import create_client
 from bracket_helpers import *
@@ -7,7 +6,7 @@ import pandas as pd
 import json
 from datetime import datetime
 
-# --- Config ---
+# --- Set Page Config (must be the first Streamlit command) ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
 
 # --- Supabase Init ---
