@@ -22,6 +22,21 @@ def run_group_stage(pods, supabase):
             save_bracket_data(bracket_df, supabase)
             st.success("✅ Field of 16 saved!")
 
+
+def group_players_by_pod(players_df):
+    """
+    Groups players by the 'pod' field in the players DataFrame.
+    
+    Args:
+    - players_df (DataFrame): DataFrame of players with at least a 'pod' column.
+    
+    Returns:
+    - dict: A dictionary where keys are pod names and values are lists of player records.
+    """
+    pods = players_df.groupby("pod").apply(lambda x: x.to_dict(orient="records")).to_dict()
+    return pods
+
+
 def show_standings(pods, supabase):
     st.subheader("📋 Group Stage Standings")
     match_results = load_match_results(supabase)
