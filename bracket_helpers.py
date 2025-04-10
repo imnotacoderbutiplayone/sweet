@@ -80,7 +80,7 @@ def visualize_bracket(r16, qf, sf, final):
 def render_pod_matches(pod_name, players, editable, session_results):
     import streamlit as st
     from collections import defaultdict
-    from app_helpers import sanitize_key, render_match  # make sure this works
+    from shared_helpers import sanitize_key, render_match  # make sure this works
 
     margin_lookup = {
         "1 up": 1,
