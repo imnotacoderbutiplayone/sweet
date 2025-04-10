@@ -1032,6 +1032,11 @@ else:
         st.session_state.authenticated = False
         st.rerun()
 
+# --- Golf Probability Calculator Link ---
+st.sidebar.markdown("---")
+st.sidebar.markdown("🏌️‍♂️ [Golf Score Probability Calculator](https://ndddxgvdvvxzbtif33qmkr.streamlit.app)", unsafe_allow_html=True)
+
+
 # --- Streamlit App Configuration ---
 tabs = st.tabs([
     "📁 Pods Overview", 
