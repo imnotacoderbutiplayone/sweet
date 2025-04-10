@@ -1,8 +1,10 @@
 # main.py (Clean and Modular)
 
-import os
-st.write("🗂️ Current directory contents:", os.listdir())
+import os, sys
 sys.path.append(os.path.dirname(__file__))
+
+import streamlit as st
+st.write("🗂️ Current directory contents:", os.listdir())  # NOW this works
 
 import streamlit as st
 from supabase import create_client
