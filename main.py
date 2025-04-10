@@ -1,21 +1,29 @@
 # main.py (Clean and Modular)
 import streamlit as st
 from supabase import create_client
-from bracket_helpers import *
+import pandas as pd
+import json
+from datetime import datetime
+
 from app_helpers import (
     run_group_stage,
     render_pod_table,
     show_standings,
-    run_bracket_stage,
     run_predictions_tab,
     show_leaderboard,
     show_how_it_works,
     group_players_by_pod
 )
 
-import pandas as pd
-import json
-from datetime import datetime
+from bracket_helpers import (
+    run_bracket_stage,
+    compute_standings_from_results,
+    render_pod_matches,
+    resolve_tiebreakers,
+    build_bracket_df_from_pod_scores,
+    save_bracket_data
+)
+
 
 # --- Config ---
 st.set_page_config(page_title="Golf Match Play Tournament", layout="wide")
