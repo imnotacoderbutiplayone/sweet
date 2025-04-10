@@ -45,22 +45,24 @@ def render_stage_matches(matches, bracket_df, stage):
         winner = render_match(p1, p2, default, readonly=False, key_prefix=f"{stage}_{match['match_index']}", stage=stage)
         results.append(get_winner_player(p1, p2, winner))
     return results
-    return results
-        def advance_round(current_matches, bracket_df, next_stage, supabase):
+def advance_round(current_matches, bracket_df, next_stage, supabase):
     for i in range(0, len(current_matches), 2):
-    if i + 1 >= len(current_matches):
-    continue
-    w1 = get_winner_name(current_matches[i])
-    w2 = get_winner_name(current_matches[i + 1])
-    if not w1 or not w2:
-    continue
-    p1 = get_player_by_name(w1, bracket_df)
-    p2 = get_player_by_name(w2, bracket_df)
-    update = {
-    "player1": p1["name"], "player2": p2["name"],
-    "handicap1": p1.get("handicap"), "handicap2": p2.get("handicap")
-    }
-    supabase.table("tournament_bracket_matches") \
+        if i + 1 >= len(current_matches):
+            continue
+        w1 = get_winner_name(current_matches[i])
+        w2 = get_winner_name(current_matches[i + 1])
+        if not w1 or not w2:
+            continue
+        p1 = get_player_by_name(w1, bracket_df)
+        p2 = get_player_by_name(w2, bracket_df)
+        update = {
+            "player1": p1["name"], "player2": p2["name"],
+            "match_index": i // 2,
+            "stage": next_stage,
+            "winner": "",
+            "margin": 0
+        }
+        supabase.table("tournament_matches").insert(update).execute()
     .update(update) \
     .eq("stage", next_stage) \
     .eq("match_index", i // 2) \
