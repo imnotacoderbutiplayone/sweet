@@ -1041,6 +1041,9 @@ tabs = st.tabs([
     "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
+with tabs[5]:
+    st.warning("🚨 ENTERED Leaderboard tab")
+    st.write("👋 Hello, world!")
 
 # Load shared bracket data
 if "bracket_data" not in st.session_state:
