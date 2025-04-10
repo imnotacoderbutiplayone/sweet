@@ -62,6 +62,22 @@ def save_bracket_data(df):
         st.error(f"❌ Error saving bracket data to Supabase: {e}")
         return None
 
+# --- load bracket match results ---
+def load_bracket_match_result(match_id):
+    try:
+        response = supabase.table("tournament_matches") \
+            .select("winner, margin") \
+            .eq("match_id", match_id) \
+            .limit(1) \
+            .execute()
+
+        if response.data and len(response.data) > 0:
+            return response.data[0]
+        return {}
+    except Exception as e:
+        st.warning(f"⚠️ Could not load match {match_id}: {e}")
+        return {}
+
 
 # --- Helper: Parse JSON field ---
 def parse_json_field(field):
@@ -450,31 +466,45 @@ def render_match(player1, player2, winner, readonly=False, key_prefix="", stage=
 
 #--- new render match ui ---
 def render_bracket_match_ui(match_id, round_name, player1, player2):
+    saved_result = load_bracket_match_result(match_id)
+    saved_winner = saved_result.get("winner", "")
+    saved_margin_value = saved_result.get("margin", None)
+    saved_margin_label = next((k for k, v in margin_lookup.items() if v == saved_margin_value), "1 up")
+
     st.markdown(f"### {round_name} – Match {match_id}")
     st.write(f"**{player1} vs {player2}**")
 
-    winner = st.selectbox(
-        "Select winner",
-        options=["", player1, player2],
-        key=f"winner_select_{match_id}"
-    )
-
-    if winner and winner != "":
-        margin = st.selectbox(
-            "Select win margin",
-            options=["1 up", "2 and 1", "3 and 2", "4 and 3", "5 and 4", "6 and 5", "7 and 6", "8 and 7", "9 and 8"],
-            key=f"margin_select_{match_id}"
+    if st.session_state.authenticated:
+        winner = st.selectbox(
+            "Select winner",
+            options=["", player1, player2],
+            index=["", player1, player2].index(saved_winner) if saved_winner in [player1, player2] else 0,
+            key=f"winner_select_{match_id}"
         )
 
-        if st.button("Submit Result", key=f"submit_btn_{match_id}"):
-            save_bracket_result(
-                match_id=match_id,
-                round_name=round_name,
-                player1=player1,
-                player2=player2,
-                winner=winner,
-                margin=margin_lookup.get(margin, 1)  # Use numeric margin value
+        if winner:
+            margin = st.selectbox(
+                "Select win margin",
+                options=list(margin_lookup.keys()),
+                index=list(margin_lookup.keys()).index(saved_margin_label) if saved_margin_label in margin_lookup else 0,
+                key=f"margin_select_{match_id}"
             )
+
+            if st.button("Submit Result", key=f"submit_btn_{match_id}"):
+                save_bracket_result(
+                    match_id=match_id,
+                    round_name=round_name,
+                    player1=player1,
+                    player2=player2,
+                    winner=winner,
+                    margin=margin_lookup.get(margin, 1)
+                )
+    else:
+        if saved_winner:
+            margin_label = saved_margin_label or "1 up"
+            st.success(f"🏆 **Winner: {saved_winner}** ({margin_label})")
+        else:
+            st.info("⏳ Match not yet decided.")
 
 
 #--- resolve tiebreakers --
