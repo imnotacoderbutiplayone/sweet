@@ -65,19 +65,61 @@ pods = group_players_by_pod(players_df)
 
 # --- Tab 0: Pods Overview ---
 with tabs[0]:
+    # Loop through each pod and its players
     for pod_name, players in pods.items():
         st.markdown(f"### 🏌️ Pod: {pod_name}")
-
-        # Debugging: print the structure of 'players'
-        st.write(f"Players in {pod_name}:", players)  # This will show the raw player data
+        
+        # Create a table-style display for each pod's players
+        pod_data = []
         
         for player in players:
-            # Check if the keys 'name' and 'handicap' are present in the player data
             if 'name' in player and 'handicap' in player:
-                # Display the player's name and handicap with proper formatting
-                st.markdown(f"**{player['name']}** (Handicap: {player['handicap']:.1f})")
+                # Add data to the list for later display in a table
+                pod_data.append({
+                    'Name': player['name'],
+                    'Handicap': f"{player['handicap']:.1f}"
+                })
             else:
                 st.error(f"Player data is missing 'name' or 'handicap' for {player}")
+        
+        # Convert pod data into a DataFrame for nicer table formatting
+        if pod_data:
+            df_pod = pd.DataFrame(pod_data)
+
+            # Use streamlit's table with some custom styling
+            st.markdown(
+                f"""
+                <style>
+                .table-container {{
+                    border: 1px solid #eee;
+                    border-radius: 8px;
+                    padding: 10px;
+                }}
+                .table-container th {{
+                    background-color: #4CAF50;
+                    color: white;
+                    font-weight: bold;
+                    padding: 10px;
+                    text-align: center;
+                }}
+                .table-container td {{
+                    padding: 8px;
+                    text-align: center;
+                    font-size: 14px;
+                }}
+                .table-container tr:nth-child(even) {{
+                    background-color: #f2f2f2;
+                }}
+                .table-container tr:hover {{
+                    background-color: #ddd;
+                }}
+                </style>
+                <div class="table-container">
+                {df_pod.to_html(index=False, escape=False)}
+                </div>
+                """, unsafe_allow_html=True)
+
+
 
 
 # --- Tab 1: Group Stage ---
