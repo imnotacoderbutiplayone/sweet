@@ -1,8 +1,10 @@
-import streamlit as st
+from collections import Counter  # standard library
+
 import numpy as np
-from collections import Counter
+import pandas as pd
+import streamlit as st
 import matplotlib.pyplot as plt
-import pandas as pd 
+
 
 
 st.set_page_config(page_title="Golf Duel Simulator", layout="centered")
