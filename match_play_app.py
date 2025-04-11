@@ -866,28 +866,6 @@ def update_bracket_progression(round_key, winners):
     except Exception as e:
         st.error(f"❌ Error updating bracket progression: {str(e)}")
 
-# --- Load updated bracket progression ---
-def load_bracket_progression_from_supabase():
-    try:
-        res = supabase.table("bracket_progression") \
-                      .select("*") \
-                      .order("created_at", desc=True) \
-                      .limit(1).execute()
-
-        if not res.data:
-            st.warning("📭 No bracket progression data found.")
-            return {}
-
-        record = res.data[0]
-
-        # Debug dump
-        #st.write("📦 Full Raw Bracket Progression Record:", record)
-
-        return record
-    except Exception as e:
-        st.error(f"❌ Failed to load bracket progression: {e}")
-        return {}
-
 def save_final_results_to_supabase(final_data):
     try:
         response = supabase.table("final_results").insert(final_data).execute()
@@ -1036,6 +1014,27 @@ else:
 st.sidebar.markdown("---")
 st.sidebar.markdown("🏌️‍♂️ [Golf Score Probability Calculator](https://ndddxgvdvvxzbtif33qmkr.streamlit.app)", unsafe_allow_html=True)
 
+# --- Load updated bracket progression ---
+def load_bracket_progression_from_supabase():
+    try:
+        res = supabase.table("bracket_progression") \
+                      .select("*") \
+                      .order("created_at", desc=True) \
+                      .limit(1).execute()
+
+        if not res.data:
+            st.warning("📭 No bracket progression data found.")
+            return {}
+
+        record = res.data[0]
+
+        # Debug dump
+        #st.write("📦 Full Raw Bracket Progression Record:", record)
+
+        return record
+    except Exception as e:
+        st.error(f"❌ Failed to load bracket progression: {e}")
+        return {}
 
 # --- Streamlit App Configuration ---
 tabs = st.tabs([
