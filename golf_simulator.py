@@ -127,8 +127,6 @@ with st.form("player_input"):
 
 if submitted:
     try:
-        p1_scores = [float(x.strip()) for x in p1_scores.split(",") if x.strip()]
-        p2_scores = [float(x.strip()) for x in p2_scores.split(",") if x.strip()]
         if len(p1_scores) < 2 or len(p2_scores) < 2:
             st.error("Please enter at least 2 scores per player.")
         else:
