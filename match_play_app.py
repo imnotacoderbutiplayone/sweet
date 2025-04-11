@@ -1101,10 +1101,10 @@ with tabs[5]:
 
         if not predictions:
             st.warning("⚠️ No predictions submitted.")
-            st.stop()
+            return
         if not final_results_data:
             st.warning("⚠️ Final results not available yet.")
-            st.stop()
+            return
 
         # Final results parsed
         final = final_results_data[0]
