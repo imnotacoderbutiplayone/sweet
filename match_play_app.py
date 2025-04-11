@@ -1616,10 +1616,3 @@ with tabs[4]:
             st.error("❌ Failed to submit your prediction.")
             st.code(str(e))
 
-
-
-
-# --- Leaderboard Tab ---
-with tabs[5]:
-    st.warning("🚨 ENTERED tab[5]")
-    st.write("👋 Hello, world!")
