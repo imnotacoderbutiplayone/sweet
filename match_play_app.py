@@ -1083,7 +1083,7 @@ with tabs[0]:
             st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)            
 
 # --- Leaderboard ---
-with tabs[5]:
+def render_tab_5():
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
@@ -1172,6 +1172,12 @@ with tabs[5]:
 
     except Exception as e:
         st.error("❌ Leaderboard failed to load.")
+        st.code(str(e))
+
+# Call this inside the tab container
+with tabs[5]:
+    render_tab_5()
+
         st.code(str(e))
 
 # --- Group Stage ---
