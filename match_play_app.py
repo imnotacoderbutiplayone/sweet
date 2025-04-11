@@ -1161,7 +1161,8 @@ with tabs[0]:
             'text-align': 'left',
             'padding': '6px'
         }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-        return styled.hide(axis='index')  # Hide the index explicitly here
+        df = df.reset_index(drop=True)  # Optional: if you really want no index
+        return styled  # Hide the index explicitly here
 
     for i, pod_name in enumerate(pod_names):
         col = cols[i % num_cols]
