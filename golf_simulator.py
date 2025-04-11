@@ -1,11 +1,7 @@
-from collections import Counter  # standard library
-
-import numpy as np
-import pandas as pd
 import streamlit as st
+import numpy as np
+from collections import Counter
 import matplotlib.pyplot as plt
-
-
 
 st.set_page_config(page_title="Golf Duel Simulator", layout="centered")
 
@@ -98,20 +94,20 @@ with st.form("player_input"):
     col1, col2 = st.columns(2)
     with col1:
         st.subheader("Player 1")
-        p1_name = st.text_input("Name", st.session_state.get("p1_name", "Player 1"))
-        p1_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0, value=st.session_state.get("p1_index", 1.0))
-        p1_scores = st.text_input("Last 10 Scores (comma-separated)", st.session_state.get("p1_scores", "73,74,72,75,71,73,72,76,70,74"))
+        p1_name = st.text_input("Name", "Player 1")
+        p1_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0, value=1.0)
+        p1_scores = st.text_input("Last 10 Scores (comma-separated)", "73,74,72,75,71,73,72,76,70,74")
     with col2:
         st.subheader("Player 2")
-        p2_name = st.text_input("Name ", st.session_state.get("p2_name", "Player 2"))
-        p2_index = st.number_input("Handicap Index ", min_value=0.0, max_value=36.0, value=st.session_state.get("p2_index", 19.0))
-        p2_scores = st.text_input("Last 10 Scores (comma-separated) ", st.session_state.get("p2_scores", "91,93,89,92,95,90,88,94,87,90"))
+        p2_name = st.text_input("Name", "Player 2")
+        p2_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0, value=19.0)
+        p2_scores = st.text_input("Last 10 Scores (comma-separated)", "91,93,89,92,95,90,88,94,87,90")
 
     st.subheader("Course Setup")
-    course_rating = st.number_input("Course Rating", value=st.session_state.get("course_rating", 72.0))
-    slope_rating = st.number_input("Slope Rating", value=st.session_state.get("slope_rating", 130))
-    play_format = st.radio("Play Format", ["Match Play", "Stroke Play"], index=0 if st.session_state.get("play_format") == "Match Play" else 1)
-    
+    course_rating = st.number_input("Course Rating", value=72.0)
+    slope_rating = st.number_input("Slope Rating", value=130)
+    play_format = st.radio("Play Format", ["Match Play", "Stroke Play"], index=0)
+
     submitted = st.form_submit_button("🚀 Simulate Match")
 
 
