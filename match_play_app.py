@@ -1082,103 +1082,6 @@ with tabs[0]:
             styled_df = style_table(df)
             st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)            
 
-# --- Leaderboard ---
-def render_tab_5():
-    st.subheader("🏅 Prediction Leaderboard")
-
-    try:
-        # Load predictions
-        predictions_response = supabase.table("predictions").select("*").execute()
-        predictions = predictions_response.data
-
-        # Load final results
-        final_results_response = supabase.table("final_results") \
-            .select("*") \
-            .order("created_at", desc=True) \
-            .limit(1) \
-            .execute()
-        final_results_data = final_results_response.data
-
-        if not predictions:
-            st.warning("⚠️ No predictions submitted.")
-            return
-        if not final_results_data:
-            st.warning("⚠️ Final results not available yet.")
-            return
-
-        # Final results parsed
-        final = final_results_data[0]
-        def parse(field): return json.loads(field) if isinstance(field, str) else field
-        def norm(name): return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
-
-        actual = {
-            "r16_left": parse(final.get("r16_left", "[]")),
-            "r16_right": parse(final.get("r16_right", "[]")),
-            "qf_left": parse(final.get("qf_left", "[]")),
-            "qf_right": parse(final.get("qf_right", "[]")),
-            "sf_left": parse(final.get("sf_left", "[]")),
-            "sf_right": parse(final.get("sf_right", "[]")),
-            "champion": norm(final.get("champion", ""))
-        }
-
-        leaderboard = []
-        for row in predictions:
-            name = row.get("name", "Unknown")
-            ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
-
-            r16 = qf = sf = champ = 0
-
-            def score_round(pred_list, actual_list, pts):
-                return sum(pts for a, p in zip(actual_list, pred_list) if norm(a) == norm(p))
-
-            # Score per round
-            r16 += score_round(parse(row.get("r16_left", "[]")), actual["r16_left"], 1)
-            r16 += score_round(parse(row.get("r16_right", "[]")), actual["r16_right"], 1)
-            qf  += score_round(parse(row.get("qf_left", "[]")), actual["qf_left"], 3)
-            qf  += score_round(parse(row.get("qf_right", "[]")), actual["qf_right"], 3)
-            sf  += score_round(parse(row.get("sf_left", "[]")), actual["sf_left"], 5)
-            sf  += score_round(parse(row.get("sf_right", "[]")), actual["sf_right"], 5)
-            champ = 10 if norm(row.get("champion", "")) == actual["champion"] else 0
-
-            total = r16 + qf + sf + champ
-
-            leaderboard.append({
-                "Name": name,
-                "R16": r16,
-                "QF": qf,
-                "SF": sf,
-                "Champion": champ,
-                "Total": total,
-                "Submitted At": ts
-            })
-
-        df = pd.DataFrame(leaderboard)
-        df = df.sort_values(by=["Total", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
-        df.insert(0, "Rank", df.index + 1)
-
-        def style_podium(row):
-            if row["Rank"] == 1:
-                return ["background-color: gold; font-weight: bold"] * len(row)
-            elif row["Rank"] == 2:
-                return ["background-color: silver; font-weight: bold"] * len(row)
-            elif row["Rank"] == 3:
-                return ["background-color: #cd7f32; font-weight: bold"] * len(row)
-            else:
-                return [""] * len(row)
-
-        styled_df = df.style.apply(style_podium, axis=1)
-
-        st.dataframe(styled_df, use_container_width=True)
-
-    except Exception as e:
-        st.error("❌ Leaderboard failed to load.")
-        st.code(str(e))
-
-# Call this inside the tab container
-with tabs[5]:
-    render_tab_5()
-
-        st.code(str(e))
 
 # --- Group Stage ---
 with tabs[1]:
@@ -1315,9 +1218,6 @@ if st.session_state.get("tiebreaks_resolved", False):
             st.error(f"❌ Failed to save bracket progression: {e}")
 
 
-
-
-# --- Standings ---
 # --- Standings ---
 with tabs[2]:
     st.subheader("📋 Standings")
@@ -1369,8 +1269,6 @@ with tabs[2]:
     else:
         st.warning("No standings available yet.")
 
-
-# --- Bracket Tab ---
 # --- Bracket Tab ---
 with tabs[3]:
     st.subheader("🏆 Bracket Stage")
@@ -1615,4 +1513,95 @@ with tabs[4]:
         except Exception as e:
             st.error("❌ Failed to submit your prediction.")
             st.code(str(e))
+# --- Leaderboard ---
+with tabs[5]:
+    st.subheader("🏅 Prediction Leaderboard")
+
+    try:
+        # Load predictions
+        predictions_response = supabase.table("predictions").select("*").execute()
+        predictions = predictions_response.data
+
+        # Load final results
+        final_results_response = supabase.table("final_results") \
+            .select("*") \
+            .order("created_at", desc=True) \
+            .limit(1) \
+            .execute()
+        final_results_data = final_results_response.data
+
+        if not predictions:
+            st.warning("⚠️ No predictions submitted.")
+            st.stop()
+        if not final_results_data:
+            st.warning("⚠️ Final results not available yet.")
+            st.stop()
+
+        # Final results parsed
+        final = final_results_data[0]
+        def parse(field): return json.loads(field) if isinstance(field, str) else field
+        def norm(name): return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
+
+        actual = {
+            "r16_left": parse(final.get("r16_left", "[]")),
+            "r16_right": parse(final.get("r16_right", "[]")),
+            "qf_left": parse(final.get("qf_left", "[]")),
+            "qf_right": parse(final.get("qf_right", "[]")),
+            "sf_left": parse(final.get("sf_left", "[]")),
+            "sf_right": parse(final.get("sf_right", "[]")),
+            "champion": norm(final.get("champion", ""))
+        }
+
+        leaderboard = []
+        for row in predictions:
+            name = row.get("name", "Unknown")
+            ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
+
+            r16 = qf = sf = champ = 0
+
+            def score_round(pred_list, actual_list, pts):
+                return sum(pts for a, p in zip(actual_list, pred_list) if norm(a) == norm(p))
+
+            # Score per round
+            r16 += score_round(parse(row.get("r16_left", "[]")), actual["r16_left"], 1)
+            r16 += score_round(parse(row.get("r16_right", "[]")), actual["r16_right"], 1)
+            qf  += score_round(parse(row.get("qf_left", "[]")), actual["qf_left"], 3)
+            qf  += score_round(parse(row.get("qf_right", "[]")), actual["qf_right"], 3)
+            sf  += score_round(parse(row.get("sf_left", "[]")), actual["sf_left"], 5)
+            sf  += score_round(parse(row.get("sf_right", "[]")), actual["sf_right"], 5)
+            champ = 10 if norm(row.get("champion", "")) == actual["champion"] else 0
+
+            total = r16 + qf + sf + champ
+
+            leaderboard.append({
+                "Name": name,
+                "R16": r16,
+                "QF": qf,
+                "SF": sf,
+                "Champion": champ,
+                "Total": total,
+                "Submitted At": ts
+            })
+
+        df = pd.DataFrame(leaderboard)
+        df = df.sort_values(by=["Total", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
+        df.insert(0, "Rank", df.index + 1)
+
+        def style_podium(row):
+            if row["Rank"] == 1:
+                return ["background-color: gold; font-weight: bold"] * len(row)
+            elif row["Rank"] == 2:
+                return ["background-color: silver; font-weight: bold"] * len(row)
+            elif row["Rank"] == 3:
+                return ["background-color: #cd7f32; font-weight: bold"] * len(row)
+            else:
+                return [""] * len(row)
+
+        styled_df = df.style.apply(style_podium, axis=1)
+
+        st.dataframe(styled_df, use_container_width=True)
+
+    except Exception as e:
+        st.error("❌ Leaderboard failed to load.")
+        st.code(str(e))
 
