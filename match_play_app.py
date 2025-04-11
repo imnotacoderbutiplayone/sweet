@@ -1080,9 +1080,7 @@ with tabs[0]:
             df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
             df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
             styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
-
-
+            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)            
 # --- Leaderboard ---
 with tabs[5]:
     st.subheader("🏅 Prediction Leaderboard")
