@@ -1101,10 +1101,10 @@ with tabs[5]:
 
         if not predictions:
             st.warning("⚠️ No predictions submitted.")
-            return
+            st.stop()
         if not final_results_data:
             st.warning("⚠️ Final results not available yet.")
-            return
+            st.stop()
 
         # Final results parsed
         final = final_results_data[0]
@@ -1319,7 +1319,7 @@ with tabs[2]:
     match_results = load_match_results()
     if not match_results:
         st.info("📭 No match results have been entered yet.")
-        return
+        st.stop()
 
     pod_results = {}
 
@@ -1387,7 +1387,7 @@ with tabs[3]:
                 st.session_state.bracket_data = bracket_data
             else:
                 st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
-                return
+                st.stop()
 
         return st.session_state.bracket_data
 
@@ -1424,7 +1424,7 @@ with tabs[3]:
     bracket_df = st.session_state.finalized_bracket
     if bracket_df is None or bracket_df.empty:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
-        return
+        st.stop()
 
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
@@ -1524,12 +1524,12 @@ with tabs[4]:
 
     if not r16_left or not r16_right or len(r16_left) < 4 or len(r16_right) < 4:
         st.warning("Bracket is not finalized. Prediction will open once the field of 16 is set.")
-        return
+        st.stop()
 
     full_name = st.text_input("Enter your full name to submit your bracket:", key="predictor_name").strip()
     if not full_name:
         st.info("Enter your name to proceed.")
-        return
+        st.stop()
 
     user_predictions = load_predictions_from_supabase()
     existing_names = [p["name"].strip().lower() for p in user_predictions]
@@ -1537,7 +1537,7 @@ with tabs[4]:
 
     if predictions_locked or user_name in existing_names:
         st.warning("⛔ Predictions are locked or already submitted.")
-        return
+        st.stop()
 
     def pick_winners_with_dropdown(matchups, round_label, key_prefix):
         winners = []
@@ -1551,7 +1551,7 @@ with tabs[4]:
                 )
                 if winner == "-- Select Winner --":
                     st.warning(f"Please pick a winner for Match {i + 1} of {round_label}")
-                    return
+                    st.stop()
                 winners.append(winner)
         return winners
 
@@ -1585,7 +1585,7 @@ with tabs[4]:
     )
     if champion == "-- Select Winner --":
         st.warning("Please select a Champion before submitting.")
-        return
+        st.stop()
 
     # --- Submit ---
     if st.button("🚀 Submit My Bracket Prediction"):
