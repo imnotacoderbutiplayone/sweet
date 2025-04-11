@@ -1047,6 +1047,42 @@ tabs = st.tabs([
     "🏅 Leaderboard"
 ])
 # --- Leaderboard Tab ---
+# --- Main Tournament Tabs ---
+with tabs[0]:
+    st.subheader("📁 All Pods and Player Handicaps")
+
+    # Displaying pod data...
+    pod_names = list(pods.keys())
+    num_cols = 3  # You can adjust this to control the number of columns
+    cols = st.columns(num_cols)
+
+    # CSS style for headers and alternating rows
+    def style_table(df):
+        styled = df.style.set_table_styles([
+            {'selector': 'th',
+             'props': [('background-color', '#4CAF50'),
+                       ('color', 'white'),
+                       ('font-size', '16px')]},
+            {'selector': 'td',
+             'props': [('font-size', '14px')]}
+        ]).set_properties(**{
+            'text-align': 'left',
+            'padding': '6px'
+        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
+        df = df.reset_index(drop=True)  # Optional: if you really want no index
+        return styled  # Hide the index explicitly here
+
+    for i, pod_name in enumerate(pod_names):
+        col = cols[i % num_cols]
+        with col:
+            st.markdown(f"##### {pod_name}")
+            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
+            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
+            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
+            styled_df = style_table(df)
+            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+
+
 # --- Leaderboard ---
 with tabs[5]:
     st.subheader("🏅 Prediction Leaderboard")
@@ -1138,43 +1174,6 @@ with tabs[5]:
     except Exception as e:
         st.error("❌ Leaderboard failed to load.")
         st.code(str(e))
-
-# --- Main Tournament Tabs ---
-with tabs[0]:
-    st.subheader("📁 All Pods and Player Handicaps")
-
-    # Displaying pod data...
-    pod_names = list(pods.keys())
-    num_cols = 3  # You can adjust this to control the number of columns
-    cols = st.columns(num_cols)
-
-    # CSS style for headers and alternating rows
-    def style_table(df):
-        styled = df.style.set_table_styles([
-            {'selector': 'th',
-             'props': [('background-color', '#4CAF50'),
-                       ('color', 'white'),
-                       ('font-size', '16px')]},
-            {'selector': 'td',
-             'props': [('font-size', '14px')]}
-        ]).set_properties(**{
-            'text-align': 'left',
-            'padding': '6px'
-        }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-        df = df.reset_index(drop=True)  # Optional: if you really want no index
-        return styled  # Hide the index explicitly here
-
-    for i, pod_name in enumerate(pod_names):
-        col = cols[i % num_cols]
-        with col:
-            st.markdown(f"##### {pod_name}")
-            df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
-            df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
-            df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-            styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
-
-
 
 # --- Group Stage ---
 with tabs[1]:
