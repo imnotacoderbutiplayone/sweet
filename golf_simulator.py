@@ -95,13 +95,13 @@ with st.form("player_input"):
     with col1:
         st.subheader("Player 1")
         p1_name = st.text_input("Name", "Player 1")
-        p1_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0, value=1.0)
-        p1_scores = st.text_input("Last 10 Scores (comma-separated)", "73,74,72,75,71,73,72,76,70,74")
+        p1_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0)
+        p1_scores = st.text_input("Last 10 Scores (comma-separated)", "")
     with col2:
         st.subheader("Player 2")
         p2_name = st.text_input("Name", "Player 2")
-        p2_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0, value=19.0)
-        p2_scores = st.text_input("Last 10 Scores (comma-separated)", "91,93,89,92,95,90,88,94,87,90")
+        p2_index = st.number_input("Handicap Index", min_value=0.0, max_value=36.0)
+        p2_scores = st.text_input("Last 10 Scores (comma-separated)", "")
 
     st.subheader("Course Setup")
     course_rating = st.number_input("Course Rating", value=72.0)
