@@ -114,10 +114,6 @@ with st.form("player_input"):
         except ValueError:
             p2_scores = []
             st.warning("Player 2 scores must be numbers separated by commas.")
-    p2_scores = [float(s.strip()) for s in p2_scores_input.split(",") if s.strip()]
-except ValueError:
-    p2_scores = []
-    st.warning("Player 2 scores must be numbers separated by commas.")
 
     st.subheader("Course Setup")
     course_rating = st.number_input("Course Rating", value=72.0)
