@@ -296,7 +296,7 @@ def display_match_result_log():
 def load_round_players(round_key, progression_data, source_players=None):
     """
     Load player records for a specific bracket round using Supabase progression data.
-
+    
     Parameters:
     - round_key (str): The bracket round key, e.g., 'r16_left', 'qf_right'
     - progression_data (dict): The loaded Supabase progression object
@@ -311,7 +311,7 @@ def load_round_players(round_key, progression_data, source_players=None):
     try:
         # Get player names from progression data
         names = parse_json_field(progression_data.get(round_key, "[]"))
-
+        
         # Ensure players are full dictionaries
         players = get_players_by_names(source_players, names)
         return players
@@ -357,7 +357,7 @@ def save_match_result(pod, player1, player2, winner, margin_str):
         "player1": player1,
         "player2": player2,
         "winner": winner,
-        "margin": margin_value,
+        "margin": margin_value,  
         "created_at": datetime.utcnow().isoformat()
     }
 
@@ -1039,54 +1039,16 @@ st.sidebar.markdown("🏌️‍♂️ [Golf Score Probability Calculator](https:
 
 # --- Streamlit App Configuration ---
 tabs = st.tabs([
-    "📁 Pods Overview",
-    "📊 Group Stage",
-    "📋 Standings",
-    "🏆 Bracket",
-    "🔮 Predict Bracket",
+    "📁 Pods Overview", 
+    "📊 Group Stage", 
+    "📋 Standings", 
+    "🏆 Bracket", 
+    "🔮 Predict Bracket", 
     "🏅 Leaderboard"
 ])
 
 # --- Main Tournament Tabs ---
 with tabs[0]:
-    render_tab_0()
-def render_tab_0():
-
-        st.subheader("📁 All Pods and Player Handicaps")
-
-        # Displaying pod data...
-        pod_names = list(pods.keys())
-        num_cols = 3  # You can adjust this to control the number of columns
-        cols = st.columns(num_cols)
-
-        # CSS style for headers and alternating rows
-        def style_table(df):
-            styled = df.style.set_table_styles([
-                {'selector': 'th',
-                 'props': [('background-color', '#4CAF50'),
-                           ('color', 'white'),
-                           ('font-size', '16px')]},
-                {'selector': 'td',
-                 'props': [('font-size', '14px')]}
-            ]).set_properties(**{
-                'text-align': 'left',
-                'padding': '6px'
-            }).apply(lambda x: ['background-color: #f9f9f9' if i % 2 else 'background-color: white' for i in range(len(x))])
-            df = df.reset_index(drop=True)  # Optional: if you really want no index
-            return styled  # Hide the index explicitly here
-
-        for i, pod_name in enumerate(pod_names):
-            col = cols[i % num_cols]
-            with col:
-                st.markdown(f"##### {pod_name}")
-                df = pd.DataFrame(pods[pod_name])[["name", "handicap"]]
-                df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
-                df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
-                styled_df = style_table(df)
-                st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
-
-    # --- Leaderboard ---
-
     st.subheader("📁 All Pods and Player Handicaps")
 
     # Displaying pod data...
@@ -1118,105 +1080,10 @@ def render_tab_0():
             df["handicap"] = df["handicap"].apply(lambda x: f"{x:.1f}" if pd.notnull(x) else "N/A")
             df.rename(columns={"name": "Player", "handicap": "Handicap"}, inplace=True)
             styled_df = style_table(df)
-            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)
+            st.write(styled_df.to_html(escape=False), unsafe_allow_html=True)            
 
 # --- Leaderboard ---
 with tabs[5]:
-    render_tab_5()
-def render_tab_5():
-
-        st.subheader("🏅 Prediction Leaderboard")
-
-        try:
-            # Load predictions
-            predictions_response = supabase.table("predictions").select("*").execute()
-            predictions = predictions_response.data
-
-            # Load final results
-            final_results_response = supabase.table("final_results") \
-                .select("*") \
-                .order("created_at", desc=True) \
-                .limit(1) \
-                .execute()
-            final_results_data = final_results_response.data
-
-            if not predictions:
-                st.warning("⚠️ No predictions submitted.")
-                return
-            if not final_results_data:
-                st.warning("⚠️ Final results not available yet.")
-                return
-
-            # Final results parsed
-            final = final_results_data[0]
-            def parse(field): return json.loads(field) if isinstance(field, str) else field
-            def norm(name): return name.strip().lower().replace('\xa0', ' ').replace("’", "'")
-
-            actual = {
-                "r16_left": parse(final.get("r16_left", "[]")),
-                "r16_right": parse(final.get("r16_right", "[]")),
-                "qf_left": parse(final.get("qf_left", "[]")),
-                "qf_right": parse(final.get("qf_right", "[]")),
-                "sf_left": parse(final.get("sf_left", "[]")),
-                "sf_right": parse(final.get("sf_right", "[]")),
-                "champion": norm(final.get("champion", ""))
-            }
-
-            leaderboard = []
-            for row in predictions:
-                name = row.get("name", "Unknown")
-                ts = row.get("timestamp", "")[:19].replace("T", " ") + " UTC"
-
-                r16 = qf = sf = champ = 0
-
-                def score_round(pred_list, actual_list, pts):
-                    return sum(pts for a, p in zip(actual_list, pred_list) if norm(a) == norm(p))
-
-                # Score per round
-                r16 += score_round(parse(row.get("r16_left", "[]")), actual["r16_left"], 1)
-                r16 += score_round(parse(row.get("r16_right", "[]")), actual["r16_right"], 1)
-                qf  += score_round(parse(row.get("qf_left", "[]")), actual["qf_left"], 3)
-                qf  += score_round(parse(row.get("qf_right", "[]")), actual["qf_right"], 3)
-                sf  += score_round(parse(row.get("sf_left", "[]")), actual["sf_left"], 5)
-                sf  += score_round(parse(row.get("sf_right", "[]")), actual["sf_right"], 5)
-                champ = 10 if norm(row.get("champion", "")) == actual["champion"] else 0
-
-                total = r16 + qf + sf + champ
-
-                leaderboard.append({
-                    "Name": name,
-                    "R16": r16,
-                    "QF": qf,
-                    "SF": sf,
-                    "Champion": champ,
-                    "Total": total,
-                    "Submitted At": ts
-                })
-
-            df = pd.DataFrame(leaderboard)
-            df = df.sort_values(by=["Total", "Submitted At"], ascending=[False, True]).reset_index(drop=True)
-            df.insert(0, "Rank", df.index + 1)
-
-            def style_podium(row):
-                if row["Rank"] == 1:
-                    return ["background-color: gold; font-weight: bold"] * len(row)
-                elif row["Rank"] == 2:
-                    return ["background-color: silver; font-weight: bold"] * len(row)
-                elif row["Rank"] == 3:
-                    return ["background-color: #cd7f32; font-weight: bold"] * len(row)
-                else:
-                    return [""] * len(row)
-
-            styled_df = df.style.apply(style_podium, axis=1)
-
-            st.dataframe(styled_df, use_container_width=True)
-
-        except Exception as e:
-            st.error("❌ Leaderboard failed to load.")
-            st.code(str(e))
-
-    # --- Group Stage ---
-
     st.subheader("🏅 Prediction Leaderboard")
 
     try:
@@ -1234,10 +1101,10 @@ def render_tab_5():
 
         if not predictions:
             st.warning("⚠️ No predictions submitted.")
-            st.stop()
+            return
         if not final_results_data:
             st.warning("⚠️ Final results not available yet.")
-            st.stop()
+            return
 
         # Final results parsed
         final = final_results_data[0]
@@ -1309,147 +1176,6 @@ def render_tab_5():
 
 # --- Group Stage ---
 with tabs[1]:
-    render_tab_1()
-def render_tab_1():
-
-        st.subheader("📊 Group Stage - Match Results")
-
-        # Show loading spinner while loading match results
-        with st.spinner('Loading match results...'):
-            match_results = st.session_state.get("match_results") or load_match_results()
-        st.session_state.match_results = match_results
-
-        pod_results = {}
-        display_match_result_log()
-
-        for pod_name, players in pods.items():
-            with st.expander(pod_name):
-                updated_players = simulate_matches(players, pod_name, source="group_stage", editable=st.session_state.authenticated)
-                pod_results[pod_name] = pd.DataFrame(updated_players)
-
-        # --- Admin-only Tiebreaker and Finalize Logic ---
-        if st.session_state.authenticated:
-            st.header("🧠 Step 1: Review & Resolve Tiebreakers")
-
-            if "tiebreak_selections" not in st.session_state:
-                st.session_state.tiebreak_selections = {}
-            if "tiebreaks_resolved" not in st.session_state:
-                st.session_state.tiebreaks_resolved = False
-
-            unresolved = False
-            pod_scores = compute_pod_standings_from_results(pods, match_results)
-
-            for pod_name, df in pod_scores.items():
-                if df.empty or "points" not in df.columns:
-                    st.info(f"📭 No match results entered yet for {pod_name}.")
-                    continue
-
-                sorted_players = df.sort_values(by=["points", "margin"], ascending=False).reset_index(drop=True)
-
-                # Resolve 1st place
-                top_score = sorted_players.iloc[0]["points"]
-                top_margin = sorted_players.iloc[0]["margin"]
-                tied_first = sorted_players[(sorted_players["points"] == top_score) & (sorted_players["margin"] == top_margin)]
-
-                if len(tied_first) > 1:
-                    st.warning(f"🔁 Tie for 1st in {pod_name}")
-                    options = tied_first["name"].tolist()
-                    selected = st.radio(f"Select 1st place in {pod_name}:", options, key=f"{pod_name}_1st")
-                    if selected:
-                        st.session_state.tiebreak_selections[f"{pod_name}_1st"] = selected
-                    else:
-                        unresolved = True
-                else:
-                    st.session_state.tiebreak_selections[f"{pod_name}_1st"] = tied_first.iloc[0]["name"]
-
-                # Resolve 2nd place
-                winner_name = st.session_state.tiebreak_selections.get(f"{pod_name}_1st")
-                remaining = sorted_players[sorted_players["name"] != winner_name].reset_index(drop=True)
-
-                if remaining.empty:
-                    st.warning(f"⚠️ Not enough players to determine second place in {pod_name}")
-                    continue
-
-                second_score = remaining.iloc[0]["points"]
-                second_margin = remaining.iloc[0]["margin"]
-                tied_second = remaining[(remaining["points"] == second_score) & (remaining["margin"] == second_margin)]
-
-                if len(tied_second) > 1:
-                    st.warning(f"🔁 Tie for 2nd in {pod_name}")
-                    options = tied_second["name"].tolist()
-                    selected = st.radio(f"Select 2nd place in {pod_name}:", options, key=f"{pod_name}_2nd")
-                    if selected:
-                        st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = selected
-                    else:
-                        unresolved = True
-                else:
-                    st.session_state.tiebreak_selections[f"{pod_name}_2nd"] = tied_second.iloc[0]["name"]
-
-            if unresolved:
-                st.error("⛔ Please resolve all tiebreakers before finalizing.")
-                st.session_state.tiebreaks_resolved = False
-            else:
-                st.success("✅ All tiebreakers selected.")
-                st.session_state.tiebreaks_resolved = True
-
-            # --- Finalize Bracket ---
-    if st.session_state.get("tiebreaks_resolved", False):
-        if st.button("🏁 Finalize Bracket and Seed Field"):
-            bracket_df = build_bracket_df_from_pod_scores(pod_scores, st.session_state.tiebreak_selections)
-            st.session_state.finalized_bracket = bracket_df
-
-            # Save bracket to Supabase (for prediction tab, etc.)
-            save_bracket_data(bracket_df)
-
-            # --- Build Round of 16 matchups ---
-            r16_left = [
-                [bracket_df.iloc[0]["name"], bracket_df.iloc[15]["name"]],
-                [bracket_df.iloc[7]["name"], bracket_df.iloc[8]["name"]],
-                [bracket_df.iloc[4]["name"], bracket_df.iloc[11]["name"]],
-                [bracket_df.iloc[3]["name"], bracket_df.iloc[12]["name"]],
-            ]
-            r16_right = [
-                [bracket_df.iloc[1]["name"], bracket_df.iloc[14]["name"]],
-                [bracket_df.iloc[6]["name"], bracket_df.iloc[9]["name"]],
-                [bracket_df.iloc[5]["name"], bracket_df.iloc[10]["name"]],
-                [bracket_df.iloc[2]["name"], bracket_df.iloc[13]["name"]],
-            ]
-
-            # Save R16 matchups to bracket_progression
-            try:
-                record = {
-                    "r16_left": json.dumps(r16_left),
-                    "r16_right": json.dumps(r16_right),
-                    "qf_left": json.dumps([]),
-                    "qf_right": json.dumps([]),
-                    "sf_left": json.dumps([]),
-                    "sf_right": json.dumps([]),
-                    "finalist_left": None,
-                    "finalist_right": None,
-                    "champion": None,
-                    "field_locked": True,
-                    "created_at": datetime.utcnow().isoformat()
-                }
-
-                result = supabase.table("bracket_progression").insert(record).execute()
-
-                if result.data and len(result.data) > 0:
-                    bracket_id = result.data[0]["id"]
-                    st.session_state.bracket_data = {**record, "id": bracket_id}
-                    st.success("✅ Bracket finalized and seeded. Ready for knockout rounds!")
-                    st.dataframe(bracket_df)
-                else:
-                    st.error("❌ Bracket was inserted, but no ID was returned.")
-
-            except Exception as e:
-                st.error(f"❌ Failed to save bracket progression: {e}")
-
-
-
-
-    # --- Standings ---
-    # --- Standings ---
-
     st.subheader("📊 Group Stage - Match Results")
 
     # Show loading spinner while loading match results
@@ -1588,68 +1314,12 @@ if st.session_state.get("tiebreaks_resolved", False):
 # --- Standings ---
 # --- Standings ---
 with tabs[2]:
-    render_tab_2()
-def render_tab_2():
-
-        st.subheader("📋 Standings")
-
-        match_results = load_match_results()
-        if not match_results:
-            st.info("📭 No match results have been entered yet.")
-            return
-
-        pod_results = {}
-
-        for pod_name, players in pods.items():
-            updated_players = []
-            for player in players:
-                name = player['name']
-                total_points = 0
-                total_margin = 0
-
-                for match_key, result in match_results.items():
-                    if match_key.startswith(f"{pod_name}|") and name in match_key:
-                        winner = result.get("winner", "")
-                        margin_val = result.get("margin", 0)
-
-                        if winner == name:
-                            total_points += 1
-                            total_margin += margin_val
-                        elif winner == "Tie":
-                            total_points += 0.5
-                        else:
-                            total_margin -= margin_val
-
-                updated_players.append({
-                    "Player": name,
-                    "Handicap": player["handicap"] if player["handicap"] is not None else "N/A",
-                    "Points": total_points,
-                    "Margin": total_margin
-                })
-
-            df = pd.DataFrame(updated_players)
-            if not df.empty:
-                df = df.sort_values(by=["Points", "Margin"], ascending=False)
-                pod_results[pod_name] = df
-
-        # Display
-        if pod_results:
-            for pod_name, df in pod_results.items():
-                with st.expander(f"📦 {pod_name} Standings", expanded=False):
-                    st.dataframe(df, use_container_width=True)
-        else:
-            st.warning("No standings available yet.")
-
-
-    # --- Bracket Tab ---
-    # --- Bracket Tab ---
-
     st.subheader("📋 Standings")
 
     match_results = load_match_results()
     if not match_results:
         st.info("📭 No match results have been entered yet.")
-        st.stop()
+        return
 
     pod_results = {}
 
@@ -1697,155 +1367,6 @@ def render_tab_2():
 # --- Bracket Tab ---
 # --- Bracket Tab ---
 with tabs[3]:
-    render_tab_3()
-def render_tab_3():
-
-        st.subheader("🏆 Bracket Stage")
-
-        def decode_if_json(raw):
-            if isinstance(raw, str):
-                try:
-                    return json.loads(raw)
-                except Exception:
-                    return raw
-            return raw
-
-        def load_or_refresh_bracket_data():
-            bracket_data = st.session_state.get("bracket_data", {})
-            bracket_id = bracket_data.get("id")
-
-            if not bracket_id:
-                bracket_data = load_bracket_progression_from_supabase()
-                if bracket_data and "id" in bracket_data:
-                    st.session_state.bracket_data = bracket_data
-                else:
-                    st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
-                    return
-
-            return st.session_state.bracket_data
-
-        def get_bracket_winner(match_id):
-            try:
-                response = supabase.table("tournament_matches") \
-                    .select("winner") \
-                    .eq("match_id", match_id) \
-                    .limit(1) \
-                    .execute()
-                if response.data and len(response.data) > 0:
-                    return response.data[0]["winner"]
-                return None
-            except Exception as e:
-                st.warning(f"⚠️ Could not fetch winner for match {match_id}: {e}")
-                return None
-
-        def save_final_results_to_supabase(final_data):
-            try:
-                response = supabase.table("final_results").insert(final_data).execute()
-                if response.data:
-                    st.success("✅ Final results saved to Supabase.")
-                else:
-                    st.error("❌ Failed to save final results.")
-            except Exception as e:
-                st.error(f"❌ Error saving final results: {e}")
-
-        bracket_data = load_or_refresh_bracket_data()
-        bracket_id = bracket_data.get("id")
-
-        if "finalized_bracket" not in st.session_state or st.session_state.finalized_bracket is None:
-            st.session_state.finalized_bracket = load_bracket_data_from_supabase()
-
-        bracket_df = st.session_state.finalized_bracket
-        if bracket_df is None or bracket_df.empty:
-            st.warning("❌ Bracket data not available. Finalize in Group Stage.")
-            return
-
-        r16_left = decode_if_json(bracket_data.get("r16_left"))
-        r16_right = decode_if_json(bracket_data.get("r16_right"))
-
-        icon = "🏌️"
-
-        if st.session_state.authenticated:
-            st.success("🔐 Admin Mode Enabled")
-
-        col1, col2 = st.columns(2)
-
-        qf_left = []
-        qf_right = []
-        sf_left = []
-        sf_right = []
-        finalists = []
-        champion = None
-
-        with col1:
-            st.markdown("### 🟦 Left Side")
-
-            for i, (p1_name, p2_name) in enumerate(r16_left):
-                render_bracket_match_ui(100 + i, "Round of 16", p1_name, p2_name)
-
-            for i in range(0, len(r16_left), 2):
-                if i + 1 < len(r16_left):
-                    w1 = get_bracket_winner(100 + i)
-                    w2 = get_bracket_winner(100 + i + 1)
-                    if w1 and w2:
-                        render_bracket_match_ui(200 + i, "Quarterfinals", w1, w2)
-                        qf_left.append((w1, w2))
-
-            if len(qf_left) >= 2:
-                w1 = get_bracket_winner(200)
-                w2 = get_bracket_winner(202)
-                if w1 and w2:
-                    render_bracket_match_ui(300, "Semifinal", w1, w2)
-                    sf_left.append((w1, w2))
-
-        with col2:
-            st.markdown("### 🟥 Right Side")
-
-            for i, (p1_name, p2_name) in enumerate(r16_right):
-                render_bracket_match_ui(110 + i, "Round of 16", p1_name, p2_name)
-
-            for i in range(0, len(r16_right), 2):
-                if i + 1 < len(r16_right):
-                    w1 = get_bracket_winner(110 + i)
-                    w2 = get_bracket_winner(110 + i + 1)
-                    if w1 and w2:
-                        render_bracket_match_ui(210 + i, "Quarterfinals", w1, w2)
-                        qf_right.append((w1, w2))
-
-            if len(qf_right) >= 2:
-                w1 = get_bracket_winner(210)
-                w2 = get_bracket_winner(212)
-                if w1 and w2:
-                    render_bracket_match_ui(310, "Semifinal", w1, w2)
-                    sf_right.append((w1, w2))
-
-        if len(sf_left) == 1 and len(sf_right) == 1:
-            left_finalist = get_bracket_winner(300)
-            right_finalist = get_bracket_winner(310)
-            if left_finalist and right_finalist:
-                render_bracket_match_ui(400, "Final", left_finalist, right_finalist)
-                champion = get_bracket_winner(400)
-                if champion:
-                    st.success(f"🏆 Champion: **{champion}**")
-
-                    if st.session_state.authenticated:
-                        if st.button("💾 Save Final Results to Leaderboard"):
-                            final_data = {
-                                "r16_left": json.dumps([p1 for p1, p2 in r16_left]),
-                                "r16_right": json.dumps([p1 for p1, p2 in r16_right]),
-                                "qf_left": json.dumps([p1 for p1, p2 in qf_left]),
-                                "qf_right": json.dumps([p1 for p1, p2 in qf_right]),
-                                "sf_left": json.dumps([p1 for p1, p2 in sf_left]),
-                                "sf_right": json.dumps([p1 for p1, p2 in sf_right]),
-                                "finalist_left": left_finalist,
-                                "finalist_right": right_finalist,
-                                "champion": champion,
-                                "created_at": datetime.utcnow().isoformat()
-                            }
-                            save_final_results_to_supabase(final_data)
-
-
-    # --- Predict Bracket ---
-
     st.subheader("🏆 Bracket Stage")
 
     def decode_if_json(raw):
@@ -1866,7 +1387,7 @@ def render_tab_3():
                 st.session_state.bracket_data = bracket_data
             else:
                 st.warning("❌ No valid bracket record found. Please finalize the bracket in the Group Stage.")
-                st.stop()
+                return
 
         return st.session_state.bracket_data
 
@@ -1903,7 +1424,7 @@ def render_tab_3():
     bracket_df = st.session_state.finalized_bracket
     if bracket_df is None or bracket_df.empty:
         st.warning("❌ Bracket data not available. Finalize in Group Stage.")
-        st.stop()
+        return
 
     r16_left = decode_if_json(bracket_data.get("r16_left"))
     r16_right = decode_if_json(bracket_data.get("r16_right"))
@@ -1992,111 +1513,6 @@ def render_tab_3():
 
 # --- Predict Bracket ---
 with tabs[4]:
-    render_tab_4()
-def render_tab_4():
-
-        st.subheader("🔮 Predict the Bracket")
-
-        now = datetime.now(timezone.utc)
-        predictions_locked = now > PREDICTION_DEADLINE
-
-        bracket_data = load_bracket_progression_from_supabase()
-        r16_left = decode_if_json(bracket_data.get("r16_left"))
-        r16_right = decode_if_json(bracket_data.get("r16_right"))
-
-        if not r16_left or not r16_right or len(r16_left) < 4 or len(r16_right) < 4:
-            st.warning("Bracket is not finalized. Prediction will open once the field of 16 is set.")
-            return
-
-        full_name = st.text_input("Enter your full name to submit your bracket:", key="predictor_name").strip()
-        if not full_name:
-            st.info("Enter your name to proceed.")
-            return
-
-        user_predictions = load_predictions_from_supabase()
-        existing_names = [p["name"].strip().lower() for p in user_predictions]
-        user_name = full_name.lower()
-
-        if predictions_locked or user_name in existing_names:
-            st.warning("⛔ Predictions are locked or already submitted.")
-            return
-
-        def pick_winners_with_dropdown(matchups, round_label, key_prefix):
-            winners = []
-            for i, match in enumerate(matchups):
-                if isinstance(match, list) and len(match) == 2:
-                    p1, p2 = match
-                    winner = st.selectbox(
-                        f"{round_label} Match {i + 1}: {p1} vs {p2}",
-                        options=["-- Select Winner --", p1, p2],
-                        key=f"{key_prefix}_{i}"
-                    )
-                    if winner == "-- Select Winner --":
-                        st.warning(f"Please pick a winner for Match {i + 1} of {round_label}")
-                        return
-                    winners.append(winner)
-            return winners
-
-        # --- R16 ---
-        st.markdown("### 🏁 Round of 16")
-        pred_r16_left = pick_winners_with_dropdown(r16_left, "R16 Left", "r16L")
-        pred_r16_right = pick_winners_with_dropdown(r16_right, "R16 Right", "r16R")
-
-        # --- QF ---
-        st.markdown("### 🎯 Quarterfinals")
-        qf_left = [[pred_r16_left[i], pred_r16_left[i+1]] for i in range(0, 4, 2)]
-        qf_right = [[pred_r16_right[i], pred_r16_right[i+1]] for i in range(0, 4, 2)]
-        pred_qf_left = pick_winners_with_dropdown(qf_left, "QF Left", "qfL")
-        pred_qf_right = pick_winners_with_dropdown(qf_right, "QF Right", "qfR")
-
-        # --- SF ---
-        st.markdown("### 🥊 Semifinals")
-        sf_left = [[pred_qf_left[0], pred_qf_left[1]]]
-        sf_right = [[pred_qf_right[0], pred_qf_right[1]]]
-        pred_sf_left = pick_winners_with_dropdown(sf_left, "SF Left", "sfL")
-        pred_sf_right = pick_winners_with_dropdown(sf_right, "SF Right", "sfR")
-
-        # --- Final ---
-        st.markdown("### 🏆 Final Match")
-        finalist_left = pred_sf_left[0]
-        finalist_right = pred_sf_right[0]
-        champion = st.selectbox(
-            f"Final: {finalist_left} vs {finalist_right}",
-            options=["-- Select Winner --", finalist_left, finalist_right],
-            key="champion"
-        )
-        if champion == "-- Select Winner --":
-            st.warning("Please select a Champion before submitting.")
-            return
-
-        # --- Submit ---
-        if st.button("🚀 Submit My Bracket Prediction"):
-            try:
-                data = {
-                    "name": full_name,
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "r16_left": json.dumps(pred_r16_left),
-                    "r16_right": json.dumps(pred_r16_right),
-                    "qf_left": json.dumps(pred_qf_left),
-                    "qf_right": json.dumps(pred_qf_right),
-                    "sf_left": json.dumps(pred_sf_left),
-                    "sf_right": json.dumps(pred_sf_right),
-                    "finalist_left": finalist_left,
-                    "finalist_right": finalist_right,
-                    "champion": champion
-                }
-                supabase.table("predictions").insert(data).execute()
-                st.success("✅ Your bracket has been submitted!")
-                st.rerun()
-            except Exception as e:
-                st.error("❌ Failed to submit your prediction.")
-                st.code(str(e))
-
-
-
-
-    # --- Leaderboard Tab ---
-
     st.subheader("🔮 Predict the Bracket")
 
     now = datetime.now(timezone.utc)
@@ -2108,12 +1524,12 @@ def render_tab_4():
 
     if not r16_left or not r16_right or len(r16_left) < 4 or len(r16_right) < 4:
         st.warning("Bracket is not finalized. Prediction will open once the field of 16 is set.")
-        st.stop()
+        return
 
     full_name = st.text_input("Enter your full name to submit your bracket:", key="predictor_name").strip()
     if not full_name:
         st.info("Enter your name to proceed.")
-        st.stop()
+        return
 
     user_predictions = load_predictions_from_supabase()
     existing_names = [p["name"].strip().lower() for p in user_predictions]
@@ -2121,7 +1537,7 @@ def render_tab_4():
 
     if predictions_locked or user_name in existing_names:
         st.warning("⛔ Predictions are locked or already submitted.")
-        st.stop()
+        return
 
     def pick_winners_with_dropdown(matchups, round_label, key_prefix):
         winners = []
@@ -2135,7 +1551,7 @@ def render_tab_4():
                 )
                 if winner == "-- Select Winner --":
                     st.warning(f"Please pick a winner for Match {i + 1} of {round_label}")
-                    st.stop()
+                    return
                 winners.append(winner)
         return winners
 
@@ -2169,7 +1585,7 @@ def render_tab_4():
     )
     if champion == "-- Select Winner --":
         st.warning("Please select a Champion before submitting.")
-        st.stop()
+        return
 
     # --- Submit ---
     if st.button("🚀 Submit My Bracket Prediction"):
@@ -2199,11 +1615,5 @@ def render_tab_4():
 
 # --- Leaderboard Tab ---
 with tabs[5]:
-    render_tab_5()
-def render_tab_5():
-
-        st.warning("🚨 ENTERED tab[5]")
-        st.write("👋 Hello, world!")
-
     st.warning("🚨 ENTERED tab[5]")
     st.write("👋 Hello, world!")
