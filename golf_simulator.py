@@ -97,9 +97,9 @@ with st.form("player_input"):
         p1_name = st.text_input("Name", "Player 1")
         p1_index_input = st.text_input("Player 1 Handicap Index (e.g., 12.5)")
         p1_index = float(p1_index_input) if p1_index_input else None
-        p1_scores_input = st.text_input("Player 1 Last 10 Scores (comma-separated)")
+        p1_scores_raw = st.text_input("Player 1 Last 10 Scores (comma-separated)")
         try:
-            p1_scores = [float(s.strip()) for s in p1_scores_input.split(',') if s.strip()]
+            p1_scores = [float(s.strip()) for s in p1_scores_raw.split(",") if s.strip()]
         except ValueError:
             p1_scores = []
             st.warning("Player 1 scores must be numbers separated by commas.")
@@ -108,9 +108,9 @@ with st.form("player_input"):
         p2_name = st.text_input("Name", "Player 2")
         p2_index_input = st.text_input("Player 2 Handicap Index (e.g., 10.0)")
         p2_index = float(p2_index_input) if p2_index_input else None
-        p2_scores_input = st.text_input("Player 2 Last 10 Scores (comma-separated)")
+        p2_scores_raw = st.text_input("Player 2 Last 10 Scores (comma-separated)")
         try:
-            p2_scores = [float(s.strip()) for s in p2_scores_input.split(',') if s.strip()]
+            p2_scores = [float(s.strip()) for s in p2_scores_raw.split(",") if s.strip()]
         except ValueError:
             p2_scores = []
             st.warning("Player 2 scores must be numbers separated by commas.")
