@@ -207,7 +207,8 @@ if st.button("Calculate Probability", key="calc_prob_1"):
         percentile = round(probability_better * 100, 1)
 
         st.success(f"Expected Score: **{expected_score:.1f}**")
-        st.markdown(f"Your actual score of **{actual_score:.1f}** is better than **{percentile}%** of expected rounds.")
+        comparison = "better" if actual_score < expected_score else "worse"
+        st.markdown(f"Your actual score of **{actual_score:.1f}** is {comparison} than **{percentile}%** of expected rounds.")
 
         scores = list(range(int(expected_score - 5), int(expected_score + 10)))
         probs = dist.pdf(scores)
