@@ -141,6 +141,22 @@ def highlight_match_over(val):
 if st.button("Calculate Probability", key="calc_prob_1"):
     if mode == "Match Play":
         holes, result = simulate_match_play(hole_pars, hole_handicaps, handicap_index_1, handicap_index_2)
+        # Show cumulative win probabilities before scorecard
+        total = len(sim_results)
+        win_counts = {
+            player_a_name: sum(1 for r in sim_results if r.startswith(player_a_name)),
+            player_b_name: sum(1 for r in sim_results if r.startswith(player_b_name)),
+            "All Square": sum(1 for r in sim_results if r == "All Square")
+        }
+
+        st.markdown("### 🧮 Cumulative Win Probabilities")
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            st.metric(label=f"{player_a_name} Wins", value=f"{win_counts[player_a_name] / total * 100:.1f}%")
+        with col2:
+            st.metric(label=f"{player_b_name} Wins", value=f"{win_counts[player_b_name] / total * 100:.1f}%")
+        with col3:
+            st.metric(label="All Square", value=f"{win_counts['All Square'] / total * 100:.1f}%")
         st.success(f"Match Result: {result}")
         df = pd.DataFrame(holes).set_index("Hole").T
         styled_df = df.style.applymap(highlight_match_over)
@@ -156,8 +172,7 @@ if st.button("Calculate Probability", key="calc_prob_1"):
         result_counts.columns = ["Match Result", "Frequency"]
         result_counts["Probability"] = (result_counts["Frequency"] / len(sim_results) * 100).round(2)
 
-        st.markdown("### 🔁 Match Result Probabilities (based on 1,000 simulations)")
-        st.dataframe(result_counts, use_container_width=True)
+        
 # Cumulative win probabilities
         total = len(sim_results)
         win_counts = {
@@ -196,10 +211,10 @@ if st.button("Calculate Probability", key="calc_prob_1"):
         })
 
         with st.expander("🔁 Match Result Probabilities Table & Heatmap"):
-            st.markdown("### 🔥 Hole-by-Hole Win Heatmap (across 1,000 simulations)")
-            st.bar_chart(win_df.set_index("Hole"))
-            st.markdown("### 📋 Full Match Result Table")
-            st.dataframe(result_counts, use_container_width=True)
+        st.markdown("### 🔥 Hole-by-Hole Win Heatmap (across 1,000 simulations)")
+        st.bar_chart(win_df.set_index("Hole"))
+        st.markdown("### 📋 Full Match Result Table")
+        st.dataframe(result_counts, use_container_width=True)
 
     else:
         course_handicap = handicap_index_1 * (slope_rating / 113)
